@@ -26,8 +26,8 @@ export default function HomePage() {
           </div>
           <p className="text-sm text-zinc-600">
             Collect FACED survey records offline on this device. Data is stored
-            locally in IndexedDB, exported to Excel, and synced to Turso when
-            online.
+            locally in IndexedDB, exported to Excel, and synced online when
+            connected.
           </p>
         </div>
       </header>

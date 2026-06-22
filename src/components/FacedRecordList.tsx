@@ -98,15 +98,16 @@ export default function FacedRecordList({ refreshKey, onEdit, onSynced }: FacedR
       await loadRecords();
       onSynced?.();
       if (result.failed > 0) {
+        const detail = result.errors?.[0];
         setSyncMessage(
-          `Synced ${result.synced}, failed ${result.failed}. Check Turso config in .env`,
+          `Synced ${result.synced}, failed ${result.failed}.${detail ? ` ${detail}` : ""}`,
         );
       } else {
-        setSyncMessage(`Successfully synced ${result.synced} record(s) to Turso.`);
+        setSyncMessage(`Successfully synced ${result.synced} record(s) online.`);
       }
     } catch (err) {
       setSyncMessage(
-        err instanceof Error ? err.message : "Sync failed. Check .env and Turso connection.",
+        err instanceof Error ? err.message : "Sync failed. Check your connection and .env.",
       );
     } finally {
       setSyncing(false);
@@ -146,7 +147,7 @@ export default function FacedRecordList({ refreshKey, onEdit, onSynced }: FacedR
           disabled={syncing || pendingCount === 0}
           className="faced-btn-primary text-sm disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {syncing ? "Syncing..." : `Sync to Turso (${pendingCount})`}
+          {syncing ? "Syncing online..." : `Sync online (${pendingCount})`}
         </button>
         <button
           type="button"

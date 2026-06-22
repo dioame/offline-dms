@@ -7,7 +7,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "migrate": "node --env-file=.env scripts/migrate.mjs",
+    "migrate": "tsx --env-file=.env scripts/migrate.ts",
     "db:init": "npm run migrate"
   },
   "dependencies": {
@@ -29,6 +29,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "tailwindcss": "^4",
+    "tsx": "^4.20.3",
     "typescript": "^5"
   }
 }

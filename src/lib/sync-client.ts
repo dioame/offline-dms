@@ -5,12 +5,43 @@ import {
 } from "./db";
 import type { FacedRecord } from "./faced-types";
 
+function toIso(value: Date | string | undefined): string {
+  if (!value) return new Date().toISOString();
+  if (value instanceof Date) return value.toISOString();
+  return value;
+}
+
 function serializeRecord(record: FacedRecord) {
   return {
     ...record,
-    createdAt: record.createdAt.toISOString(),
-    updatedAt: record.updatedAt.toISOString(),
+    createdAt: toIso(record.createdAt),
+    updatedAt: toIso(record.updatedAt),
   };
+}
+
+type SyncApiResponse = {
+  synced?: string[];
+  failed?: { uuid: string; error: string }[];
+  error?: string;
+};
+
+async function parseSyncResponse(response: Response): Promise<SyncApiResponse> {
+  const text = await response.text();
+
+  if (!text.trim()) {
+    throw new Error(
+      `Sync failed (${response.status}): empty response from server. Run npm run migrate and restart the dev server.`,
+    );
+  }
+
+  try {
+    return JSON.parse(text) as SyncApiResponse;
+  } catch {
+    const preview = text.replace(/\s+/g, " ").slice(0, 160);
+    throw new Error(
+      `Sync failed (${response.status}): server returned non-JSON. ${preview}`,
+    );
+  }
 }
 
 export type SyncResult = {
@@ -36,14 +67,10 @@ export async function syncPendingRecords(): Promise<SyncResult> {
     }),
   });
 
-  const body = (await response.json()) as {
-    synced?: string[];
-    failed?: { uuid: string; error: string }[];
-    error?: string;
-  };
+  const body = await parseSyncResponse(response);
 
   if (!response.ok) {
-    throw new Error(body.error ?? "Sync request failed");
+    throw new Error(body.error ?? `Sync request failed (${response.status})`);
   }
 
   const syncedUuids = body.synced ?? [];

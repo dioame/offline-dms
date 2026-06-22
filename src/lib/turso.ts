@@ -1,5 +1,6 @@
 import { createClient, type Client } from "@libsql/client";
 import { getTursoEnv } from "./env";
+import { runMigrations } from "./run-migrations";
 
 let client: Client | null = null;
 
@@ -12,7 +13,6 @@ export function getTursoClient(): Client {
 }
 
 export async function ensureTursoSchema(): Promise<void> {
-  const { runMigrations } = await import("../../scripts/migration-core.mjs");
   await runMigrations(getTursoClient());
 }
 

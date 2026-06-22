@@ -43,7 +43,18 @@ export async function POST(request: Request) {
     );
   }
 
-  await ensureTursoSchema();
+  try {
+    await ensureTursoSchema();
+  } catch (err) {
+    return NextResponse.json(
+      {
+        error: `Database setup failed: ${
+          err instanceof Error ? err.message : "unknown error"
+        }. Run npm run migrate.`,
+      },
+      { status: 503 },
+    );
+  }
 
   const synced: string[] = [];
   const failed: { uuid: string; error: string }[] = [];
