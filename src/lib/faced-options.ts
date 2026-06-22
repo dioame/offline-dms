@@ -58,3 +58,12 @@ export function relationOptions() {
 export function vulnerabilityOptions() {
   return VULNERABILITY_TYPES.map((v) => ({ value: v, label: v }));
 }
+
+export const OCCUPATION_SUGGESTIONS = [
+  "Farmer",
+  "Fisherfolk",
+  "Business",
+  "Housewife",
+  "Teacher",
+  "Driver",
+] as const;

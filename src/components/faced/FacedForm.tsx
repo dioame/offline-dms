@@ -23,6 +23,7 @@ import {
 } from "@/lib/sarangani-locations";
 import {
   applyAgeVulnerability,
+  OCCUPATION_SUGGESTIONS,
   relationOptions,
   vulnerabilityOptions,
 } from "@/lib/faced-options";
@@ -30,6 +31,7 @@ import SectionHeader from "./SectionHeader";
 import {
   CheckboxGroup,
   FormField,
+  RadioGroup,
   SelectInput,
   TextInput,
 } from "./FormField";
@@ -66,10 +68,21 @@ const NAME_EXTENSIONS = [
   { value: "VII", label: "VII" },
 ];
 
+function hasHouseOwnership(form: FacedRecordData): boolean {
+  const h = form.house_ownership;
+  return h.owner || h.renter || h.sharer;
+}
+
+function hasShelterDamage(form: FacedRecordData): boolean {
+  const s = form.shelter_damage_classification;
+  return s.partially_damaged || s.totally_damaged;
+}
+
 function normalizeLoadedRecord(
   data: FacedRecordData & {
     serial_number?: string;
     signatures?: unknown;
+    evacuation_center_status?: "" | "yes" | "no";
     permanent_address?: Partial<FacedRecordData["permanent_address"]> & {
       house_block_lot_no?: string;
       street?: string;
@@ -83,6 +96,9 @@ function normalizeLoadedRecord(
     enumerator_name: data.enumerator_name ?? "",
     region: data.region || SARANGANI_REGION,
     province: data.province || SARANGANI_PROVINCE,
+    evacuation_center_status:
+      data.evacuation_center_status ??
+      (data.evacuation_center_site?.trim() ? "yes" : ""),
     permanent_address: {
       address_line: mergePermanentAddressLine(perm),
       barangay: perm.barangay ?? "",
@@ -233,6 +249,14 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
     }));
   }
 
+  function handleEvacuationStatus(status: "" | "yes" | "no") {
+    setForm((prev) => ({
+      ...prev,
+      evacuation_center_status: status,
+      evacuation_center_site: status === "yes" ? prev.evacuation_center_site : "",
+    }));
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setMessage(null);
@@ -251,6 +275,47 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
     }
     if (!form.city_municipality.trim()) {
       setMessage("Please select the city/municipality.");
+      return;
+    }
+    if (!form.head_of_family.sex.trim()) {
+      setMessage("Please select sex.");
+      return;
+    }
+    if (!form.head_of_family.civil_status.trim()) {
+      setMessage("Please select civil status.");
+      return;
+    }
+    if (!form.head_of_family.occupation.trim()) {
+      setMessage("Please enter occupation.");
+      return;
+    }
+    if (!form.evacuation_center_status) {
+      setMessage("Please indicate if the family is in an evacuation center.");
+      return;
+    }
+    if (
+      form.evacuation_center_status === "yes" &&
+      !form.evacuation_center_site.trim()
+    ) {
+      setMessage("Please enter the evacuation center/site.");
+      return;
+    }
+    if (
+      !form.family_members.some(
+        (m) => m.family_member_name.trim() && m.relationship_to_family_head.trim(),
+      )
+    ) {
+      setMessage(
+        "Please add at least one family member with name and relationship.",
+      );
+      return;
+    }
+    if (!hasHouseOwnership(form)) {
+      setMessage("Please select house ownership.");
+      return;
+    }
+    if (!hasShelterDamage(form)) {
+      setMessage("Please select shelter damage classification.");
       return;
     }
     if (!form.privacy_declaration_acknowledged) {
@@ -347,12 +412,26 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
             disabled={!form.city_municipality}
           />
         </FormField>
-        <FormField label="Evacuation Center/Site" number="6">
-          <TextInput
-            value={form.evacuation_center_site}
-            onChange={(e) => updateField("evacuation_center_site", e.target.value)}
+        <FormField label="In Evacuation Center?" number="6" required className="sm:col-span-2">
+          <RadioGroup
+            name="evacuation_center"
+            options={[
+              { value: "yes", label: "Yes" },
+              { value: "no", label: "No" },
+            ]}
+            value={form.evacuation_center_status}
+            onChange={(v) => handleEvacuationStatus(v as "" | "yes" | "no")}
           />
         </FormField>
+        {form.evacuation_center_status === "yes" && (
+          <FormField label="Evacuation Center/Site" required className="sm:col-span-2">
+            <TextInput
+              value={form.evacuation_center_site}
+              onChange={(e) => updateField("evacuation_center_site", e.target.value)}
+              placeholder="Name of evacuation center or site"
+            />
+          </FormField>
+        )}
       </div>
 
       {/* Head of Family */}
@@ -406,39 +485,23 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
             onChange={(e) => updateHead("birthplace", e.target.value)}
           />
         </FormField>
-        <FormField label="Sex" number="14">
-          <div className="flex flex-wrap gap-4">
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={form.head_of_family.male}
-                onChange={(e) => {
-                  if (e.target.checked) handleSexChange("MALE");
-                  else handleSexChange("");
-                }}
-                className="h-4 w-4 accent-[var(--faced-blue)]"
-              />
-              Male
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={form.head_of_family.female}
-                onChange={(e) => {
-                  if (e.target.checked) handleSexChange("FEMALE");
-                  else handleSexChange("");
-                }}
-                className="h-4 w-4 accent-[var(--faced-blue)]"
-              />
-              Female
-            </label>
-          </div>
+        <FormField label="Sex" number="14" required>
+          <RadioGroup
+            name="head_sex"
+            options={[
+              { value: "MALE", label: "Male" },
+              { value: "FEMALE", label: "Female" },
+            ]}
+            value={form.head_of_family.sex}
+            onChange={handleSexChange}
+          />
         </FormField>
-        <FormField label="Civil Status" number="15">
+        <FormField label="Civil Status" number="15" required>
           <SelectInput
             value={form.head_of_family.civil_status}
             onChange={(e) => updateHead("civil_status", e.target.value)}
             options={CIVIL_STATUS}
+            placeholder="Select civil status"
           />
         </FormField>
         <FormField label="Mother's Maiden Name" number="16">
@@ -447,11 +510,24 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
             onChange={(e) => updateHead("mothers_maiden_name", e.target.value)}
           />
         </FormField>
-        <FormField label="Occupation" number="17">
+        <FormField label="Occupation" number="17" required className="sm:col-span-2">
           <TextInput
             value={form.head_of_family.occupation}
             onChange={(e) => updateHead("occupation", e.target.value)}
+            placeholder="Occupation"
           />
+          <div className="mt-2 flex flex-wrap gap-2">
+            {OCCUPATION_SUGGESTIONS.map((suggestion) => (
+              <button
+                key={suggestion}
+                type="button"
+                onClick={() => updateHead("occupation", suggestion)}
+                className="rounded-full border border-[var(--faced-blue-border)] bg-[var(--faced-blue-light)] px-3 py-1 text-xs font-medium text-[var(--faced-blue)] hover:bg-[var(--faced-blue)] hover:text-white"
+              >
+                {suggestion}
+              </button>
+            ))}
+          </div>
         </FormField>
         <FormField label="Monthly Family Net Income" number="18">
           <TextInput
@@ -581,7 +657,7 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
       </div>
 
       {/* Family Members */}
-      <SectionHeader title="Family Information" number="25" />
+      <SectionHeader title="Family Information (Required)" number="25" />
       <div className="faced-section-body space-y-4">
         <div className="overflow-x-auto">
           <table className="faced-table w-full min-w-[720px] text-sm">
@@ -747,7 +823,7 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
       </div>
 
       {/* House Ownership */}
-      <SectionHeader title="House Ownership" number="30" />
+      <SectionHeader title="House Ownership (Required)" number="30" />
       <div className="faced-section-body">
         <CheckboxGroup
           exclusive
@@ -768,7 +844,7 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
       </div>
 
       {/* Shelter Damage */}
-      <SectionHeader title="Shelter Damage Classification" number="31" />
+      <SectionHeader title="Shelter Damage Classification (Required)" number="31" />
       <div className="faced-section-body">
         <CheckboxGroup
           exclusive

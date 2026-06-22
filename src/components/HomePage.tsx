@@ -3,6 +3,7 @@
 import { useState } from "react";
 import FacedForm from "@/components/faced/FacedForm";
 import FacedRecordList from "@/components/FacedRecordList";
+import LoginGate from "@/components/LoginGate";
 import OfflineIndicator from "@/components/OfflineIndicator";
 
 export default function HomePage() {
@@ -10,7 +11,8 @@ export default function HomePage() {
   const [editId, setEditId] = useState<number | null>(null);
 
   return (
-    <div className="min-h-full bg-zinc-100">
+    <LoginGate>
+      <div className="min-h-full bg-zinc-100">
       <header className="border-b border-[var(--faced-blue-border)] bg-white">
         <div className="mx-auto flex max-w-4xl flex-col gap-3 px-4 py-5">
           <div className="flex items-start justify-between gap-4">
@@ -64,6 +66,7 @@ export default function HomePage() {
           />
         </section>
       </main>
-    </div>
+      </div>
+    </LoginGate>
   );
 }

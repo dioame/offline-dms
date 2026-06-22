@@ -21,3 +21,15 @@ export function getTursoEnv(): { url: string; authToken: string } {
 export function getSyncApiSecret(): string | undefined {
   return process.env.SYNC_API_SECRET?.trim() || undefined;
 }
+
+export function getAdminPassword(): string | undefined {
+  return process.env.ADMIN_PASSWORD?.trim() || undefined;
+}
+
+export function verifyAdminPassword(password: string): boolean {
+  const expected = getAdminPassword();
+  if (!expected) {
+    return false;
+  }
+  return password === expected;
+}

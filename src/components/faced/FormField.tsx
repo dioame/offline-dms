@@ -3,6 +3,7 @@ import { type InputHTMLAttributes, type ReactNode } from "react";
 type FormFieldProps = {
   label: string;
   number?: string;
+  required?: boolean;
   children: ReactNode;
   className?: string;
 };
@@ -10,6 +11,7 @@ type FormFieldProps = {
 export function FormField({
   label,
   number,
+  required = false,
   children,
   className = "",
 }: FormFieldProps) {
@@ -18,6 +20,7 @@ export function FormField({
       <label className="faced-label">
         {number && <span className="faced-field-num">{number}</span>}
         {label}
+        {required && <span className="ml-0.5 text-red-600">*</span>}
       </label>
       {children}
     </div>
@@ -93,5 +96,37 @@ export function SelectInput({
         </option>
       ))}
     </select>
+  );
+}
+
+type RadioGroupProps = {
+  name: string;
+  options: { value: string; label: string }[];
+  value: string;
+  onChange: (value: string) => void;
+};
+
+export function RadioGroup({
+  name,
+  options,
+  value,
+  onChange,
+}: RadioGroupProps) {
+  return (
+    <div className="flex flex-wrap gap-4">
+      {options.map((o) => (
+        <label key={o.value} className="flex cursor-pointer items-center gap-2 text-sm">
+          <input
+            type="radio"
+            name={name}
+            value={o.value}
+            checked={value === o.value}
+            onChange={() => onChange(o.value)}
+            className="h-4 w-4 accent-[var(--faced-blue)]"
+          />
+          {o.label}
+        </label>
+      ))}
+    </div>
   );
 }

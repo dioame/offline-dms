@@ -22,6 +22,7 @@ export function exportFacedToExcel(
     "City/Municipality": r.city_municipality,
     District: r.district,
     Barangay: r.barangay,
+    "In Evacuation Center": r.evacuation_center_status === "yes" ? "Yes" : r.evacuation_center_status === "no" ? "No" : "",
     "Evacuation Center/Site": r.evacuation_center_site,
     "Head of Family": headFullName(r),
     "Last Name": r.head_of_family.last_name,

@@ -9,6 +9,14 @@ import {
 
 const db = new Dexie("OfflineDMS") as Dexie & {
   faced_records: EntityTable<FacedRecord, "id">;
+  auth_session: EntityTable<AuthSession, "id">;
+};
+
+export type AuthSession = {
+  id: "current";
+  code: string;
+  sessionId: string;
+  loggedInAt: Date;
 };
 
 db.version(1).stores({
@@ -39,6 +47,29 @@ db.version(3)
         }
       });
   });
+
+db.version(4).stores({
+  faced_records:
+    "++id, uuid, barangay, enumerator_name, sync_status, createdAt, date_registered",
+  auth_session: "id",
+});
+
+export async function getAuthSession(): Promise<AuthSession | undefined> {
+  return db.auth_session.get("current");
+}
+
+export async function saveAuthSession(code: string, sessionId: string): Promise<void> {
+  await db.auth_session.put({
+    id: "current",
+    code: code.trim().toUpperCase(),
+    sessionId,
+    loggedInAt: new Date(),
+  });
+}
+
+export async function clearAuthSession(): Promise<void> {
+  await db.auth_session.delete("current");
+}
 
 export { db };
 

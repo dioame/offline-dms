@@ -78,6 +78,7 @@ export type FacedRecordData = {
   city_municipality: string;
   district: string;
   barangay: string;
+  evacuation_center_status: "" | "yes" | "no";
   evacuation_center_site: string;
   head_of_family: HeadOfFamily;
   permanent_address: PermanentAddress;
@@ -123,6 +124,7 @@ export function createEmptyFacedRecord(): FacedRecordData {
     city_municipality: "",
     district: "",
     barangay: "",
+    evacuation_center_status: "",
     evacuation_center_site: "",
     head_of_family: {
       last_name: "",
