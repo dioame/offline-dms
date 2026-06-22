@@ -17,6 +17,8 @@ export type AuthSession = {
   code: string;
   sessionId: string;
   loggedInAt: Date;
+  enumeratorName?: string;
+  enumeratorEmail?: string;
 };
 
 db.version(1).stores({
@@ -58,12 +60,19 @@ export async function getAuthSession(): Promise<AuthSession | undefined> {
   return db.auth_session.get("current");
 }
 
-export async function saveAuthSession(code: string, sessionId: string): Promise<void> {
+export async function saveAuthSession(
+  code: string,
+  sessionId: string,
+  assignee?: { enumeratorName?: string | null; enumeratorEmail?: string | null },
+): Promise<void> {
+  const existing = await db.auth_session.get("current");
   await db.auth_session.put({
     id: "current",
     code: code.trim().toUpperCase(),
     sessionId,
-    loggedInAt: new Date(),
+    loggedInAt: existing?.loggedInAt ?? new Date(),
+    enumeratorName: assignee?.enumeratorName?.trim() || undefined,
+    enumeratorEmail: assignee?.enumeratorEmail?.trim() || undefined,
   });
 }
 

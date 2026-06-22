@@ -116,9 +116,18 @@ export function emptyFamilyMember(): FamilyMember {
   };
 }
 
-export function createEmptyFacedRecord(): FacedRecordData {
+export function todayDateInputValue(date = new Date()): string {
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+export function createEmptyFacedRecord(
+  defaults?: Partial<Pick<FacedRecordData, "enumerator_name" | "date_registered">>,
+): FacedRecordData {
   return {
-    enumerator_name: "",
+    enumerator_name: defaults?.enumerator_name ?? "",
     region: SARANGANI_REGION,
     province: SARANGANI_PROVINCE,
     city_municipality: "",
@@ -172,7 +181,7 @@ export function createEmptyFacedRecord(): FacedRecordData {
       partially_damaged: false,
       totally_damaged: false,
     },
-    date_registered: "",
+    date_registered: defaults?.date_registered ?? todayDateInputValue(),
     privacy_declaration_acknowledged: false,
     metadata: {
       form_type: "DSWD Family Assistance Card (FACED)",

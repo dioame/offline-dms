@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import {
   addFacedRecord,
   createEmptyFacedRecord,
+  getAuthSession,
   getFacedRecord,
   updateFacedRecord,
 } from "@/lib/db";
@@ -120,7 +121,13 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
 
   useEffect(() => {
     if (!editId) {
-      setForm(createEmptyFacedRecord());
+      void getAuthSession().then((session) => {
+        setForm(
+          createEmptyFacedRecord({
+            enumerator_name: session?.enumeratorName ?? "",
+          }),
+        );
+      });
       return;
     }
     void getFacedRecord(editId).then((record) => {

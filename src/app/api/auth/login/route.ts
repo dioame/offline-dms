@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { redeemAccessCode } from "@/lib/access-codes";
+import { getAccessCodeAssignee, redeemAccessCode } from "@/lib/access-codes";
 import { isTursoConfigured } from "@/lib/env";
 
 export async function POST(request: Request) {
@@ -31,10 +31,13 @@ export async function POST(request: Request) {
     if (!result.valid) {
       return NextResponse.json({ error: result.reason }, { status: 401 });
     }
+    const assignee = await getAccessCodeAssignee(code);
     return NextResponse.json({
       success: true,
       code: code.trim().toUpperCase(),
       sessionId,
+      enumerator_name: assignee?.enumerator_name ?? null,
+      enumerator_email: assignee?.enumerator_email ?? null,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Login failed.";

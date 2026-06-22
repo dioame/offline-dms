@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { checkAccessCode } from "@/lib/access-codes";
+import { checkAccessCode, getAccessCodeAssignee } from "@/lib/access-codes";
 import { isTursoConfigured } from "@/lib/env";
 
 export async function POST(request: Request) {
@@ -22,9 +22,12 @@ export async function POST(request: Request) {
 
   try {
     const result = await checkAccessCode(code, sessionId);
+    const assignee = result.valid ? await getAccessCodeAssignee(code) : null;
     return NextResponse.json({
       valid: result.valid,
       reason: result.reason,
+      enumerator_name: assignee?.enumerator_name ?? null,
+      enumerator_email: assignee?.enumerator_email ?? null,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Validation failed.";

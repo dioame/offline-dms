@@ -34,6 +34,24 @@ const CODE_SELECT = `
   enumerator_name, enumerator_email
 `;
 
+export type AccessCodeAssignee = {
+  enumerator_name: string | null;
+  enumerator_email: string | null;
+};
+
+export async function getAccessCodeAssignee(
+  rawCode: string,
+): Promise<AccessCodeAssignee | null> {
+  const code = normalizeAccessCode(rawCode);
+  if (!code) return null;
+  const row = await getCodeRow(code);
+  if (!row) return null;
+  return {
+    enumerator_name: row.enumerator_name,
+    enumerator_email: row.enumerator_email,
+  };
+}
+
 async function getCodeRow(code: string): Promise<AccessCodeRow | null> {
   await ensureTursoSchema();
   const db = getTursoClient();

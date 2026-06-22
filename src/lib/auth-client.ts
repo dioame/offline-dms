@@ -62,6 +62,8 @@ export async function loginWithCode(code: string): Promise<void> {
     success?: boolean;
     code?: string;
     sessionId?: string;
+    enumerator_name?: string | null;
+    enumerator_email?: string | null;
     error?: string;
   }>(res);
 
@@ -69,7 +71,10 @@ export async function loginWithCode(code: string): Promise<void> {
     throw new Error(data.error || "Invalid access code.");
   }
 
-  await saveAuthSession(data.code || code, data.sessionId || sessionId);
+  await saveAuthSession(data.code || code, data.sessionId || sessionId, {
+    enumeratorName: data.enumerator_name,
+    enumeratorEmail: data.enumerator_email,
+  });
 }
 
 export async function validateStoredSessionOnline(): Promise<boolean> {
@@ -92,11 +97,20 @@ export async function validateStoredSessionOnline(): Promise<boolean> {
       }),
     });
 
-    const data = await parseJsonResponse<{ valid?: boolean }>(res);
+    const data = await parseJsonResponse<{
+      valid?: boolean;
+      enumerator_name?: string | null;
+      enumerator_email?: string | null;
+    }>(res);
     if (!res.ok || !data.valid) {
       await clearAuthSession();
       return false;
     }
+
+    await saveAuthSession(session.code, session.sessionId, {
+      enumeratorName: data.enumerator_name,
+      enumeratorEmail: data.enumerator_email,
+    });
 
     return true;
   } catch {

@@ -44,6 +44,65 @@ type EnumeratorSummaryTotals = {
 };
 
 const ADMIN_STORAGE_KEY = "dms_admin_password";
+const PAGE_SIZE = 20;
+
+function paginate<T>(items: T[], page: number, pageSize: number): T[] {
+  const start = (page - 1) * pageSize;
+  return items.slice(start, start + pageSize);
+}
+
+function totalPages(count: number, pageSize: number): number {
+  return Math.max(1, Math.ceil(count / pageSize));
+}
+
+type AdminPaginationProps = {
+  page: number;
+  totalItems: number;
+  pageSize: number;
+  onPageChange: (page: number) => void;
+};
+
+function AdminPagination({
+  page,
+  totalItems,
+  pageSize,
+  onPageChange,
+}: AdminPaginationProps) {
+  const pages = totalPages(totalItems, pageSize);
+  if (totalItems <= pageSize) return null;
+
+  const start = (page - 1) * pageSize + 1;
+  const end = Math.min(page * pageSize, totalItems);
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--faced-blue-border)] px-4 py-3">
+      <p className="text-xs text-zinc-600">
+        Showing {start}–{end} of {totalItems}
+      </p>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => onPageChange(page - 1)}
+          disabled={page <= 1}
+          className="faced-btn-secondary text-xs disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Previous
+        </button>
+        <span className="text-xs text-zinc-600">
+          Page {page} of {pages}
+        </span>
+        <button
+          type="button"
+          onClick={() => onPageChange(page + 1)}
+          disabled={page >= pages}
+          className="faced-btn-secondary text-xs disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
@@ -91,6 +150,8 @@ export default function AdminPage() {
   const [summaries, setSummaries] = useState<EnumeratorSummary[]>([]);
   const [summaryTotals, setSummaryTotals] = useState<EnumeratorSummaryTotals | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
+  const [summaryPage, setSummaryPage] = useState(1);
+  const [codesPage, setCodesPage] = useState(1);
 
   useEffect(() => {
     const stored = sessionStorage.getItem(ADMIN_STORAGE_KEY);
@@ -184,6 +245,24 @@ export default function AdminPage() {
       );
     });
   }, [codes, drafts, search]);
+
+  useEffect(() => {
+    setCodesPage(1);
+  }, [search]);
+
+  useEffect(() => {
+    setSummaryPage(1);
+  }, [summaries]);
+
+  const paginatedSummaries = useMemo(
+    () => paginate(summaries, summaryPage, PAGE_SIZE),
+    [summaries, summaryPage],
+  );
+
+  const paginatedCodes = useMemo(
+    () => paginate(filteredCodes, codesPage, PAGE_SIZE),
+    [filteredCodes, codesPage],
+  );
 
   async function handleUnlock(e: React.FormEvent) {
     e.preventDefault();
@@ -517,7 +596,7 @@ export default function AdminPage() {
                       </td>
                     </tr>
                   ) : (
-                    summaries.map((row) => (
+                    paginatedSummaries.map((row) => (
                       <tr key={`${row.enumerator_name}-${row.enumerator_email ?? ""}`}>
                         <td className="font-medium">{row.enumerator_name}</td>
                         <td className="text-zinc-600">{row.enumerator_email || "—"}</td>
@@ -547,7 +626,7 @@ export default function AdminPage() {
                   No enumerator activity yet.
                 </p>
               ) : (
-                summaries.map((row) => (
+                paginatedSummaries.map((row) => (
                   <article
                     key={`${row.enumerator_name}-${row.enumerator_email ?? ""}`}
                     className="admin-code-card"
@@ -591,6 +670,13 @@ export default function AdminPage() {
                 ))
               )}
             </div>
+
+            <AdminPagination
+              page={summaryPage}
+              totalItems={summaries.length}
+              pageSize={PAGE_SIZE}
+              onPageChange={setSummaryPage}
+            />
           </div>
         </section>
 
@@ -726,7 +812,7 @@ export default function AdminPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredCodes.map((row) => {
+                  paginatedCodes.map((row) => {
                     const draft = drafts[row.code] ?? {
                       enumerator_name: "",
                       enumerator_email: "",
@@ -815,6 +901,12 @@ export default function AdminPage() {
                 )}
               </tbody>
             </table>
+            <AdminPagination
+              page={codesPage}
+              totalItems={filteredCodes.length}
+              pageSize={PAGE_SIZE}
+              onPageChange={setCodesPage}
+            />
           </div>
 
           {/* Mobile cards */}
@@ -826,7 +918,7 @@ export default function AdminPage() {
                   : "No codes match your search."}
               </p>
             ) : (
-              filteredCodes.map((row) => {
+              paginatedCodes.map((row) => {
                 const draft = drafts[row.code] ?? {
                   enumerator_name: "",
                   enumerator_email: "",
@@ -919,6 +1011,12 @@ export default function AdminPage() {
                 );
               })
             )}
+            <AdminPagination
+              page={codesPage}
+              totalItems={filteredCodes.length}
+              pageSize={PAGE_SIZE}
+              onPageChange={setCodesPage}
+            />
           </div>
         </section>
       </main>
