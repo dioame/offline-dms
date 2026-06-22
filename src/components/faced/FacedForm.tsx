@@ -485,6 +485,14 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
             placeholder="e.g. Purok Tamparan, Main Street, Village Name"
           />
         </FormField>
+        <FormField label="City/Municipality">
+          <SelectInput
+            value={form.permanent_address.city_municipality}
+            onChange={(e) => handlePermMunicipality(e.target.value)}
+            options={municipalityOptions()}
+            placeholder="Select municipality"
+          />
+        </FormField>
         <FormField label="Barangay">
           <SelectInput
             value={form.permanent_address.barangay}
@@ -496,14 +504,6 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
                 : "Select municipality first"
             }
             disabled={!form.permanent_address.city_municipality}
-          />
-        </FormField>
-        <FormField label="City/Municipality">
-          <SelectInput
-            value={form.permanent_address.city_municipality}
-            onChange={(e) => handlePermMunicipality(e.target.value)}
-            options={municipalityOptions()}
-            placeholder="Select municipality"
           />
         </FormField>
         <FormField label="Province">
