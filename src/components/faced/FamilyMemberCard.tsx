@@ -1,5 +1,5 @@
 import type { FamilyMember } from "@/lib/faced-types";
-import { relationOptions, vulnerabilityOptions } from "@/lib/faced-options";
+import { educationalAttainmentOptions, relationOptions, vulnerabilityOptions } from "@/lib/faced-options";
 import { FormField, SelectInput, TextInput } from "./FormField";
 
 const SEX_OPTIONS = [
@@ -106,10 +106,11 @@ export default function FamilyMemberCard({
         </FormField>
 
         <FormField label="Highest educational attainment">
-          <TextInput
+          <SelectInput
             value={member.highest_educational_attainment}
             onChange={(e) => onChange("highest_educational_attainment", e.target.value)}
-            placeholder="e.g. Elementary, High School, College"
+            options={educationalAttainmentOptions()}
+            placeholder="Select educational attainment"
           />
         </FormField>
 

@@ -33,6 +33,17 @@ export const VULNERABILITY_TYPES = [
   "Infant",
 ] as const;
 
+export const EDUCATIONAL_ATTAINMENT_LEVELS = [
+  "Elementary Level",
+  "Elementary Graduate",
+  "High School Level",
+  "High School Graduate",
+  "College Level",
+  "College Graduate",
+  "Post Graduate",
+  "No Education",
+] as const;
+
 export type AutoVulnerability = "Elderly" | "Infant";
 
 export function autoVulnerabilityFromAge(age: string): AutoVulnerability | null {
@@ -57,6 +68,13 @@ export function relationOptions() {
 
 export function vulnerabilityOptions() {
   return VULNERABILITY_TYPES.map((v) => ({ value: v, label: v }));
+}
+
+export function educationalAttainmentOptions() {
+  return EDUCATIONAL_ATTAINMENT_LEVELS.map((level) => ({
+    value: level,
+    label: level,
+  }));
 }
 
 export const OCCUPATION_SUGGESTIONS = [
