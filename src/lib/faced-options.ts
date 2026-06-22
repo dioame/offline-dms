@@ -44,15 +44,9 @@ export function autoVulnerabilityFromAge(age: string): AutoVulnerability | null 
 }
 
 export function applyAgeVulnerability(member: FamilyMember): FamilyMember {
-  const auto = autoVulnerabilityFromAge(member.age);
-  if (auto) {
-    return { ...member, type_of_vulnerability: auto };
-  }
-  if (
-    member.type_of_vulnerability === "Elderly" ||
-    member.type_of_vulnerability === "Infant"
-  ) {
-    return { ...member, type_of_vulnerability: "" };
+  const defaultVal = autoVulnerabilityFromAge(member.age);
+  if (defaultVal) {
+    return { ...member, type_of_vulnerability: defaultVal };
   }
   return member;
 }
@@ -63,13 +57,4 @@ export function relationOptions() {
 
 export function vulnerabilityOptions() {
   return VULNERABILITY_TYPES.map((v) => ({ value: v, label: v }));
-}
-
-/** Manual choices when age does not auto-assign Elderly or Infant */
-export function editableVulnerabilityOptions() {
-  return [
-    { value: "Pregnant", label: "Pregnant" },
-    { value: "Lactating", label: "Lactating" },
-    { value: "PWD", label: "PWD" },
-  ];
 }

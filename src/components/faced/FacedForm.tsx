@@ -23,9 +23,8 @@ import {
 } from "@/lib/sarangani-locations";
 import {
   applyAgeVulnerability,
-  autoVulnerabilityFromAge,
-  editableVulnerabilityOptions,
   relationOptions,
+  vulnerabilityOptions,
 } from "@/lib/faced-options";
 import SectionHeader from "./SectionHeader";
 import {
@@ -154,17 +153,11 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
       const members = [...prev.family_members];
       let member = { ...members[index], [field]: value };
 
-      if (field === "type_of_vulnerability") {
-        if (autoVulnerabilityFromAge(member.age)) {
-          return prev;
-        }
-      } else {
-        if (field === "birthdate") {
-          member.age = computeAge(value);
-        }
-        if (field === "birthdate" || field === "age") {
-          member = applyAgeVulnerability(member);
-        }
+      if (field === "birthdate") {
+        member.age = computeAge(value);
+      }
+      if (field === "birthdate" || field === "age") {
+        member = applyAgeVulnerability(member);
       }
 
       members[index] = member;
@@ -669,24 +662,15 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
                     />
                   </td>
                   <td>
-                    {autoVulnerabilityFromAge(member.age) ? (
-                      <TextInput
-                        value={member.type_of_vulnerability}
-                        readOnly
-                        className="min-w-[110px] bg-zinc-50"
-                        title="Set automatically from age"
-                      />
-                    ) : (
-                      <SelectInput
-                        value={member.type_of_vulnerability}
-                        onChange={(e) =>
-                          updateMember(index, "type_of_vulnerability", e.target.value)
-                        }
-                        options={editableVulnerabilityOptions()}
-                        placeholder="None"
-                        className="min-w-[110px]"
-                      />
-                    )}
+                    <SelectInput
+                      value={member.type_of_vulnerability}
+                      onChange={(e) =>
+                        updateMember(index, "type_of_vulnerability", e.target.value)
+                      }
+                      options={vulnerabilityOptions()}
+                      placeholder="None"
+                      className="min-w-[110px]"
+                    />
                   </td>
                   <td>
                     {form.family_members.length > 1 && (
