@@ -22,6 +22,27 @@ type AssigneeDraft = {
   enumerator_email: string;
 };
 
+type EnumeratorSummary = {
+  enumerator_name: string;
+  enumerator_email: string | null;
+  total_encoded: number;
+  total_codes: number;
+  active_codes: number;
+  used_codes: number;
+  rejected_codes: number;
+  last_encoded_at: string | null;
+  last_used_at: string | null;
+};
+
+type EnumeratorSummaryTotals = {
+  enumerators: number;
+  total_encoded: number;
+  total_codes: number;
+  active_codes: number;
+  used_codes: number;
+  rejected_codes: number;
+};
+
 const ADMIN_STORAGE_KEY = "dms_admin_password";
 
 function formatDate(iso: string | null): string {
@@ -67,6 +88,9 @@ export default function AdminPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [summaries, setSummaries] = useState<EnumeratorSummary[]>([]);
+  const [summaryTotals, setSummaryTotals] = useState<EnumeratorSummaryTotals | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
 
   useEffect(() => {
     const stored = sessionStorage.getItem(ADMIN_STORAGE_KEY);
@@ -114,11 +138,36 @@ export default function AdminPage() {
     }
   }, [adminFetch]);
 
+  const loadStats = useCallback(async () => {
+    setStatsLoading(true);
+    try {
+      const res = await adminFetch("/api/admin/stats");
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to load stats.");
+      }
+      setSummaries(data.summaries || []);
+      setSummaryTotals(data.totals || null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load stats.");
+      if (err instanceof Error && err.message === "Unauthorized") {
+        setUnlocked(false);
+        sessionStorage.removeItem(ADMIN_STORAGE_KEY);
+      }
+    } finally {
+      setStatsLoading(false);
+    }
+  }, [adminFetch]);
+
+  const refreshAdminData = useCallback(async () => {
+    await Promise.all([loadCodes(), loadStats()]);
+  }, [loadCodes, loadStats]);
+
   useEffect(() => {
     if (unlocked) {
-      void loadCodes();
+      void refreshAdminData();
     }
-  }, [unlocked, loadCodes]);
+  }, [unlocked, refreshAdminData]);
 
   const filteredCodes = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -163,6 +212,8 @@ export default function AdminPage() {
     setCodes([]);
     setDrafts({});
     setGeneratedCodes([]);
+    setSummaries([]);
+    setSummaryTotals(null);
   }
 
   function updateDraft(code: string, field: keyof AssigneeDraft, value: string) {
@@ -197,7 +248,7 @@ export default function AdminPage() {
         throw new Error(data.error || "Failed to save assignment.");
       }
       setMessage(`Saved assignee for ${row.code}.`);
-      await loadCodes();
+      await refreshAdminData();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed.");
     } finally {
@@ -222,7 +273,7 @@ export default function AdminPage() {
       }
       setGeneratedCodes(data.codes || []);
       setMessage(`Generated ${data.codes?.length ?? 0} code(s). Assign enumerators in the list below.`);
-      await loadCodes();
+      await refreshAdminData();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Generation failed.");
     } finally {
@@ -253,7 +304,7 @@ export default function AdminPage() {
       setAddName("");
       setAddEmail("");
       setMessage(`Added code ${data.code}.`);
-      await loadCodes();
+      await refreshAdminData();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Add failed.");
     } finally {
@@ -277,7 +328,7 @@ export default function AdminPage() {
         throw new Error(data.error || "Failed to reject code.");
       }
       setMessage(`Rejected ${code}.`);
-      await loadCodes();
+      await refreshAdminData();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Reject failed.");
     }
@@ -296,7 +347,7 @@ export default function AdminPage() {
         throw new Error(data.error || "Failed to reactivate code.");
       }
       setMessage(`Reactivated ${code}.`);
-      await loadCodes();
+      await refreshAdminData();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Reactivate failed.");
     }
@@ -384,6 +435,164 @@ export default function AdminPage() {
             {error || message}
           </div>
         )}
+
+        <section className="ph-card">
+          <div className="faced-section-header flex flex-wrap items-center justify-between gap-2">
+            <span>Enumerator summary</span>
+            <button
+              type="button"
+              onClick={() => void refreshAdminData()}
+              disabled={loading || statsLoading}
+              className="text-xs font-normal normal-case tracking-normal underline"
+            >
+              Refresh
+            </button>
+          </div>
+          <div className="faced-section-body space-y-4">
+            {statsLoading && summaries.length === 0 ? (
+              <p className="text-sm text-zinc-500">Loading summary...</p>
+            ) : summaryTotals ? (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="rounded-lg border border-[var(--faced-blue-border)] bg-[var(--ph-blue-light)]/40 px-4 py-3">
+                  <p className="text-xs font-bold uppercase tracking-wide text-[var(--ph-blue-dark)]">
+                    Total encoded
+                  </p>
+                  <p className="mt-1 text-2xl font-bold text-[var(--ph-blue-dark)]">
+                    {summaryTotals.total_encoded}
+                  </p>
+                  <p className="text-xs text-zinc-600">Synced FACED records online</p>
+                </div>
+                <div className="rounded-lg border border-[var(--faced-blue-border)] bg-white px-4 py-3">
+                  <p className="text-xs font-bold uppercase tracking-wide text-zinc-600">
+                    Enumerators
+                  </p>
+                  <p className="mt-1 text-2xl font-bold text-zinc-900">
+                    {summaryTotals.enumerators}
+                  </p>
+                  <p className="text-xs text-zinc-600">With codes or encoded records</p>
+                </div>
+                <div className="rounded-lg border border-[var(--faced-blue-border)] bg-white px-4 py-3">
+                  <p className="text-xs font-bold uppercase tracking-wide text-zinc-600">
+                    Access codes
+                  </p>
+                  <p className="mt-1 text-2xl font-bold text-zinc-900">
+                    {summaryTotals.total_codes}
+                  </p>
+                  <p className="text-xs text-zinc-600">
+                    {summaryTotals.active_codes} active · {summaryTotals.used_codes} used
+                  </p>
+                </div>
+                <div className="rounded-lg border border-[var(--faced-blue-border)] bg-white px-4 py-3">
+                  <p className="text-xs font-bold uppercase tracking-wide text-zinc-600">
+                    Rejected codes
+                  </p>
+                  <p className="mt-1 text-2xl font-bold text-zinc-900">
+                    {summaryTotals.rejected_codes}
+                  </p>
+                  <p className="text-xs text-zinc-600">No longer valid for login</p>
+                </div>
+              </div>
+            ) : null}
+
+            <div className="hidden overflow-x-auto lg:block">
+              <table className="faced-table w-full min-w-[880px] text-sm">
+                <thead>
+                  <tr>
+                    <th>Enumerator</th>
+                    <th>Email</th>
+                    <th>Encoded</th>
+                    <th>Codes</th>
+                    <th>Active</th>
+                    <th>Used</th>
+                    <th>Rejected</th>
+                    <th>Last encoded</th>
+                    <th>Last used</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {summaries.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="p-4 text-center text-zinc-500">
+                        No enumerator activity yet. Assign codes and sync records to see totals here.
+                      </td>
+                    </tr>
+                  ) : (
+                    summaries.map((row) => (
+                      <tr key={`${row.enumerator_name}-${row.enumerator_email ?? ""}`}>
+                        <td className="font-medium">{row.enumerator_name}</td>
+                        <td className="text-zinc-600">{row.enumerator_email || "—"}</td>
+                        <td className="font-semibold text-[var(--ph-blue-dark)]">
+                          {row.total_encoded}
+                        </td>
+                        <td>{row.total_codes}</td>
+                        <td>{row.active_codes}</td>
+                        <td>{row.used_codes}</td>
+                        <td>{row.rejected_codes}</td>
+                        <td className="text-xs text-zinc-600">
+                          {formatDate(row.last_encoded_at)}
+                        </td>
+                        <td className="text-xs text-zinc-600">
+                          {formatDate(row.last_used_at)}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="space-y-3 lg:hidden">
+              {summaries.length === 0 ? (
+                <p className="text-center text-sm text-zinc-500">
+                  No enumerator activity yet.
+                </p>
+              ) : (
+                summaries.map((row) => (
+                  <article
+                    key={`${row.enumerator_name}-${row.enumerator_email ?? ""}`}
+                    className="admin-code-card"
+                  >
+                    <div className="admin-code-card-header">
+                      <span className="text-sm font-bold text-[var(--ph-blue-dark)]">
+                        {row.enumerator_name}
+                      </span>
+                      <span className="rounded-full bg-[var(--ph-blue-light)] px-2.5 py-0.5 text-xs font-bold text-[var(--ph-blue-dark)]">
+                        {row.total_encoded} encoded
+                      </span>
+                    </div>
+                    <div className="grid gap-2 p-3 text-sm sm:grid-cols-2">
+                      <p>
+                        <span className="faced-label">Email</span>
+                        <span className="block text-zinc-700">
+                          {row.enumerator_email || "—"}
+                        </span>
+                      </p>
+                      <p>
+                        <span className="faced-label">Codes</span>
+                        <span className="block text-zinc-700">
+                          {row.total_codes} total ({row.active_codes} active, {row.used_codes}{" "}
+                          used, {row.rejected_codes} rejected)
+                        </span>
+                      </p>
+                      <p>
+                        <span className="faced-label">Last encoded</span>
+                        <span className="block text-zinc-700">
+                          {formatDate(row.last_encoded_at)}
+                        </span>
+                      </p>
+                      <p>
+                        <span className="faced-label">Last used</span>
+                        <span className="block text-zinc-700">
+                          {formatDate(row.last_used_at)}
+                        </span>
+                      </p>
+                    </div>
+                  </article>
+                ))
+              )}
+            </div>
+          </div>
+        </section>
 
         <section className="ph-card">
           <div className="faced-section-header">Generate codes</div>
@@ -477,8 +686,8 @@ export default function AdminPage() {
             <span>All codes ({filteredCodes.length}{search ? ` of ${codes.length}` : ""})</span>
             <button
               type="button"
-              onClick={() => void loadCodes()}
-              disabled={loading}
+              onClick={() => void refreshAdminData()}
+              disabled={loading || statsLoading}
               className="text-xs font-normal normal-case tracking-normal underline"
             >
               Refresh
