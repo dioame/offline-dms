@@ -1,35 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
+
+function subscribe(onStoreChange: () => void) {
+  window.addEventListener("online", onStoreChange);
+  window.addEventListener("offline", onStoreChange);
+  return () => {
+    window.removeEventListener("online", onStoreChange);
+    window.removeEventListener("offline", onStoreChange);
+  };
+}
+
+function getOnlineSnapshot() {
+  return navigator.onLine;
+}
+
+function getOnlineServerSnapshot() {
+  return true;
+}
 
 export default function OfflineIndicator() {
-  const [mounted, setMounted] = useState(false);
-  const [online, setOnline] = useState(true);
-
-  useEffect(() => {
-    setMounted(true);
-    setOnline(navigator.onLine);
-
-    const handleOnline = () => setOnline(true);
-    const handleOffline = () => setOnline(false);
-
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, []);
-
-  if (!mounted) {
-    return (
-      <div className="inline-flex items-center gap-2 rounded-full bg-zinc-100 px-3 py-1 text-sm font-medium text-zinc-500">
-        <span className="h-2 w-2 rounded-full bg-zinc-300" aria-hidden />
-        …
-      </div>
-    );
-  }
+  const online = useSyncExternalStore(
+    subscribe,
+    getOnlineSnapshot,
+    getOnlineServerSnapshot,
+  );
 
   return (
     <div
@@ -38,6 +33,7 @@ export default function OfflineIndicator() {
           ? "bg-emerald-100 text-emerald-800"
           : "bg-amber-100 text-amber-900"
       }`}
+      suppressHydrationWarning
     >
       <span
         className={`h-2 w-2 rounded-full ${online ? "bg-emerald-500" : "bg-amber-500"}`}

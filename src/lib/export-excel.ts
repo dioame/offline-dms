@@ -1,5 +1,5 @@
 import * as XLSX from "xlsx";
-import type { FacedRecord } from "./faced-types";
+import { mergePermanentAddressLine, type FacedRecord } from "./faced-types";
 
 function headFullName(record: FacedRecord): string {
   const h = record.head_of_family;
@@ -17,7 +17,6 @@ export function exportFacedToExcel(
     UUID: r.uuid,
     "Sync Status": r.sync_status,
     "Enumerator Name": r.enumerator_name ?? "",
-    "Serial Number": r.serial_number,
     Region: r.region,
     Province: r.province,
     "City/Municipality": r.city_municipality,
@@ -41,9 +40,7 @@ export function exportFacedToExcel(
     "ID Card Number": r.head_of_family.id_card_number,
     "Contact (Primary)": r.head_of_family.contact_number.primary,
     "Contact (Alternate)": r.head_of_family.contact_number.alternate,
-    "House/Block/Lot No.": r.permanent_address.house_block_lot_no,
-    Street: r.permanent_address.street,
-    "Subdivision/Village": r.permanent_address.subdivision_village,
+    "Permanent Address Line": mergePermanentAddressLine(r.permanent_address),
     "Perm. Barangay": r.permanent_address.barangay,
     "Perm. City/Municipality": r.permanent_address.city_municipality,
     "Perm. Province": r.permanent_address.province,
@@ -63,9 +60,6 @@ export function exportFacedToExcel(
     "Totally Damaged": r.shelter_damage_classification.totally_damaged
       ? "Yes"
       : "No",
-    "Family Head Signature": r.signatures.family_head_signature,
-    "Barangay Captain Signature": r.signatures.barangay_captain_signature,
-    "DSWDO Signature": r.signatures.dswdo_signature,
     "Date Registered": r.date_registered,
     "Privacy Acknowledged": r.privacy_declaration_acknowledged ? "Yes" : "No",
     "Created At": r.createdAt.toLocaleString(),

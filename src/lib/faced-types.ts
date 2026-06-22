@@ -29,9 +29,7 @@ export type HeadOfFamily = {
 };
 
 export type PermanentAddress = {
-  house_block_lot_no: string;
-  street: string;
-  subdivision_village: string;
+  address_line: string;
   barangay: string;
   city_municipality: string;
   province: string;
@@ -67,12 +65,6 @@ export type ShelterDamageClassification = {
   totally_damaged: boolean;
 };
 
-export type Signatures = {
-  family_head_signature: string;
-  barangay_captain_signature: string;
-  dswdo_signature: string;
-};
-
 export type FacedMetadata = {
   form_type: string;
   program: string;
@@ -87,7 +79,6 @@ export type FacedRecordData = {
   district: string;
   barangay: string;
   evacuation_center_site: string;
-  serial_number: string;
   head_of_family: HeadOfFamily;
   permanent_address: PermanentAddress;
   others: {
@@ -98,7 +89,6 @@ export type FacedRecordData = {
   account_information: AccountInformation;
   house_ownership: HouseOwnership;
   shelter_damage_classification: ShelterDamageClassification;
-  signatures: Signatures;
   date_registered: string;
   privacy_declaration_acknowledged: boolean;
   metadata: FacedMetadata;
@@ -134,7 +124,6 @@ export function createEmptyFacedRecord(): FacedRecordData {
     district: "",
     barangay: "",
     evacuation_center_site: "",
-    serial_number: "",
     head_of_family: {
       last_name: "",
       first_name: "",
@@ -155,9 +144,7 @@ export function createEmptyFacedRecord(): FacedRecordData {
       contact_number: { primary: "", alternate: "" },
     },
     permanent_address: {
-      house_block_lot_no: "",
-      street: "",
-      subdivision_village: "",
+      address_line: "",
       barangay: "",
       city_municipality: "",
       province: SARANGANI_PROVINCE,
@@ -183,11 +170,6 @@ export function createEmptyFacedRecord(): FacedRecordData {
       partially_damaged: false,
       totally_damaged: false,
     },
-    signatures: {
-      family_head_signature: "",
-      barangay_captain_signature: "",
-      dswdo_signature: "",
-    },
     date_registered: "",
     privacy_declaration_acknowledged: false,
     metadata: {
@@ -198,13 +180,30 @@ export function createEmptyFacedRecord(): FacedRecordData {
   };
 }
 
-export function computeAge(birthdate: string): string {
+export function toDateInputValue(birthdate: string): string {
   if (!birthdate.trim()) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(birthdate)) return birthdate;
   const parts = birthdate.split(/[-/]/).map((p) => parseInt(p, 10));
   if (parts.length < 3 || parts.some((n) => Number.isNaN(n))) return "";
   const [month, day, year] = parts;
   const fullYear = year < 100 ? 2000 + year : year;
-  const born = new Date(fullYear, month - 1, day);
+  const mm = String(month).padStart(2, "0");
+  const dd = String(day).padStart(2, "0");
+  return `${fullYear}-${mm}-${dd}`;
+}
+
+export function computeAge(birthdate: string): string {
+  if (!birthdate.trim()) return "";
+  let born: Date;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(birthdate)) {
+    born = new Date(birthdate + "T00:00:00");
+  } else {
+    const parts = birthdate.split(/[-/]/).map((p) => parseInt(p, 10));
+    if (parts.length < 3 || parts.some((n) => Number.isNaN(n))) return "";
+    const [month, day, year] = parts;
+    const fullYear = year < 100 ? 2000 + year : year;
+    born = new Date(fullYear, month - 1, day);
+  }
   if (Number.isNaN(born.getTime())) return "";
   const today = new Date();
   let age = today.getFullYear() - born.getFullYear();
@@ -212,5 +211,19 @@ export function computeAge(birthdate: string): string {
   if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < born.getDate())) {
     age -= 1;
   }
-  return String(age);
+  return String(Math.max(0, age));
+}
+
+export function mergePermanentAddressLine(
+  addr: Partial<PermanentAddress> & {
+    house_block_lot_no?: string;
+    street?: string;
+    subdivision_village?: string;
+  },
+): string {
+  if (addr.address_line?.trim()) return addr.address_line;
+  return [addr.house_block_lot_no, addr.street, addr.subdivision_village]
+    .map((p) => p?.trim())
+    .filter(Boolean)
+    .join(", ");
 }

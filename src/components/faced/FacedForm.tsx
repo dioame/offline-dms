@@ -10,6 +10,8 @@ import {
 import {
   computeAge,
   emptyFamilyMember,
+  mergePermanentAddressLine,
+  toDateInputValue,
   type FacedRecordData,
   type FamilyMember,
 } from "@/lib/faced-types";
@@ -47,6 +49,53 @@ const SEX_OPTIONS = [
   { value: "F", label: "F" },
 ];
 
+const NAME_EXTENSIONS = [
+  { value: "Jr.", label: "Jr." },
+  { value: "Sr.", label: "Sr." },
+  { value: "I", label: "I" },
+  { value: "II", label: "II" },
+  { value: "III", label: "III" },
+  { value: "IV", label: "IV" },
+  { value: "V", label: "V" },
+  { value: "VI", label: "VI" },
+  { value: "VII", label: "VII" },
+];
+
+function normalizeLoadedRecord(
+  data: FacedRecordData & {
+    serial_number?: string;
+    signatures?: unknown;
+    permanent_address?: Partial<FacedRecordData["permanent_address"]> & {
+      house_block_lot_no?: string;
+      street?: string;
+      subdivision_village?: string;
+    };
+  },
+): FacedRecordData {
+  const perm = data.permanent_address ?? createEmptyFacedRecord().permanent_address;
+  return {
+    ...data,
+    enumerator_name: data.enumerator_name ?? "",
+    region: data.region || SARANGANI_REGION,
+    province: data.province || SARANGANI_PROVINCE,
+    permanent_address: {
+      address_line: mergePermanentAddressLine(perm),
+      barangay: perm.barangay ?? "",
+      city_municipality: perm.city_municipality ?? "",
+      province: perm.province || SARANGANI_PROVINCE,
+      zip_code: perm.zip_code ?? "",
+    },
+    head_of_family: {
+      ...data.head_of_family,
+      birthdate: toDateInputValue(data.head_of_family.birthdate),
+    },
+    family_members: data.family_members.map((m) => ({
+      ...m,
+      birthdate: toDateInputValue(m.birthdate),
+    })),
+  };
+}
+
 export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormProps) {
   const [form, setForm] = useState<FacedRecordData>(createEmptyFacedRecord);
   const [saving, setSaving] = useState(false);
@@ -61,12 +110,7 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
       if (record) {
         const { id: _id, uuid: _uuid, sync_status: _s, createdAt: _c, updatedAt: _u, ...data } =
           record;
-        setForm({
-          ...data,
-          enumerator_name: data.enumerator_name ?? "",
-          region: data.region || SARANGANI_REGION,
-          province: data.province || SARANGANI_PROVINCE,
-        });
+        setForm(normalizeLoadedRecord(data));
       }
     });
   }, [editId]);
@@ -281,12 +325,6 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
             onChange={(e) => updateField("evacuation_center_site", e.target.value)}
           />
         </FormField>
-        <FormField label="Serial Number (Official Use)" className="sm:col-span-2">
-          <TextInput
-            value={form.serial_number}
-            onChange={(e) => updateField("serial_number", e.target.value)}
-          />
-        </FormField>
       </div>
 
       {/* Head of Family */}
@@ -310,21 +348,26 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
             onChange={(e) => updateHead("middle_name", e.target.value)}
           />
         </FormField>
-        <FormField label="Name Extension (Jr., Sr., III)" number="10">
-          <TextInput
+        <FormField label="Name Extension" number="10">
+          <SelectInput
             value={form.head_of_family.name_extension}
             onChange={(e) => updateHead("name_extension", e.target.value)}
+            options={NAME_EXTENSIONS}
+            placeholder="None"
           />
         </FormField>
-        <FormField label="Birthdate (MM-DD-YYYY)" number="11">
+        <FormField label="Birthdate" number="11">
           <TextInput
+            type="date"
             value={form.head_of_family.birthdate}
             onChange={(e) => handleHeadBirthdate(e.target.value)}
-            placeholder="12-01-1994"
           />
         </FormField>
         <FormField label="Age" number="12">
           <TextInput
+            type="number"
+            min={0}
+            max={150}
             value={form.head_of_family.age}
             onChange={(e) => updateHead("age", e.target.value)}
           />
@@ -432,22 +475,14 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
       {/* Permanent Address */}
       <SectionHeader title="Permanent Address" number="22" />
       <div className="faced-section-body grid gap-3 sm:grid-cols-2">
-        <FormField label="House/Block/Lot No.">
+        <FormField
+          label="House/Block/Lot, Street, Subdivision/Village"
+          className="sm:col-span-2"
+        >
           <TextInput
-            value={form.permanent_address.house_block_lot_no}
-            onChange={(e) => updateAddress("house_block_lot_no", e.target.value)}
-          />
-        </FormField>
-        <FormField label="Street">
-          <TextInput
-            value={form.permanent_address.street}
-            onChange={(e) => updateAddress("street", e.target.value)}
-          />
-        </FormField>
-        <FormField label="Subdivision/Village">
-          <TextInput
-            value={form.permanent_address.subdivision_village}
-            onChange={(e) => updateAddress("subdivision_village", e.target.value)}
+            value={form.permanent_address.address_line}
+            onChange={(e) => updateAddress("address_line", e.target.value)}
+            placeholder="e.g. Purok Tamparan, Main Street, Village Name"
           />
         </FormField>
         <FormField label="Barangay">
@@ -557,14 +592,17 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
                   </td>
                   <td>
                     <TextInput
+                      type="date"
                       value={member.birthdate}
                       onChange={(e) => updateMember(index, "birthdate", e.target.value)}
-                      placeholder="MM-DD-YYYY"
-                      className="min-w-[100px]"
+                      className="min-w-[130px]"
                     />
                   </td>
                   <td>
                     <TextInput
+                      type="number"
+                      min={0}
+                      max={150}
                       value={member.age}
                       onChange={(e) => updateMember(index, "age", e.target.value)}
                       className="w-16"
@@ -714,48 +752,13 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
         />
       </div>
 
-      {/* Signatures */}
-      <SectionHeader title="Signatures" number="32" />
-      <div className="faced-section-body grid gap-3 sm:grid-cols-2">
-        <FormField label="Signature of Family Head">
-          <TextInput
-            value={form.signatures.family_head_signature}
-            onChange={(e) =>
-              updateField("signatures", {
-                ...form.signatures,
-                family_head_signature: e.target.value,
-              })
-            }
-            placeholder="signed / name"
-          />
-        </FormField>
-        <FormField label="Barangay Captain / LSB Chairperson">
-          <TextInput
-            value={form.signatures.barangay_captain_signature}
-            onChange={(e) =>
-              updateField("signatures", {
-                ...form.signatures,
-                barangay_captain_signature: e.target.value,
-              })
-            }
-          />
-        </FormField>
-        <FormField label="LSWDO Name / Signature" className="sm:col-span-2">
-          <TextInput
-            value={form.signatures.dswdo_signature}
-            onChange={(e) =>
-              updateField("signatures", {
-                ...form.signatures,
-                dswdo_signature: e.target.value,
-              })
-            }
-          />
-        </FormField>
+      <SectionHeader title="Date Registered" />
+      <div className="faced-section-body">
         <FormField label="Date Registered">
           <TextInput
-            value={form.date_registered}
+            type="date"
+            value={toDateInputValue(form.date_registered)}
             onChange={(e) => updateField("date_registered", e.target.value)}
-            placeholder="MM-DD-YY"
           />
         </FormField>
       </div>
