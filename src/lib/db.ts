@@ -1,38 +1,90 @@
 import Dexie, { type EntityTable } from "dexie";
-
-export type Beneficiary = {
-  id?: number;
-  firstName: string;
-  address: string;
-  createdAt: Date;
-};
+import { v4 as uuidv4 } from "uuid";
+import {
+  createEmptyFacedRecord,
+  type FacedRecord,
+  type FacedRecordData,
+  type SyncStatus,
+} from "./faced-types";
 
 const db = new Dexie("OfflineDMS") as Dexie & {
-  beneficiaries: EntityTable<Beneficiary, "id">;
+  faced_records: EntityTable<FacedRecord, "id">;
 };
 
 db.version(1).stores({
   beneficiaries: "++id, firstName, createdAt",
 });
 
+db.version(2)
+  .stores({
+    faced_records: "++id, uuid, barangay, sync_status, createdAt, date_registered",
+    beneficiaries: null,
+  })
+  .upgrade(async (tx) => {
+    await tx.table("beneficiaries").clear();
+  });
+
 export { db };
 
-export async function addBeneficiary(
-  firstName: string,
-  address: string,
-): Promise<number> {
-  const id = await db.beneficiaries.add({
-    firstName: firstName.trim(),
-    address: address.trim(),
-    createdAt: new Date(),
+export async function addFacedRecord(data: FacedRecordData): Promise<number> {
+  const now = new Date();
+  const id = await db.faced_records.add({
+    ...data,
+    uuid: uuidv4(),
+    sync_status: "pending",
+    createdAt: now,
+    updatedAt: now,
   });
   return id as number;
 }
 
-export async function getBeneficiaries(): Promise<Beneficiary[]> {
-  return db.beneficiaries.orderBy("createdAt").reverse().toArray();
+export async function updateFacedRecord(
+  id: number,
+  data: FacedRecordData,
+): Promise<void> {
+  await db.faced_records.update(id, {
+    ...data,
+    updatedAt: new Date(),
+    sync_status: "pending",
+  });
 }
 
-export async function deleteBeneficiary(id: number): Promise<void> {
-  await db.beneficiaries.delete(id);
+export async function getFacedRecords(): Promise<FacedRecord[]> {
+  return db.faced_records.orderBy("createdAt").reverse().toArray();
 }
+
+export async function getFacedRecord(id: number): Promise<FacedRecord | undefined> {
+  return db.faced_records.get(id);
+}
+
+export async function deleteFacedRecord(id: number): Promise<void> {
+  await db.faced_records.delete(id);
+}
+
+export async function getFacedRecordsByStatus(
+  status: SyncStatus,
+): Promise<FacedRecord[]> {
+  return db.faced_records.where("sync_status").equals(status).toArray();
+}
+
+export async function markFacedRecordSynced(uuid: string): Promise<void> {
+  const record = await db.faced_records.where("uuid").equals(uuid).first();
+  if (record?.id) {
+    await db.faced_records.update(record.id, {
+      sync_status: "synced",
+      updatedAt: new Date(),
+    });
+  }
+}
+
+export async function markFacedRecordFailed(uuid: string): Promise<void> {
+  const record = await db.faced_records.where("uuid").equals(uuid).first();
+  if (record?.id) {
+    await db.faced_records.update(record.id, {
+      sync_status: "failed",
+      updatedAt: new Date(),
+    });
+  }
+}
+
+export { createEmptyFacedRecord };

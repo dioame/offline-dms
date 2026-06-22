@@ -1,11 +1,11 @@
 {
-  "name": "Offline DMS - Beneficiary Records",
-  "short_name": "Offline DMS",
-  "description": "Record beneficiary information offline in the field",
+  "name": "Offline DMS - FACED Survey",
+  "short_name": "FACED DMS",
+  "description": "DSWD Family Assistance Card offline survey and data collection",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f4f4f5",
-  "theme_color": "#1d4ed8",
+  "theme_color": "#1e5a9e",
   "orientation": "portrait-primary",
   "icons": [
     {

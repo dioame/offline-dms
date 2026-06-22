@@ -1,0 +1,80 @@
+import { NextResponse } from "next/server";
+import { getSyncApiSecret, isTursoConfigured } from "@/lib/env";
+import type { FacedRecord } from "@/lib/faced-types";
+import { ensureTursoSchema, upsertFacedRecord } from "@/lib/turso";
+
+type SyncPayload = {
+  records: (Omit<FacedRecord, "createdAt" | "updatedAt"> & {
+    createdAt: string;
+    updatedAt: string;
+  })[];
+};
+
+export async function POST(request: Request) {
+  const secret = getSyncApiSecret();
+  if (secret) {
+    const auth = request.headers.get("authorization");
+    if (auth !== `Bearer ${secret}`) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+  }
+
+  if (!isTursoConfigured()) {
+    return NextResponse.json(
+      {
+        error:
+          "Turso is not configured. Set TURSO_DATABASE_URL and TURSO_AUTH_TOKEN in .env",
+      },
+      { status: 503 },
+    );
+  }
+
+  let body: SyncPayload;
+  try {
+    body = (await request.json()) as SyncPayload;
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  if (!Array.isArray(body.records) || body.records.length === 0) {
+    return NextResponse.json(
+      { error: "records array is required" },
+      { status: 400 },
+    );
+  }
+
+  await ensureTursoSchema();
+
+  const synced: string[] = [];
+  const failed: { uuid: string; error: string }[] = [];
+
+  for (const record of body.records) {
+    try {
+      if (!record.uuid) {
+        throw new Error("Record missing uuid");
+      }
+
+      const { id: _id, sync_status: _sync, ...data } = record;
+
+      await upsertFacedRecord({
+        uuid: record.uuid,
+        barangay: record.barangay || "",
+        city_municipality: record.city_municipality || "",
+        province: record.province || "",
+        date_registered: record.date_registered || "",
+        payload: JSON.stringify(data),
+        created_at: record.createdAt,
+        updated_at: record.updatedAt,
+      });
+
+      synced.push(record.uuid);
+    } catch (err) {
+      failed.push({
+        uuid: record.uuid,
+        error: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  }
+
+  return NextResponse.json({ synced, failed });
+}

@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Offline DMS - Beneficiary Records",
+  title: "Offline DMS - FACED Survey",
   description:
-    "Progressive web app for recording beneficiary information offline",
+    "DSWD Family Assistance Card (FACED) offline survey and data collection PWA",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#1d4ed8",
+  themeColor: "#1e5a9e",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
