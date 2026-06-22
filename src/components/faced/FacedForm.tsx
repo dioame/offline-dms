@@ -24,10 +24,9 @@ import {
 import {
   applyAgeVulnerability,
   OCCUPATION_SUGGESTIONS,
-  relationOptions,
-  vulnerabilityOptions,
 } from "@/lib/faced-options";
 import SectionHeader from "./SectionHeader";
+import FamilyMemberCard from "./FamilyMemberCard";
 import BrandEmblem from "@/components/brand/BrandEmblem";
 import {
   CheckboxGroup,
@@ -51,11 +50,6 @@ const CIVIL_STATUS = [
   "ANNULLED",
   "COMMON LAW",
 ].map((v) => ({ value: v, label: v }));
-
-const SEX_OPTIONS = [
-  { value: "M", label: "M" },
-  { value: "F", label: "F" },
-];
 
 const NAME_EXTENSIONS = [
   { value: "Jr.", label: "Jr." },
@@ -663,117 +657,24 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
       {/* Family Members */}
       <SectionHeader title="Family Information (Required)" number="25" />
       <div className="faced-section-body space-y-4">
-        <div className="overflow-x-auto">
-          <table className="faced-table w-full min-w-[720px] text-sm">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Relation</th>
-                <th>Birthdate</th>
-                <th>Age</th>
-                <th>Sex</th>
-                <th>Education</th>
-                <th>Occupation</th>
-                <th>Vulnerability</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {form.family_members.map((member, index) => (
-                <tr key={index}>
-                  <td>
-                    <TextInput
-                      value={member.family_member_name}
-                      onChange={(e) =>
-                        updateMember(index, "family_member_name", e.target.value)
-                      }
-                      className="min-w-[120px]"
-                    />
-                  </td>
-                  <td>
-                    <SelectInput
-                      value={member.relationship_to_family_head}
-                      onChange={(e) =>
-                        updateMember(index, "relationship_to_family_head", e.target.value)
-                      }
-                      options={relationOptions()}
-                      placeholder="Select"
-                      className="min-w-[140px]"
-                    />
-                  </td>
-                  <td>
-                    <TextInput
-                      type="date"
-                      value={member.birthdate}
-                      onChange={(e) => updateMember(index, "birthdate", e.target.value)}
-                      className="min-w-[130px]"
-                    />
-                  </td>
-                  <td>
-                    <TextInput
-                      type="number"
-                      min={0}
-                      max={150}
-                      value={member.age}
-                      onChange={(e) => updateMember(index, "age", e.target.value)}
-                      className="w-16"
-                    />
-                  </td>
-                  <td>
-                    <SelectInput
-                      value={member.sex}
-                      onChange={(e) => updateMember(index, "sex", e.target.value)}
-                      options={SEX_OPTIONS}
-                      className="w-16"
-                    />
-                  </td>
-                  <td>
-                    <TextInput
-                      value={member.highest_educational_attainment}
-                      onChange={(e) =>
-                        updateMember(index, "highest_educational_attainment", e.target.value)
-                      }
-                    />
-                  </td>
-                  <td>
-                    <TextInput
-                      value={member.occupation}
-                      onChange={(e) => updateMember(index, "occupation", e.target.value)}
-                    />
-                  </td>
-                  <td>
-                    <SelectInput
-                      value={member.type_of_vulnerability}
-                      onChange={(e) =>
-                        updateMember(index, "type_of_vulnerability", e.target.value)
-                      }
-                      options={vulnerabilityOptions()}
-                      placeholder="None"
-                      className="min-w-[110px]"
-                    />
-                  </td>
-                  <td>
-                    {form.family_members.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeMember(index)}
-                        className="text-xs text-red-600 hover:text-red-800"
-                      >
-                        Remove
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <p className="text-xs text-zinc-600">
+          Add each household member below. Name and relationship are required.
+        </p>
+        <div className="family-member-list">
+          {form.family_members.map((member, index) => (
+            <FamilyMemberCard
+              key={index}
+              member={member}
+              index={index}
+              canRemove={form.family_members.length > 1}
+              onChange={(field, value) => updateMember(index, field, value)}
+              onRemove={() => removeMember(index)}
+            />
+          ))}
         </div>
-        <button
-          type="button"
-          onClick={addMember}
-          className="text-sm font-medium text-[var(--faced-blue)] hover:underline"
-        >
-          + Add family member
+        <button type="button" onClick={addMember} className="family-member-add-btn">
+          <span aria-hidden>+</span>
+          Add family member
         </button>
       </div>
 
