@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   addAccessCode,
+  assignAccessCode,
   generateAccessCodes,
   listAccessCodes,
   reactivateAccessCode,
@@ -49,6 +50,8 @@ export async function POST(request: Request) {
     action?: "generate" | "add";
     count?: number;
     code?: string;
+    enumerator_name?: string;
+    enumerator_email?: string;
   };
 
   try {
@@ -71,7 +74,10 @@ export async function POST(request: Request) {
       if (!body.code?.trim()) {
         return NextResponse.json({ error: "Code is required." }, { status: 400 });
       }
-      const code = await addAccessCode(body.code);
+      const code = await addAccessCode(body.code, {
+        enumerator_name: body.enumerator_name,
+        enumerator_email: body.enumerator_email,
+      });
       return NextResponse.json({ code });
     }
 
@@ -88,8 +94,10 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   let body: {
     password?: string;
-    action?: "reject" | "reactivate";
+    action?: "reject" | "reactivate" | "assign";
     code?: string;
+    enumerator_name?: string;
+    enumerator_email?: string;
   };
 
   try {
@@ -116,8 +124,16 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ success: true });
     }
 
+    if (body.action === "assign") {
+      await assignAccessCode(body.code, {
+        enumerator_name: body.enumerator_name,
+        enumerator_email: body.enumerator_email,
+      });
+      return NextResponse.json({ success: true });
+    }
+
     return NextResponse.json(
-      { error: 'Invalid action. Use "reject" or "reactivate".' },
+      { error: 'Invalid action. Use "reject", "reactivate", or "assign".' },
       { status: 400 },
     );
   } catch (err) {

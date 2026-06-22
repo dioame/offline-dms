@@ -509,3 +509,21 @@ body {
   border-color: var(--ph-blue);
   background: white;
 }
+
+/* Admin code cards (mobile) */
+.admin-code-card {
+  overflow: hidden;
+  border-radius: 0.625rem;
+  border: 1px solid var(--faced-blue-border);
+  background: white;
+}
+
+.admin-code-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--faced-blue-border);
+  background: var(--ph-blue-light);
+  padding: 0.625rem 0.75rem;
+}

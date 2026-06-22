@@ -11,6 +11,8 @@ export type AccessCodeRow = {
   used_at: string | null;
   session_id: string | null;
   last_used_at: string | null;
+  enumerator_name: string | null;
+  enumerator_email: string | null;
 };
 
 function rowToAccessCode(row: Record<string, unknown>): AccessCodeRow {
@@ -22,15 +24,22 @@ function rowToAccessCode(row: Record<string, unknown>): AccessCodeRow {
     used_at: row.used_at ? String(row.used_at) : null,
     session_id: row.session_id ? String(row.session_id) : null,
     last_used_at: row.last_used_at ? String(row.last_used_at) : null,
+    enumerator_name: row.enumerator_name ? String(row.enumerator_name) : null,
+    enumerator_email: row.enumerator_email ? String(row.enumerator_email) : null,
   };
 }
+
+const CODE_SELECT = `
+  code, status, created_at, rejected_at, used_at, session_id, last_used_at,
+  enumerator_name, enumerator_email
+`;
 
 async function getCodeRow(code: string): Promise<AccessCodeRow | null> {
   await ensureTursoSchema();
   const db = getTursoClient();
   const result = await db.execute({
     sql: `
-      SELECT code, status, created_at, rejected_at, used_at, session_id, last_used_at
+      SELECT ${CODE_SELECT}
       FROM access_codes
       WHERE code = ?
     `,
@@ -45,7 +54,7 @@ export async function listAccessCodes(): Promise<AccessCodeRow[]> {
   const db = getTursoClient();
   const result = await db.execute({
     sql: `
-      SELECT code, status, created_at, rejected_at, used_at, session_id, last_used_at
+      SELECT ${CODE_SELECT}
       FROM access_codes
       ORDER BY created_at DESC
     `,
@@ -173,7 +182,10 @@ export async function generateAccessCodes(count: number): Promise<string[]> {
   return created;
 }
 
-export async function addAccessCode(rawCode: string): Promise<string> {
+export async function addAccessCode(
+  rawCode: string,
+  assignee?: { enumerator_name?: string; enumerator_email?: string },
+): Promise<string> {
   const code = normalizeAccessCode(rawCode);
   if (!code) {
     throw new Error("Code is required.");
@@ -182,19 +194,54 @@ export async function addAccessCode(rawCode: string): Promise<string> {
     throw new Error("Code must be at least 6 characters or match FACED-XXXX-XXXX format.");
   }
 
+  const email = assignee?.enumerator_email?.trim() || null;
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new Error("Invalid email address.");
+  }
+
   await ensureTursoSchema();
   const db = getTursoClient();
   const now = new Date().toISOString();
+  const name = assignee?.enumerator_name?.trim() || null;
 
   await db.execute({
     sql: `
-      INSERT INTO access_codes (code, status, created_at)
-      VALUES (?, 'active', ?)
+      INSERT INTO access_codes (code, status, created_at, enumerator_name, enumerator_email)
+      VALUES (?, 'active', ?, ?, ?)
     `,
-    args: [code, now],
+    args: [code, now, name, email],
   });
 
   return code;
+}
+
+export async function assignAccessCode(
+  rawCode: string,
+  assignee: { enumerator_name?: string; enumerator_email?: string },
+): Promise<void> {
+  const code = normalizeAccessCode(rawCode);
+  const name = assignee.enumerator_name?.trim() || null;
+  const email = assignee.enumerator_email?.trim() || null;
+
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new Error("Invalid email address.");
+  }
+
+  await ensureTursoSchema();
+  const db = getTursoClient();
+
+  const result = await db.execute({
+    sql: `
+      UPDATE access_codes
+      SET enumerator_name = ?, enumerator_email = ?
+      WHERE code = ?
+    `,
+    args: [name, email, code],
+  });
+
+  if (result.rowsAffected === 0) {
+    throw new Error("Code not found.");
+  }
 }
 
 export async function rejectAccessCode(rawCode: string): Promise<void> {
