@@ -190,6 +190,23 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
       ...prev,
       city_municipality: municipality,
       barangay: "",
+      permanent_address: {
+        ...prev.permanent_address,
+        city_municipality: municipality,
+        province: SARANGANI_PROVINCE,
+        barangay: "",
+      },
+    }));
+  }
+
+  function handleLocationBarangay(barangay: string) {
+    setForm((prev) => ({
+      ...prev,
+      barangay,
+      permanent_address: {
+        ...prev.permanent_address,
+        barangay,
+      },
     }));
   }
 
@@ -311,7 +328,7 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
         <FormField label="Barangay" number="5">
           <SelectInput
             value={form.barangay}
-            onChange={(e) => updateField("barangay", e.target.value)}
+            onChange={(e) => handleLocationBarangay(e.target.value)}
             options={barangayOptions(form.city_municipality)}
             placeholder={
               form.city_municipality ? "Select barangay" : "Select municipality first"

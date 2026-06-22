@@ -24,7 +24,7 @@ export default function HomePage() {
             </div>
             <OfflineIndicator />
           </div>
-          <p className="text-sm text-zinc-600">
+          <p className="text-sm text-zinc-600" suppressHydrationWarning>
             Collect FACED survey records offline on this device. Data is stored
             locally in IndexedDB, exported to Excel, and synced online when
             connected.
