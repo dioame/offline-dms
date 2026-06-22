@@ -58,6 +58,7 @@ export async function POST(request: Request) {
 
       await upsertFacedRecord({
         uuid: record.uuid,
+        enumerator_name: record.enumerator_name ?? "",
         barangay: record.barangay || "",
         city_municipality: record.city_municipality || "",
         province: record.province || "",

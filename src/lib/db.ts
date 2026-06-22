@@ -24,6 +24,22 @@ db.version(2)
     await tx.table("beneficiaries").clear();
   });
 
+db.version(3)
+  .stores({
+    faced_records:
+      "++id, uuid, barangay, enumerator_name, sync_status, createdAt, date_registered",
+  })
+  .upgrade(async (tx) => {
+    await tx
+      .table("faced_records")
+      .toCollection()
+      .modify((record) => {
+        if (record.enumerator_name === undefined) {
+          record.enumerator_name = "";
+        }
+      });
+  });
+
 export { db };
 
 export async function addFacedRecord(data: FacedRecordData): Promise<number> {

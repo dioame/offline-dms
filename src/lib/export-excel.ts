@@ -16,6 +16,7 @@ export function exportFacedToExcel(
   const households = records.map((r) => ({
     UUID: r.uuid,
     "Sync Status": r.sync_status,
+    "Enumerator Name": r.enumerator_name ?? "",
     "Serial Number": r.serial_number,
     Region: r.region,
     Province: r.province,

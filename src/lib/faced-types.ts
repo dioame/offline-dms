@@ -1,3 +1,8 @@
+import {
+  SARANGANI_PROVINCE,
+  SARANGANI_REGION,
+} from "./sarangani-locations";
+
 export type SyncStatus = "pending" | "synced" | "failed";
 
 export type HeadOfFamily = {
@@ -75,6 +80,7 @@ export type FacedMetadata = {
 };
 
 export type FacedRecordData = {
+  enumerator_name: string;
   region: string;
   province: string;
   city_municipality: string;
@@ -121,8 +127,9 @@ export function emptyFamilyMember(): FamilyMember {
 
 export function createEmptyFacedRecord(): FacedRecordData {
   return {
-    region: "",
-    province: "",
+    enumerator_name: "",
+    region: SARANGANI_REGION,
+    province: SARANGANI_PROVINCE,
     city_municipality: "",
     district: "",
     barangay: "",
@@ -153,7 +160,7 @@ export function createEmptyFacedRecord(): FacedRecordData {
       subdivision_village: "",
       barangay: "",
       city_municipality: "",
-      province: "",
+      province: SARANGANI_PROVINCE,
       zip_code: "",
     },
     others: {

@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 
 export default function OfflineIndicator() {
+  const [mounted, setMounted] = useState(false);
   const [online, setOnline] = useState(true);
 
   useEffect(() => {
+    setMounted(true);
     setOnline(navigator.onLine);
 
     const handleOnline = () => setOnline(true);
@@ -19,6 +21,15 @@ export default function OfflineIndicator() {
       window.removeEventListener("offline", handleOffline);
     };
   }, []);
+
+  if (!mounted) {
+    return (
+      <div className="inline-flex items-center gap-2 rounded-full bg-zinc-100 px-3 py-1 text-sm font-medium text-zinc-500">
+        <span className="h-2 w-2 rounded-full bg-zinc-300" aria-hidden />
+        …
+      </div>
+    );
+  }
 
   return (
     <div

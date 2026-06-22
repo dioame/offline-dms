@@ -13,12 +13,17 @@ import {
   type FacedRecordData,
   type FamilyMember,
 } from "@/lib/faced-types";
+import {
+  barangayOptions,
+  municipalityOptions,
+  SARANGANI_PROVINCE,
+  SARANGANI_REGION,
+} from "@/lib/sarangani-locations";
 import SectionHeader from "./SectionHeader";
 import {
   CheckboxGroup,
   FormField,
   SelectInput,
-  TextArea,
   TextInput,
 } from "./FormField";
 
@@ -56,7 +61,12 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
       if (record) {
         const { id: _id, uuid: _uuid, sync_status: _s, createdAt: _c, updatedAt: _u, ...data } =
           record;
-        setForm(data);
+        setForm({
+          ...data,
+          enumerator_name: data.enumerator_name ?? "",
+          region: data.region || SARANGANI_REGION,
+          province: data.province || SARANGANI_PROVINCE,
+        });
       }
     });
   }, [editId]);
@@ -131,16 +141,44 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
     }));
   }
 
+  function handleLocationMunicipality(municipality: string) {
+    setForm((prev) => ({
+      ...prev,
+      city_municipality: municipality,
+      barangay: "",
+    }));
+  }
+
+  function handlePermMunicipality(municipality: string) {
+    setForm((prev) => ({
+      ...prev,
+      permanent_address: {
+        ...prev.permanent_address,
+        city_municipality: municipality,
+        province: SARANGANI_PROVINCE,
+        barangay: "",
+      },
+    }));
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setMessage(null);
 
+    if (!form.enumerator_name.trim()) {
+      setMessage("Please enter the enumerator name.");
+      return;
+    }
     if (!form.head_of_family.last_name.trim() || !form.head_of_family.first_name.trim()) {
       setMessage("Please enter the head of family name.");
       return;
     }
     if (!form.barangay.trim()) {
-      setMessage("Please enter the barangay.");
+      setMessage("Please select the barangay.");
+      return;
+    }
+    if (!form.city_municipality.trim()) {
+      setMessage("Please select the city/municipality.");
       return;
     }
     if (!form.privacy_declaration_acknowledged) {
@@ -182,26 +220,42 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
         <p className="text-sm font-semibold text-[var(--faced-blue)]">(FACED)</p>
       </div>
 
+      <SectionHeader title="Enumerator" />
+      <div className="faced-section-body">
+        <FormField label="Enumerator Name">
+          <TextInput
+            value={form.enumerator_name}
+            onChange={(e) => updateField("enumerator_name", e.target.value)}
+            placeholder="Full name of field enumerator"
+            autoComplete="name"
+          />
+        </FormField>
+      </div>
+
       {/* Location */}
       <SectionHeader title="Location of the Affected Family" />
       <div className="faced-section-body grid gap-3 sm:grid-cols-2">
         <FormField label="Region" number="1">
           <TextInput
-            value={form.region}
-            onChange={(e) => updateField("region", e.target.value)}
-            placeholder="e.g. XII"
+            value={form.region || SARANGANI_REGION}
+            readOnly
+            className="bg-zinc-50"
           />
         </FormField>
         <FormField label="Province" number="2">
-          <TextInput
-            value={form.province}
+          <SelectInput
+            value={form.province || SARANGANI_PROVINCE}
             onChange={(e) => updateField("province", e.target.value)}
+            options={[{ value: SARANGANI_PROVINCE, label: SARANGANI_PROVINCE }]}
+            placeholder={SARANGANI_PROVINCE}
           />
         </FormField>
         <FormField label="City/Municipality" number="3">
-          <TextInput
+          <SelectInput
             value={form.city_municipality}
-            onChange={(e) => updateField("city_municipality", e.target.value)}
+            onChange={(e) => handleLocationMunicipality(e.target.value)}
+            options={municipalityOptions()}
+            placeholder="Select municipality"
           />
         </FormField>
         <FormField label="District" number="4">
@@ -211,9 +265,14 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
           />
         </FormField>
         <FormField label="Barangay" number="5">
-          <TextInput
+          <SelectInput
             value={form.barangay}
             onChange={(e) => updateField("barangay", e.target.value)}
+            options={barangayOptions(form.city_municipality)}
+            placeholder={
+              form.city_municipality ? "Select barangay" : "Select municipality first"
+            }
+            disabled={!form.city_municipality}
           />
         </FormField>
         <FormField label="Evacuation Center/Site" number="6">
@@ -392,21 +451,32 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
           />
         </FormField>
         <FormField label="Barangay">
-          <TextInput
+          <SelectInput
             value={form.permanent_address.barangay}
             onChange={(e) => updateAddress("barangay", e.target.value)}
+            options={barangayOptions(form.permanent_address.city_municipality)}
+            placeholder={
+              form.permanent_address.city_municipality
+                ? "Select barangay"
+                : "Select municipality first"
+            }
+            disabled={!form.permanent_address.city_municipality}
           />
         </FormField>
         <FormField label="City/Municipality">
-          <TextInput
+          <SelectInput
             value={form.permanent_address.city_municipality}
-            onChange={(e) => updateAddress("city_municipality", e.target.value)}
+            onChange={(e) => handlePermMunicipality(e.target.value)}
+            options={municipalityOptions()}
+            placeholder="Select municipality"
           />
         </FormField>
         <FormField label="Province">
-          <TextInput
-            value={form.permanent_address.province}
+          <SelectInput
+            value={form.permanent_address.province || SARANGANI_PROVINCE}
             onChange={(e) => updateAddress("province", e.target.value)}
+            options={[{ value: SARANGANI_PROVINCE, label: SARANGANI_PROVINCE }]}
+            placeholder={SARANGANI_PROVINCE}
           />
         </FormField>
         <FormField label="Zip Code">
