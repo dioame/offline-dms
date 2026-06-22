@@ -21,6 +21,7 @@ import {
   SARANGANI_PROVINCE,
   SARANGANI_REGION,
 } from "@/lib/sarangani-locations";
+import { relationOptions, vulnerabilityOptions } from "@/lib/faced-options";
 import SectionHeader from "./SectionHeader";
 import {
   CheckboxGroup,
@@ -600,11 +601,14 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
                     />
                   </td>
                   <td>
-                    <TextInput
+                    <SelectInput
                       value={member.relationship_to_family_head}
                       onChange={(e) =>
                         updateMember(index, "relationship_to_family_head", e.target.value)
                       }
+                      options={relationOptions()}
+                      placeholder="Select"
+                      className="min-w-[140px]"
                     />
                   </td>
                   <td>
@@ -648,11 +652,14 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
                     />
                   </td>
                   <td>
-                    <TextInput
+                    <SelectInput
                       value={member.type_of_vulnerability}
                       onChange={(e) =>
                         updateMember(index, "type_of_vulnerability", e.target.value)
                       }
+                      options={vulnerabilityOptions()}
+                      placeholder="None"
+                      className="min-w-[110px]"
                     />
                   </td>
                   <td>
