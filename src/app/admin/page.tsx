@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import BrandEmblem from "@/components/brand/BrandEmblem";
+import TricolorBar from "@/components/brand/TricolorBar";
 
 type AccessCodeRow = {
   code: string;
@@ -210,40 +212,43 @@ export default function AdminPage() {
 
   if (!unlocked) {
     return (
-      <div className="flex min-h-full items-center justify-center bg-zinc-100 p-4">
-        <div className="w-full max-w-md overflow-hidden rounded-xl border border-[var(--faced-blue-border)] bg-white shadow-sm">
-          <div className="faced-section-header text-center">Admin access</div>
-          <div className="faced-section-body space-y-4">
-            <p className="text-sm text-zinc-600">
-              Enter the admin password to generate and manage enumerator access
-              codes.
-            </p>
-            <form onSubmit={handleUnlock} className="space-y-3">
-              <label className="block">
-                <span className="faced-label">Admin password</span>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="faced-input"
-                  autoFocus
-                  required
-                />
-              </label>
-              {error && (
-                <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-                  {error}
-                </p>
-              )}
-              <button type="submit" className="faced-btn-primary w-full">
-                Unlock admin
-              </button>
-            </form>
-            <p className="text-center text-xs text-zinc-500">
-              <Link href="/" className="text-[var(--faced-blue)] hover:underline">
-                Back to FACED app
-              </Link>
-            </p>
+      <div className="ph-page-bg flex min-h-full flex-col">
+        <div className="ph-app-header py-5 text-center">
+          <BrandEmblem size={72} className="mx-auto mb-2" />
+          <p className="ph-kicker text-xs font-bold uppercase">Administration</p>
+          <h1 className="text-xl font-bold text-white">Access Code Management</h1>
+          <TricolorBar thick className="mx-auto mt-4 max-w-xs" />
+        </div>
+        <div className="flex flex-1 items-center justify-center p-4">
+          <div className="ph-login-card ph-card w-full max-w-md">
+            <div className="faced-section-header justify-center">Admin access</div>
+            <div className="faced-section-body space-y-4 rounded-b-xl border-b border-[var(--faced-blue-border)]">
+              <p className="text-sm text-zinc-600">
+                Enter the admin password to generate and manage enumerator access codes.
+              </p>
+              <form onSubmit={(e) => void handleUnlock(e)} className="space-y-3">
+                <label className="block">
+                  <span className="faced-label">Admin password</span>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="faced-input"
+                    autoFocus
+                    required
+                  />
+                </label>
+                {error && <p className="ph-alert-error">{error}</p>}
+                <button type="submit" className="faced-btn-primary w-full" disabled={loading}>
+                  {loading ? "Verifying..." : "Unlock admin"}
+                </button>
+              </form>
+              <p className="text-center text-xs text-zinc-500">
+                <Link href="/" className="ph-link">
+                  Back to FACED app
+                </Link>
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -251,43 +256,39 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-full bg-zinc-100">
-      <header className="border-b border-[var(--faced-blue-border)] bg-white">
-        <div className="mx-auto flex max-w-4xl flex-col gap-2 px-4 py-5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--faced-blue)]">
-              DSWD · Offline DMS
-            </p>
-            <h1 className="text-xl font-bold text-zinc-900">Access code admin</h1>
-            <p className="text-sm text-zinc-600">
-              Generate, add, and reject login codes for field enumerators.
-            </p>
+    <div className="ph-page-bg min-h-full">
+      <header className="ph-app-header">
+        <div className="mx-auto flex max-w-4xl flex-col gap-3 px-4 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <BrandEmblem size={52} className="hidden shrink-0 sm:block" />
+            <div>
+              <p className="ph-kicker text-xs font-bold uppercase">DSWD · Offline DMS</p>
+              <h1 className="text-xl font-bold text-white">Access code admin</h1>
+              <p className="ph-subtitle text-sm">
+                Generate, add, and reject login codes for field enumerators.
+              </p>
+            </div>
           </div>
           <div className="flex gap-2">
-            <Link href="/" className="faced-btn-secondary">
+            <Link href="/" className="faced-btn-secondary !border-white/40 !text-white hover:!bg-white/10">
               FACED app
             </Link>
-            <button type="button" onClick={handleLock} className="faced-btn-secondary">
+            <button type="button" onClick={handleLock} className="faced-btn-danger !border-white/40 !text-white hover:!bg-white/10">
               Lock admin
             </button>
           </div>
         </div>
+        <TricolorBar thick />
       </header>
 
       <main className="mx-auto max-w-4xl space-y-6 px-4 py-6">
         {(message || error) && (
-          <div
-            className={`rounded-lg border px-4 py-3 text-sm ${
-              error
-                ? "border-red-200 bg-red-50 text-red-800"
-                : "border-green-200 bg-green-50 text-green-800"
-            }`}
-          >
+          <div className={error ? "ph-alert-error" : "ph-alert-success"}>
             {error || message}
           </div>
         )}
 
-        <section className="overflow-hidden rounded-xl border border-[var(--faced-blue-border)] bg-white shadow-sm">
+        <section className="ph-card">
           <div className="faced-section-header">Generate codes</div>
           <div className="faced-section-body">
             <form onSubmit={handleGenerate} className="flex flex-wrap items-end gap-3">
@@ -307,15 +308,15 @@ export default function AdminPage() {
               </button>
             </form>
             {generatedCodes.length > 0 && (
-              <div className="mt-4 rounded border border-[var(--faced-blue-border)] bg-[var(--faced-blue-light)] p-3">
+              <div className="mt-4 rounded-lg border border-[var(--ph-yellow)] bg-[var(--ph-yellow-light)] p-3">
                 <div className="mb-2 flex items-center justify-between">
-                  <p className="text-xs font-semibold text-[var(--faced-blue)]">
+                  <p className="text-xs font-bold uppercase tracking-wide text-[var(--ph-blue-dark)]">
                     New codes — share with enumerators
                   </p>
                   <button
                     type="button"
                     onClick={() => copyCodes(generatedCodes)}
-                    className="text-xs font-medium text-[var(--faced-blue)] hover:underline"
+                    className="ph-link text-xs"
                   >
                     Copy all
                   </button>
@@ -330,7 +331,7 @@ export default function AdminPage() {
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-xl border border-[var(--faced-blue-border)] bg-white shadow-sm">
+        <section className="ph-card">
           <div className="faced-section-header">Add custom code</div>
           <div className="faced-section-body">
             <form onSubmit={handleAddCode} className="flex flex-wrap items-end gap-3">
@@ -352,7 +353,7 @@ export default function AdminPage() {
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-xl border border-[var(--faced-blue-border)] bg-white shadow-sm">
+        <section className="ph-card">
           <div className="faced-section-header flex items-center justify-between">
             <span>All codes ({codes.length})</span>
             <button
@@ -388,12 +389,12 @@ export default function AdminPage() {
                       <td className="font-mono">{row.code}</td>
                       <td>
                         <span
-                          className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
+                          className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-bold uppercase ${
                             row.status === "active"
-                              ? "bg-green-100 text-green-800"
+                              ? "ph-badge-synced"
                               : row.status === "used"
-                                ? "bg-amber-100 text-amber-900"
-                                : "bg-red-100 text-red-800"
+                                ? "ph-badge-pending"
+                                : "ph-badge-failed"
                           }`}
                         >
                           {row.status}
@@ -406,7 +407,7 @@ export default function AdminPage() {
                           <button
                             type="button"
                             onClick={() => void handleReject(row.code)}
-                            className="text-xs font-medium text-red-700 hover:underline"
+                            className="text-xs font-bold text-[var(--ph-red)] hover:underline"
                           >
                             Reject
                           </button>
@@ -414,7 +415,7 @@ export default function AdminPage() {
                           <button
                             type="button"
                             onClick={() => void handleReactivate(row.code)}
-                            className="text-xs font-medium text-[var(--faced-blue)] hover:underline"
+                            className="ph-link text-xs"
                           >
                             Reactivate
                           </button>

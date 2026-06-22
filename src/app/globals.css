@@ -1,17 +1,36 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f4f4f5;
-  --foreground: #171717;
-  --faced-blue: #1e5a9e;
-  --faced-blue-dark: #164a85;
-  --faced-blue-light: #e8f0f8;
-  --faced-blue-border: #b8cfe8;
+  /* Philippines flag palette */
+  --ph-blue: #0038a8;
+  --ph-blue-dark: #002878;
+  --ph-blue-light: #e8eef8;
+  --ph-red: #ce1126;
+  --ph-red-dark: #a50e1e;
+  --ph-red-light: #fde8eb;
+  --ph-yellow: #fdb913;
+  --ph-yellow-dark: #d99a0a;
+  --ph-yellow-light: #fff8e6;
+  --ph-black: #0a0a0a;
+
+  /* Legacy tokens (used across components) */
+  --faced-blue: var(--ph-blue);
+  --faced-blue-dark: var(--ph-blue-dark);
+  --faced-blue-light: var(--ph-blue-light);
+  --faced-blue-border: #b8c9e8;
+
+  --background: #eef1f7;
+  --foreground: #1a1a1a;
+  --card-shadow: 0 4px 24px -4px rgba(0, 56, 168, 0.12);
+  --card-shadow-lg: 0 8px 32px -8px rgba(0, 56, 168, 0.18);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-ph-blue: var(--ph-blue);
+  --color-ph-red: var(--ph-red);
+  --color-ph-yellow: var(--ph-yellow);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -19,19 +38,96 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
 
-/* FACED form — DSWD blue section headers */
+/* Subtle woven pattern for page background */
+.ph-page-bg {
+  background-color: var(--background);
+  background-image:
+    radial-gradient(circle at 20% 10%, rgba(0, 56, 168, 0.04) 0%, transparent 50%),
+    radial-gradient(circle at 80% 90%, rgba(206, 17, 38, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(253, 185, 19, 0.04) 0%, transparent 60%);
+}
+
+/* App shell header */
+.ph-app-header {
+  background: linear-gradient(160deg, var(--ph-blue-dark) 0%, var(--ph-blue) 55%, #0048c8 100%);
+  color: white;
+  box-shadow: 0 4px 20px rgba(0, 40, 120, 0.25);
+}
+
+.ph-app-header .ph-kicker {
+  color: var(--ph-yellow);
+  letter-spacing: 0.12em;
+}
+
+.ph-app-header .ph-subtitle {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+/* Cards */
+.ph-card {
+  overflow: hidden;
+  border-radius: 0.75rem;
+  border: 1px solid var(--faced-blue-border);
+  background: white;
+  box-shadow: var(--card-shadow);
+}
+
+.ph-card-header {
+  border-bottom: 1px solid var(--faced-blue-border);
+  background: linear-gradient(to right, var(--ph-blue-light), white);
+  padding: 0.875rem 1.25rem;
+}
+
+.ph-card-header h2 {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--ph-blue-dark);
+}
+
+/* FACED form banner */
+.faced-form-banner {
+  position: relative;
+  border: 1px solid var(--faced-blue-border);
+  border-radius: 0.75rem;
+  background: linear-gradient(180deg, white 0%, var(--ph-blue-light) 100%);
+  padding: 1.25rem 1rem 1rem;
+  text-align: center;
+  box-shadow: var(--card-shadow);
+}
+
+.faced-form-banner::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  border-radius: 0.75rem 0.75rem 0 0;
+  background: linear-gradient(
+    to right,
+    var(--ph-blue) 33.33%,
+    var(--ph-red) 33.33% 66.66%,
+    var(--ph-yellow) 66.66%
+  );
+}
+
+/* Section headers */
 .faced-section-header {
-  background: var(--faced-blue);
+  display: flex;
+  align-items: center;
+  background: linear-gradient(135deg, var(--ph-blue) 0%, var(--ph-blue-dark) 100%);
   color: white;
   font-size: 0.8125rem;
   font-weight: 700;
-  letter-spacing: 0.03em;
-  padding: 0.5rem 1rem;
+  letter-spacing: 0.04em;
+  padding: 0.5625rem 1rem;
   text-transform: uppercase;
-  border-top: 1px solid var(--faced-blue-dark);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: 4px solid var(--ph-yellow);
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.1);
 }
 
 .faced-section-body {
@@ -58,26 +154,40 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 1.25rem;
-  margin-right: 0.25rem;
-  font-weight: 700;
-  color: var(--faced-blue);
+  min-width: 1.375rem;
+  height: 1.375rem;
+  margin-right: 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  color: var(--ph-blue-dark);
+  background: var(--ph-yellow-light);
+  border: 1px solid rgba(253, 185, 19, 0.5);
+}
+
+.faced-required {
+  margin-left: 0.25rem;
+  color: var(--ph-red);
+  font-weight: 800;
 }
 
 .faced-input {
   width: 100%;
   border: 1px solid var(--faced-blue-border);
-  border-radius: 0.25rem;
+  border-radius: 0.375rem;
   background: white;
-  padding: 0.375rem 0.5rem;
+  padding: 0.4375rem 0.625rem;
   font-size: 0.875rem;
   color: #111827;
   outline: none;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
 }
 
 .faced-input:focus {
-  border-color: var(--faced-blue);
-  box-shadow: 0 0 0 2px rgba(30, 90, 158, 0.2);
+  border-color: var(--ph-blue);
+  box-shadow: 0 0 0 3px rgba(0, 56, 168, 0.15);
 }
 
 .faced-input:disabled {
@@ -93,14 +203,17 @@ body {
 
 .faced-table {
   border-collapse: collapse;
+  border-radius: 0.375rem;
+  overflow: hidden;
 }
 
 .faced-table th {
-  background: var(--faced-blue-light);
-  color: var(--faced-blue-dark);
+  background: linear-gradient(to bottom, var(--ph-blue-light), #dce6f5);
+  color: var(--ph-blue-dark);
   font-size: 0.6875rem;
   font-weight: 700;
   text-transform: uppercase;
+  letter-spacing: 0.03em;
   padding: 0.5rem 0.375rem;
   border: 1px solid var(--faced-blue-border);
   text-align: left;
@@ -110,46 +223,191 @@ body {
   padding: 0.375rem;
   border: 1px solid var(--faced-blue-border);
   vertical-align: top;
+  background: white;
+}
+
+.faced-table tbody tr:hover td {
+  background: rgba(232, 238, 248, 0.4);
 }
 
 .faced-table .faced-input {
   border: none;
   padding: 0.25rem;
   box-shadow: none;
+  background: transparent;
 }
 
 .faced-table .faced-input:focus {
-  box-shadow: inset 0 0 0 1px var(--faced-blue);
+  box-shadow: inset 0 0 0 2px var(--ph-blue);
+  background: white;
+  border-radius: 0.25rem;
 }
 
+/* Buttons */
 .faced-btn-primary {
   border-radius: 0.5rem;
-  background: var(--faced-blue);
+  background: linear-gradient(180deg, var(--ph-blue) 0%, var(--ph-blue-dark) 100%);
   padding: 0.625rem 1.25rem;
   font-weight: 600;
   color: white;
-  transition: background 0.15s;
+  box-shadow: 0 2px 8px rgba(0, 56, 168, 0.3);
+  transition:
+    transform 0.1s,
+    box-shadow 0.15s,
+    filter 0.15s;
 }
 
 .faced-btn-primary:hover:not(:disabled) {
-  background: var(--faced-blue-dark);
+  filter: brightness(1.08);
+  box-shadow: 0 4px 12px rgba(0, 56, 168, 0.35);
+}
+
+.faced-btn-primary:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 .faced-btn-primary:disabled {
   cursor: not-allowed;
-  opacity: 0.6;
+  opacity: 0.55;
+  box-shadow: none;
 }
 
 .faced-btn-secondary {
   border-radius: 0.5rem;
-  border: 1px solid var(--faced-blue-border);
+  border: 1.5px solid var(--ph-blue);
   background: white;
   padding: 0.5rem 1rem;
-  font-weight: 500;
-  color: var(--faced-blue);
-  transition: background 0.15s;
+  font-weight: 600;
+  color: var(--ph-blue);
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 
 .faced-btn-secondary:hover {
-  background: var(--faced-blue-light);
+  background: var(--ph-blue-light);
+}
+
+.faced-btn-danger {
+  border-radius: 0.5rem;
+  border: 1.5px solid var(--ph-red);
+  background: white;
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  color: var(--ph-red);
+  transition: background 0.15s;
+}
+
+.faced-btn-danger:hover {
+  background: var(--ph-red-light);
+}
+
+/* Chips (occupation suggestions) */
+.faced-chip {
+  border-radius: 9999px;
+  border: 1.5px solid var(--faced-blue-border);
+  background: white;
+  padding: 0.3125rem 0.875rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ph-blue);
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s,
+    transform 0.1s;
+}
+
+.faced-chip:hover {
+  background: var(--ph-blue);
+  border-color: var(--ph-blue);
+  color: white;
+  transform: translateY(-1px);
+}
+
+/* Alerts */
+.ph-alert-warning {
+  border-radius: 0.5rem;
+  border: 1px solid rgba(253, 185, 19, 0.5);
+  background: var(--ph-yellow-light);
+  padding: 0.625rem 0.875rem;
+  font-size: 0.8125rem;
+  color: #7a5a00;
+}
+
+.ph-alert-error {
+  border-radius: 0.5rem;
+  border: 1px solid rgba(206, 17, 38, 0.3);
+  background: var(--ph-red-light);
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
+  color: var(--ph-red-dark);
+}
+
+.ph-alert-success {
+  border-radius: 0.5rem;
+  border: 1px solid rgba(0, 56, 168, 0.2);
+  background: var(--ph-blue-light);
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
+  color: var(--ph-blue-dark);
+}
+
+/* Session bar */
+.ph-session-bar {
+  background: linear-gradient(to right, var(--ph-yellow-light), var(--ph-blue-light));
+  border-bottom: 1px solid var(--faced-blue-border);
+}
+
+/* Status badges */
+.ph-badge-online {
+  background: var(--ph-blue-light);
+  color: var(--ph-blue-dark);
+  border: 1px solid rgba(0, 56, 168, 0.2);
+}
+
+.ph-badge-offline {
+  background: var(--ph-yellow-light);
+  color: #7a5a00;
+  border: 1px solid rgba(253, 185, 19, 0.45);
+}
+
+.ph-badge-synced {
+  background: var(--ph-blue-light);
+  color: var(--ph-blue-dark);
+}
+
+.ph-badge-pending {
+  background: var(--ph-yellow-light);
+  color: #7a5a00;
+}
+
+.ph-badge-failed {
+  background: var(--ph-red-light);
+  color: var(--ph-red-dark);
+}
+
+/* Login card */
+.ph-login-card {
+  box-shadow: var(--card-shadow-lg);
+}
+
+/* Link */
+.ph-link {
+  font-weight: 600;
+  color: var(--ph-blue);
+  transition: color 0.15s;
+}
+
+.ph-link:hover {
+  color: var(--ph-red);
+  text-decoration: underline;
+}
+
+.ph-link-on-dark {
+  color: var(--ph-yellow);
+}
+
+.ph-link-on-dark:hover {
+  color: white;
 }

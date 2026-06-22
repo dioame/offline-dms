@@ -5,6 +5,8 @@ import FacedForm from "@/components/faced/FacedForm";
 import FacedRecordList from "@/components/FacedRecordList";
 import LoginGate from "@/components/LoginGate";
 import OfflineIndicator from "@/components/OfflineIndicator";
+import BrandEmblem from "@/components/brand/BrandEmblem";
+import TricolorBar from "@/components/brand/TricolorBar";
 
 export default function HomePage() {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -12,60 +14,60 @@ export default function HomePage() {
 
   return (
     <LoginGate>
-      <div className="min-h-full bg-zinc-100">
-      <header className="border-b border-[var(--faced-blue-border)] bg-white">
-        <div className="mx-auto flex max-w-4xl flex-col gap-3 px-4 py-5">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--faced-blue)]">
-                DSWD · Offline DMS
-              </p>
-              <h1 className="text-xl font-bold text-zinc-900 sm:text-2xl">
-                Family Assistance Card (FACED)
-              </h1>
+      <div className="ph-page-bg min-h-full">
+        <header className="ph-app-header">
+          <div className="mx-auto max-w-4xl px-4 py-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <BrandEmblem size={64} className="hidden shrink-0 sm:block" />
+                <div>
+                  <p className="ph-kicker text-xs font-bold uppercase">DSWD · Offline DMS</p>
+                  <h1 className="mt-1 text-xl font-bold text-white sm:text-2xl">
+                    Family Assistance Card (FACED)
+                  </h1>
+                  <p className="ph-subtitle mt-2 max-w-xl text-sm" suppressHydrationWarning>
+                    Collect FACED survey records offline on this device. Data is stored
+                    locally, exported to Excel, and synced online when connected.
+                  </p>
+                </div>
+              </div>
+              <OfflineIndicator />
             </div>
-            <OfflineIndicator />
           </div>
-          <p className="text-sm text-zinc-600" suppressHydrationWarning>
-            Collect FACED survey records offline on this device. Data is stored
-            locally in IndexedDB, exported to Excel, and synced online when
-            connected.
-          </p>
-        </div>
-      </header>
+          <TricolorBar thick />
+        </header>
 
-      <main className="mx-auto max-w-4xl space-y-8 px-4 py-6">
-        <section className="overflow-hidden rounded-xl border border-[var(--faced-blue-border)] bg-white shadow-sm">
-          <div className="border-b border-[var(--faced-blue-border)] bg-[var(--faced-blue-light)] px-5 py-3">
-            <h2 className="text-lg font-semibold text-zinc-900">
-              {editId ? "Edit FACED record" : "New FACED record"}
-            </h2>
-          </div>
-          <div className="p-2 sm:p-4">
-            <FacedForm
-              editId={editId}
-              onSaved={() => {
-                setRefreshKey((k) => k + 1);
-                if (editId) setEditId(null);
+        <main className="mx-auto max-w-4xl space-y-8 px-4 py-6">
+          <section className="ph-card">
+            <div className="ph-card-header">
+              <h2>{editId ? "Edit FACED record" : "New FACED record"}</h2>
+            </div>
+            <div className="p-2 sm:p-4">
+              <FacedForm
+                editId={editId}
+                onSaved={() => {
+                  setRefreshKey((k) => k + 1);
+                  if (editId) setEditId(null);
+                }}
+                onCancelEdit={() => setEditId(null)}
+              />
+            </div>
+          </section>
+
+          <section>
+            <div className="mb-3 flex items-center gap-3">
+              <span className="h-6 w-1 rounded-full bg-[var(--ph-yellow)]" aria-hidden />
+              <h2 className="text-lg font-bold text-[var(--ph-blue-dark)]">Saved records</h2>
+            </div>
+            <FacedRecordList
+              refreshKey={refreshKey}
+              onEdit={(id) => {
+                setEditId(id);
+                window.scrollTo({ top: 0, behavior: "smooth" });
               }}
-              onCancelEdit={() => setEditId(null)}
             />
-          </div>
-        </section>
-
-        <section>
-          <h2 className="mb-3 text-lg font-semibold text-zinc-900">
-            Saved records
-          </h2>
-          <FacedRecordList
-            refreshKey={refreshKey}
-            onEdit={(id) => {
-              setEditId(id);
-              window.scrollTo({ top: 0, behavior: "smooth" });
-            }}
-          />
-        </section>
-      </main>
+          </section>
+        </main>
       </div>
     </LoginGate>
   );

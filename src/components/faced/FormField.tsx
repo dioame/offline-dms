@@ -20,7 +20,7 @@ export function FormField({
       <label className="faced-label">
         {number && <span className="faced-field-num">{number}</span>}
         {label}
-        {required && <span className="ml-0.5 text-red-600">*</span>}
+        {required && <span className="faced-required">*</span>}
       </label>
       {children}
     </div>

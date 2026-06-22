@@ -19,13 +19,13 @@ function headName(record: FacedRecord): string {
 
 function syncBadge(status: SyncStatus) {
   const styles: Record<SyncStatus, string> = {
-    pending: "bg-amber-100 text-amber-800",
-    synced: "bg-emerald-100 text-emerald-800",
-    failed: "bg-red-100 text-red-800",
+    pending: "ph-badge-pending",
+    synced: "ph-badge-synced",
+    failed: "ph-badge-failed",
   };
   return (
     <span
-      className={`rounded-full px-2 py-0.5 text-xs font-medium uppercase ${styles[status]}`}
+      className={`rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide ${styles[status]}`}
     >
       {status}
     </span>
@@ -119,7 +119,9 @@ export default function FacedRecordList({ refreshKey, onEdit, onSynced }: FacedR
   ).length;
 
   if (loading) {
-    return <p className="text-sm text-zinc-500">Loading records...</p>;
+    return (
+      <p className="text-sm font-medium text-[var(--ph-blue)]">Loading records...</p>
+    );
   }
 
   return (
@@ -167,7 +169,9 @@ export default function FacedRecordList({ refreshKey, onEdit, onSynced }: FacedR
 
       {syncMessage && (
         <p
-          className={`text-sm ${syncMessage.includes("Successfully") ? "text-emerald-700" : "text-amber-800"}`}
+          className={
+            syncMessage.includes("Successfully") ? "ph-alert-success" : "ph-alert-warning"
+          }
           role="status"
         >
           {syncMessage}
@@ -175,15 +179,15 @@ export default function FacedRecordList({ refreshKey, onEdit, onSynced }: FacedR
       )}
 
       {filtered.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-[var(--faced-blue-border)] bg-white px-4 py-8 text-center text-sm text-zinc-500">
+        <p className="rounded-xl border border-dashed border-[var(--faced-blue-border)] bg-white px-4 py-10 text-center text-sm text-zinc-500 shadow-sm">
           No FACED records yet. Fill out the form above to add the first record.
         </p>
       ) : (
-        <ul className="divide-y divide-[var(--faced-blue-border)] rounded-lg border border-[var(--faced-blue-border)] bg-white">
+        <ul className="ph-card divide-y divide-[var(--faced-blue-border)]">
           {filtered.map((record) => (
             <li
               key={record.id}
-              className="flex items-start justify-between gap-4 px-4 py-3"
+              className="flex items-start justify-between gap-4 px-4 py-3.5 transition-colors hover:bg-[var(--ph-blue-light)]/40"
             >
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
@@ -204,14 +208,14 @@ export default function FacedRecordList({ refreshKey, onEdit, onSynced }: FacedR
                 <button
                   type="button"
                   onClick={() => record.id && onEdit(record.id)}
-                  className="text-sm font-medium text-[var(--faced-blue)] hover:underline"
+                  className="ph-link text-sm"
                 >
                   Edit
                 </button>
                 <button
                   type="button"
                   onClick={() => record.id && void handleDelete(record.id)}
-                  className="text-sm text-red-600 hover:text-red-800"
+                  className="text-sm font-semibold text-[var(--ph-red)] hover:underline"
                 >
                   Delete
                 </button>

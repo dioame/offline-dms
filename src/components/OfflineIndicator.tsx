@@ -28,18 +28,18 @@ export default function OfflineIndicator() {
 
   return (
     <div
-      className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-medium ${
-        online
-          ? "bg-emerald-100 text-emerald-800"
-          : "bg-amber-100 text-amber-900"
+      className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-wide ${
+        online ? "ph-badge-online" : "ph-badge-offline"
       }`}
       suppressHydrationWarning
     >
       <span
-        className={`h-2 w-2 rounded-full ${online ? "bg-emerald-500" : "bg-amber-500"}`}
+        className={`h-2 w-2 rounded-full ${
+          online ? "bg-[var(--ph-blue)]" : "bg-[var(--ph-yellow)]"
+        }`}
         aria-hidden
       />
-      {online ? "Online" : "Offline — records saved locally"}
+      {online ? "Online" : "Offline"}
     </div>
   );
 }

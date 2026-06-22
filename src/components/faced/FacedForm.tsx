@@ -28,6 +28,7 @@ import {
   vulnerabilityOptions,
 } from "@/lib/faced-options";
 import SectionHeader from "./SectionHeader";
+import BrandEmblem from "@/components/brand/BrandEmblem";
 import {
   CheckboxGroup,
   FormField,
@@ -344,17 +345,20 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
   return (
     <form onSubmit={handleSubmit} className="faced-form space-y-0">
       {/* Form header */}
-      <div className="faced-form-banner mb-4 rounded-t-lg border border-[var(--faced-blue-border)] bg-white p-4 text-center">
-        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-600">
+      <div className="faced-form-banner mb-4">
+        <BrandEmblem size={56} className="mx-auto mb-2" />
+        <p className="text-xs font-bold uppercase tracking-widest text-zinc-500">
           Republic of the Philippines
         </p>
-        <p className="text-sm font-bold text-[var(--faced-blue)]">
+        <p className="mt-1 text-sm font-bold text-[var(--ph-blue)]">
           Department of Social Welfare and Development
         </p>
-        <h2 className="mt-2 text-base font-bold uppercase text-zinc-900">
+        <h2 className="mt-2 text-base font-extrabold uppercase leading-snug text-[var(--ph-blue-dark)]">
           Family Assistance Card in Emergencies and Disasters
         </h2>
-        <p className="text-sm font-semibold text-[var(--faced-blue)]">(FACED)</p>
+        <p className="mt-1 inline-block rounded-full bg-[var(--ph-yellow)] px-3 py-0.5 text-xs font-extrabold tracking-wide text-[var(--ph-blue-dark)]">
+          FACED
+        </p>
       </div>
 
       <SectionHeader title="Enumerator" />
@@ -522,7 +526,7 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
                 key={suggestion}
                 type="button"
                 onClick={() => updateHead("occupation", suggestion)}
-                className="rounded-full border border-[var(--faced-blue-border)] bg-[var(--faced-blue-light)] px-3 py-1 text-xs font-medium text-[var(--faced-blue)] hover:bg-[var(--faced-blue)] hover:text-white"
+                className="faced-chip"
               >
                 {suggestion}
               </button>
@@ -874,7 +878,7 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
       </div>
 
       {/* Privacy Declaration */}
-      <div className="faced-section-body border-t border-[var(--faced-blue-border)] bg-zinc-50 p-4">
+      <div className="faced-section-body border-t border-[var(--faced-blue-border)] bg-[var(--ph-blue-light)]/50 p-4">
         <p className="mb-3 text-xs leading-relaxed text-zinc-700">
           <strong>Data Privacy Declaration:</strong> I hereby declare that the
           information provided is true and correct. I understand that any false

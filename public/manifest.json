@@ -4,8 +4,8 @@
   "description": "DSWD Family Assistance Card offline survey and data collection",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f4f4f5",
-  "theme_color": "#1e5a9e",
+  "background_color": "#eef1f7",
+  "theme_color": "#0038A8",
   "orientation": "portrait-primary",
   "icons": [
     {
