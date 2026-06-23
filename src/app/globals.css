@@ -629,3 +629,34 @@ body {
   color: #27272a;
 }
 
+.verify-tabs {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 2px solid var(--faced-blue-border);
+  padding-bottom: 0;
+}
+
+.verify-tab {
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  background: transparent;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #71717a;
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.verify-tab:hover {
+  color: var(--ph-blue-dark);
+}
+
+.verify-tab--active {
+  border-bottom-color: var(--ph-blue);
+  color: var(--ph-blue-dark);
+}
+

@@ -9,11 +9,15 @@ import {
   SelectInput,
   TextInput,
 } from "@/components/faced/FormField";
+import { exportFacedToExcel } from "@/lib/export-excel";
+import type { FacedRecord } from "@/lib/faced-types";
 import {
   barangayOptions,
   municipalityOptions,
   SARANGANI_PROVINCE,
 } from "@/lib/sarangani-locations";
+
+type VerifyTab = "search" | "export";
 
 type VerifyMatch = {
   uuid: string;
@@ -39,13 +43,28 @@ type SearchForm = {
   barangay: string;
 };
 
+type ExportFilter = {
+  city_municipality: string;
+  barangay: string;
+};
+
+type ExportRecordJson = Omit<FacedRecord, "createdAt" | "updatedAt"> & {
+  createdAt: string;
+  updatedAt: string;
+};
+
 const VERIFY_STORAGE_KEY = "dms_verify_password";
 
-const emptyForm: SearchForm = {
+const emptySearchForm: SearchForm = {
   last_name: "",
   first_name: "",
   middle_name: "",
   birthdate: "",
+  city_municipality: "",
+  barangay: "",
+};
+
+const emptyExportFilter: ExportFilter = {
   city_municipality: "",
   barangay: "",
 };
@@ -64,17 +83,39 @@ function formatDate(value: string): string {
   return value;
 }
 
+function slugify(value: string): string {
+  return value
+    .trim()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, "_")
+    .slice(0, 40);
+}
+
+function toFacedRecords(records: ExportRecordJson[]): FacedRecord[] {
+  return records.map((record) => ({
+    ...record,
+    createdAt: new Date(record.createdAt),
+    updatedAt: new Date(record.updatedAt),
+  }));
+}
+
 export default function VerifyPage() {
   const [unlocked, setUnlocked] = useState(false);
   const [password, setPassword] = useState("");
   const [unlockError, setUnlockError] = useState("");
   const [unlocking, setUnlocking] = useState(false);
+  const [activeTab, setActiveTab] = useState<VerifyTab>("search");
 
-  const [form, setForm] = useState<SearchForm>(emptyForm);
+  const [form, setForm] = useState<SearchForm>(emptySearchForm);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
   const [matches, setMatches] = useState<VerifyMatch[] | null>(null);
   const [lastQuery, setLastQuery] = useState<SearchForm | null>(null);
+
+  const [exportFilter, setExportFilter] = useState<ExportFilter>(emptyExportFilter);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState("");
+  const [exportMessage, setExportMessage] = useState("");
 
   const verifyFetch = useCallback(
     async (path: string, init?: RequestInit) => {
@@ -103,9 +144,14 @@ export default function VerifyPage() {
       .catch(() => sessionStorage.removeItem(VERIFY_STORAGE_KEY));
   }, [verifyFetch]);
 
-  const barangays = useMemo(
+  const searchBarangays = useMemo(
     () => barangayOptions(form.city_municipality),
     [form.city_municipality],
+  );
+
+  const exportBarangays = useMemo(
+    () => barangayOptions(exportFilter.city_municipality),
+    [exportFilter.city_municipality],
   );
 
   async function handleUnlock(event: FormEvent) {
@@ -134,10 +180,13 @@ export default function VerifyPage() {
     setUnlocked(false);
     setMatches(null);
     setLastQuery(null);
-    setForm(emptyForm);
+    setForm(emptySearchForm);
+    setExportFilter(emptyExportFilter);
+    setExportMessage("");
+    setExportError("");
   }
 
-  function updateField<K extends keyof SearchForm>(key: K, value: SearchForm[K]) {
+  function updateSearchField<K extends keyof SearchForm>(key: K, value: SearchForm[K]) {
     setForm((prev) => {
       const next = { ...prev, [key]: value };
       if (key === "city_municipality") {
@@ -145,6 +194,21 @@ export default function VerifyPage() {
       }
       return next;
     });
+  }
+
+  function updateExportField<K extends keyof ExportFilter>(
+    key: K,
+    value: ExportFilter[K],
+  ) {
+    setExportFilter((prev) => {
+      const next = { ...prev, [key]: value };
+      if (key === "city_municipality") {
+        next.barangay = "";
+      }
+      return next;
+    });
+    setExportMessage("");
+    setExportError("");
   }
 
   async function handleSearch(event: FormEvent) {
@@ -176,11 +240,54 @@ export default function VerifyPage() {
     }
   }
 
-  function handleClear() {
-    setForm(emptyForm);
+  function handleClearSearch() {
+    setForm(emptySearchForm);
     setMatches(null);
     setLastQuery(null);
     setSearchError("");
+  }
+
+  async function handleExport(event: FormEvent) {
+    event.preventDefault();
+    setExportError("");
+    setExportMessage("");
+    setExporting(true);
+
+    try {
+      if (!exportFilter.city_municipality.trim()) {
+        throw new Error("Please select a city / municipality.");
+      }
+      if (!exportFilter.barangay.trim()) {
+        throw new Error("Please select a barangay.");
+      }
+
+      const res = await verifyFetch("/api/verify/export", {
+        method: "POST",
+        body: JSON.stringify(exportFilter),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Export failed.");
+      }
+
+      const records = toFacedRecords((data.records ?? []) as ExportRecordJson[]);
+      if (records.length === 0) {
+        setExportMessage(
+          `No synced records found for ${exportFilter.barangay}, ${exportFilter.city_municipality}.`,
+        );
+        return;
+      }
+
+      const filename = `FACED_${slugify(exportFilter.city_municipality)}_${slugify(exportFilter.barangay)}.xlsx`;
+      exportFacedToExcel(records, filename);
+      setExportMessage(
+        `Downloaded ${records.length} record(s) for ${exportFilter.barangay}, ${exportFilter.city_municipality}.`,
+      );
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : "Export failed.");
+    } finally {
+      setExporting(false);
+    }
   }
 
   const queryLabel = lastQuery
@@ -197,10 +304,9 @@ export default function VerifyPage() {
           <div className="mx-auto max-w-lg px-4 py-8 text-center">
             <BrandEmblem size={72} className="mx-auto mb-3" />
             <p className="ph-kicker text-xs font-bold uppercase">DSWD · Offline DMS</p>
-            <h1 className="mt-2 text-2xl font-bold text-white">Duplicate check</h1>
+            <h1 className="mt-2 text-2xl font-bold text-white">Verify & export</h1>
             <p className="ph-subtitle mx-auto mt-2 max-w-md text-sm">
-              Verify if a beneficiary is already encoded before starting a new FACED
-              entry.
+              Check for duplicate beneficiaries or export synced FACED records by area.
             </p>
           </div>
           <TricolorBar thick />
@@ -228,7 +334,7 @@ export default function VerifyPage() {
                 disabled={unlocking || !password.trim()}
                 className="faced-btn-primary w-full"
               >
-                {unlocking ? "Checking..." : "Continue to verify"}
+                {unlocking ? "Checking..." : "Continue"}
               </button>
               <p className="text-center text-xs text-zinc-500">
                 <Link href="/" className="underline hover:text-[var(--ph-blue)]">
@@ -251,11 +357,11 @@ export default function VerifyPage() {
             <div>
               <p className="ph-kicker text-xs font-bold uppercase">DSWD · Offline DMS</p>
               <h1 className="mt-1 text-xl font-bold text-white sm:text-2xl">
-                Beneficiary duplicate check
+                Verify & export
               </h1>
               <p className="ph-subtitle mt-2 max-w-xl text-sm">
-                Search synced FACED records online before encoding. A match means the
-                household may already be in the system.
+                Check duplicates before encoding, or download synced records by
+                municipality and barangay.
               </p>
             </div>
           </div>
@@ -279,175 +385,294 @@ export default function VerifyPage() {
       </header>
 
       <main className="mx-auto max-w-3xl space-y-6 px-4 py-6">
-        <section className="ph-card">
-          <div className="ph-card-header">
-            <h2>Who are you looking for?</h2>
-          </div>
-          <form onSubmit={handleSearch} className="space-y-5 p-5">
-            <p className="rounded-lg bg-[var(--ph-blue-light)]/60 px-4 py-3 text-sm text-[var(--ph-blue-dark)]">
-              Tip: Start with <strong>first and last name</strong>. Add barangay or
-              birthdate to narrow results if you get multiple matches.
-            </p>
+        <div className="verify-tabs" role="tablist" aria-label="Verify tools">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "search"}
+            className={`verify-tab ${activeTab === "search" ? "verify-tab--active" : ""}`}
+            onClick={() => setActiveTab("search")}
+          >
+            Duplicate check
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "export"}
+            className={`verify-tab ${activeTab === "export" ? "verify-tab--active" : ""}`}
+            onClick={() => setActiveTab("export")}
+          >
+            Export Excel
+          </button>
+        </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FormField label="First name" required>
-                <TextInput
-                  value={form.first_name}
-                  onChange={(e) => updateField("first_name", e.target.value)}
-                  placeholder="e.g. Juan"
-                  autoComplete="given-name"
-                />
-              </FormField>
-              <FormField label="Last name" required>
-                <TextInput
-                  value={form.last_name}
-                  onChange={(e) => updateField("last_name", e.target.value)}
-                  placeholder="e.g. Dela Cruz"
-                  autoComplete="family-name"
-                />
-              </FormField>
-              <FormField label="Middle name">
-                <TextInput
-                  value={form.middle_name}
-                  onChange={(e) => updateField("middle_name", e.target.value)}
-                  placeholder="Optional"
-                  autoComplete="additional-name"
-                />
-              </FormField>
-              <FormField label="Birthdate">
-                <TextInput
-                  type="date"
-                  value={form.birthdate}
-                  onChange={(e) => updateField("birthdate", e.target.value)}
-                />
-              </FormField>
-              <FormField label="City / Municipality">
-                <SelectInput
-                  value={form.city_municipality}
-                  onChange={(e) => updateField("city_municipality", e.target.value)}
-                  options={municipalityOptions()}
-                  placeholder="Any municipality"
-                />
-              </FormField>
-              <FormField label="Barangay">
-                <SelectInput
-                  value={form.barangay}
-                  onChange={(e) => updateField("barangay", e.target.value)}
-                  options={barangays}
-                  placeholder={
-                    form.city_municipality ? "Any barangay" : "Select municipality first"
-                  }
-                  disabled={!form.city_municipality}
-                />
-              </FormField>
-            </div>
-
-            {searchError ? <div className="ph-alert-error">{searchError}</div> : null}
-
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="submit"
-                disabled={searching}
-                className="faced-btn-primary min-w-[10rem] flex-1 sm:flex-none"
-              >
-                {searching ? "Searching..." : "Check for duplicates"}
-              </button>
-              <button
-                type="button"
-                onClick={handleClear}
-                className="faced-btn-secondary"
-              >
-                Clear form
-              </button>
-            </div>
-          </form>
-        </section>
-
-        {matches !== null ? (
-          <section className="space-y-4">
-            {matches.length === 0 ? (
-              <div className="verify-result verify-result--clear">
-                <div className="verify-result-icon" aria-hidden>
-                  ✓
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold">No match found</h2>
-                  <p className="mt-1 text-sm opacity-90">
-                    <strong>{queryLabel}</strong> does not appear in synced FACED
-                    records{lastQuery?.barangay ? ` for ${lastQuery.barangay}` : ""}.
-                  </p>
-                  <p className="mt-3 text-sm font-medium">
-                    You may proceed with encoding — but always confirm details with the
-                    household when possible.
-                  </p>
-                </div>
+        {activeTab === "search" ? (
+          <>
+            <section className="ph-card">
+              <div className="ph-card-header">
+                <h2>Who are you looking for?</h2>
               </div>
-            ) : (
-              <>
-                <div className="verify-result verify-result--warning">
-                  <div className="verify-result-icon" aria-hidden>
-                    !
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-bold">
-                      {matches.length === 1
-                        ? "Possible duplicate found"
-                        : `${matches.length} possible duplicates found`}
-                    </h2>
-                    <p className="mt-1 text-sm opacity-90">
-                      <strong>{queryLabel}</strong> may already be encoded. Review the
-                      record(s) below before creating a new entry.
-                    </p>
-                  </div>
+              <form onSubmit={handleSearch} className="space-y-5 p-5">
+                <p className="rounded-lg bg-[var(--ph-blue-light)]/60 px-4 py-3 text-sm text-[var(--ph-blue-dark)]">
+                  Tip: Start with <strong>first and last name</strong>. Add barangay or
+                  birthdate to narrow results if you get multiple matches.
+                </p>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <FormField label="First name" required>
+                    <TextInput
+                      value={form.first_name}
+                      onChange={(e) => updateSearchField("first_name", e.target.value)}
+                      placeholder="e.g. Juan"
+                      autoComplete="given-name"
+                    />
+                  </FormField>
+                  <FormField label="Last name" required>
+                    <TextInput
+                      value={form.last_name}
+                      onChange={(e) => updateSearchField("last_name", e.target.value)}
+                      placeholder="e.g. Dela Cruz"
+                      autoComplete="family-name"
+                    />
+                  </FormField>
+                  <FormField label="Middle name">
+                    <TextInput
+                      value={form.middle_name}
+                      onChange={(e) => updateSearchField("middle_name", e.target.value)}
+                      placeholder="Optional"
+                      autoComplete="additional-name"
+                    />
+                  </FormField>
+                  <FormField label="Birthdate">
+                    <TextInput
+                      type="date"
+                      value={form.birthdate}
+                      onChange={(e) => updateSearchField("birthdate", e.target.value)}
+                    />
+                  </FormField>
+                  <FormField label="City / Municipality">
+                    <SelectInput
+                      value={form.city_municipality}
+                      onChange={(e) =>
+                        updateSearchField("city_municipality", e.target.value)
+                      }
+                      options={municipalityOptions()}
+                      placeholder="Any municipality"
+                    />
+                  </FormField>
+                  <FormField label="Barangay">
+                    <SelectInput
+                      value={form.barangay}
+                      onChange={(e) => updateSearchField("barangay", e.target.value)}
+                      options={searchBarangays}
+                      placeholder={
+                        form.city_municipality
+                          ? "Any barangay"
+                          : "Select municipality first"
+                      }
+                      disabled={!form.city_municipality}
+                    />
+                  </FormField>
                 </div>
 
-                <ul className="space-y-3">
-                  {matches.map((match) => (
-                    <li key={match.uuid} className="verify-match-card">
-                      <div className="verify-match-card-header">
-                        <div>
-                          <p className="text-lg font-bold text-[var(--ph-blue-dark)]">
-                            {match.headName}
-                          </p>
-                          <p className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-amber-800">
-                            {match.matchLabel}
-                          </p>
-                        </div>
-                        <span className="verify-match-badge">Encoded</span>
+                {searchError ? <div className="ph-alert-error">{searchError}</div> : null}
+
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    type="submit"
+                    disabled={searching}
+                    className="faced-btn-primary min-w-[10rem] flex-1 sm:flex-none"
+                  >
+                    {searching ? "Searching..." : "Check for duplicates"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleClearSearch}
+                    className="faced-btn-secondary"
+                  >
+                    Clear form
+                  </button>
+                </div>
+              </form>
+            </section>
+
+            {matches !== null ? (
+              <section className="space-y-4">
+                {matches.length === 0 ? (
+                  <div className="verify-result verify-result--clear">
+                    <div className="verify-result-icon" aria-hidden>
+                      ✓
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold">No match found</h2>
+                      <p className="mt-1 text-sm opacity-90">
+                        <strong>{queryLabel}</strong> does not appear in synced FACED
+                        records{lastQuery?.barangay ? ` for ${lastQuery.barangay}` : ""}.
+                      </p>
+                      <p className="mt-3 text-sm font-medium">
+                        You may proceed with encoding — but always confirm details with the
+                        household when possible.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="verify-result verify-result--warning">
+                      <div className="verify-result-icon" aria-hidden>
+                        !
                       </div>
-                      <dl className="verify-match-grid">
-                        <div>
-                          <dt>Birthdate</dt>
-                          <dd>{formatDate(match.birthdate)}</dd>
-                        </div>
-                        <div>
-                          <dt>Location</dt>
-                          <dd>
-                            {[match.barangay, match.cityMunicipality, SARANGANI_PROVINCE]
-                              .filter(Boolean)
-                              .join(", ") || "—"}
-                          </dd>
-                        </div>
-                        <div>
-                          <dt>Date registered</dt>
-                          <dd>{formatDate(match.dateRegistered)}</dd>
-                        </div>
-                        <div>
-                          <dt>Last synced</dt>
-                          <dd>{formatWhen(match.encodedAt)}</dd>
-                        </div>
-                        <div className="sm:col-span-2">
-                          <dt>Enumerator</dt>
-                          <dd>{match.enumeratorName || "—"}</dd>
-                        </div>
-                      </dl>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
+                      <div>
+                        <h2 className="text-lg font-bold">
+                          {matches.length === 1
+                            ? "Possible duplicate found"
+                            : `${matches.length} possible duplicates found`}
+                        </h2>
+                        <p className="mt-1 text-sm opacity-90">
+                          <strong>{queryLabel}</strong> may already be encoded. Review the
+                          record(s) below before creating a new entry.
+                        </p>
+                      </div>
+                    </div>
+
+                    <ul className="space-y-3">
+                      {matches.map((match) => (
+                        <li key={match.uuid} className="verify-match-card">
+                          <div className="verify-match-card-header">
+                            <div>
+                              <p className="text-lg font-bold text-[var(--ph-blue-dark)]">
+                                {match.headName}
+                              </p>
+                              <p className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-amber-800">
+                                {match.matchLabel}
+                              </p>
+                            </div>
+                            <span className="verify-match-badge">Encoded</span>
+                          </div>
+                          <dl className="verify-match-grid">
+                            <div>
+                              <dt>Birthdate</dt>
+                              <dd>{formatDate(match.birthdate)}</dd>
+                            </div>
+                            <div>
+                              <dt>Location</dt>
+                              <dd>
+                                {[
+                                  match.barangay,
+                                  match.cityMunicipality,
+                                  SARANGANI_PROVINCE,
+                                ]
+                                  .filter(Boolean)
+                                  .join(", ") || "—"}
+                              </dd>
+                            </div>
+                            <div>
+                              <dt>Date registered</dt>
+                              <dd>{formatDate(match.dateRegistered)}</dd>
+                            </div>
+                            <div>
+                              <dt>Last synced</dt>
+                              <dd>{formatWhen(match.encodedAt)}</dd>
+                            </div>
+                            <div className="sm:col-span-2">
+                              <dt>Enumerator</dt>
+                              <dd>{match.enumeratorName || "—"}</dd>
+                            </div>
+                          </dl>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </section>
+            ) : null}
+          </>
+        ) : (
+          <section className="ph-card">
+            <div className="ph-card-header">
+              <h2>Export synced records</h2>
+            </div>
+            <form onSubmit={handleExport} className="space-y-5 p-5">
+              <p className="rounded-lg bg-[var(--ph-blue-light)]/60 px-4 py-3 text-sm text-[var(--ph-blue-dark)]">
+                Choose a <strong>municipality</strong> and <strong>barangay</strong> first.
+                Only synced online records for that area will be included in the Excel file.
+              </p>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField label="City / Municipality" required>
+                  <SelectInput
+                    value={exportFilter.city_municipality}
+                    onChange={(e) =>
+                      updateExportField("city_municipality", e.target.value)
+                    }
+                    options={municipalityOptions()}
+                    placeholder="Select municipality"
+                  />
+                </FormField>
+                <FormField label="Barangay" required>
+                  <SelectInput
+                    value={exportFilter.barangay}
+                    onChange={(e) => updateExportField("barangay", e.target.value)}
+                    options={exportBarangays}
+                    placeholder={
+                      exportFilter.city_municipality
+                        ? "Select barangay"
+                        : "Select municipality first"
+                    }
+                    disabled={!exportFilter.city_municipality}
+                  />
+                </FormField>
+              </div>
+
+              {exportFilter.city_municipality && exportFilter.barangay ? (
+                <div className="ph-alert-success">
+                  Ready to export records for{" "}
+                  <strong>
+                    {exportFilter.barangay}, {exportFilter.city_municipality}
+                  </strong>
+                  , {SARANGANI_PROVINCE}.
+                </div>
+              ) : null}
+
+              {exportError ? <div className="ph-alert-error">{exportError}</div> : null}
+              {exportMessage ? (
+                <div
+                  className={
+                    exportMessage.startsWith("Downloaded")
+                      ? "ph-alert-success"
+                      : "ph-alert-warning"
+                  }
+                >
+                  {exportMessage}
+                </div>
+              ) : null}
+
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="submit"
+                  disabled={
+                    exporting ||
+                    !exportFilter.city_municipality.trim() ||
+                    !exportFilter.barangay.trim()
+                  }
+                  className="faced-btn-primary min-w-[10rem]"
+                >
+                  {exporting ? "Preparing Excel..." : "Download Excel"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setExportFilter(emptyExportFilter);
+                    setExportMessage("");
+                    setExportError("");
+                  }}
+                  className="faced-btn-secondary"
+                >
+                  Clear filters
+                </button>
+              </div>
+            </form>
           </section>
-        ) : null}
+        )}
       </main>
     </div>
   );
