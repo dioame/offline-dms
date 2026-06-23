@@ -10,6 +10,7 @@ type FacedRecordListProps = {
   refreshKey: number;
   onEdit: (id: number) => void;
   onSynced?: () => void;
+  onRecordsChanged?: () => void;
 };
 
 function headName(record: FacedRecord): string {
@@ -32,7 +33,7 @@ function syncBadge(status: SyncStatus) {
   );
 }
 
-export default function FacedRecordList({ refreshKey, onEdit, onSynced }: FacedRecordListProps) {
+export default function FacedRecordList({ refreshKey, onEdit, onSynced, onRecordsChanged }: FacedRecordListProps) {
   const [records, setRecords] = useState<FacedRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -60,6 +61,7 @@ export default function FacedRecordList({ refreshKey, onEdit, onSynced }: FacedR
     if (!confirm("Delete this FACED record?")) return;
     await deleteFacedRecord(id);
     await loadRecords();
+    onRecordsChanged?.();
   }
 
   function handleExport(scope: "all" | "filtered" | "pending") {

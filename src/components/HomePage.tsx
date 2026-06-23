@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import FacedForm from "@/components/faced/FacedForm";
 import FacedRecordList from "@/components/FacedRecordList";
 import LoginGate from "@/components/LoginGate";
@@ -8,10 +8,16 @@ import AppNavTabs from "@/components/AppNavTabs";
 import OfflineIndicator from "@/components/OfflineIndicator";
 import BrandEmblem from "@/components/brand/BrandEmblem";
 import TricolorBar from "@/components/brand/TricolorBar";
+import { getFacedRecords } from "@/lib/db";
 
 export default function HomePage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [editId, setEditId] = useState<number | null>(null);
+  const [encodedCount, setEncodedCount] = useState(0);
+
+  useEffect(() => {
+    void getFacedRecords().then((records) => setEncodedCount(records.length));
+  }, [refreshKey]);
 
   return (
     <LoginGate>
@@ -41,8 +47,12 @@ export default function HomePage() {
 
         <main className="mx-auto max-w-4xl space-y-8 px-4 py-6">
           <section className="ph-card">
-            <div className="ph-card-header">
+            <div className="ph-card-header flex flex-wrap items-center justify-between gap-2">
               <h2>{editId ? "Edit FACED record" : "New FACED record"}</h2>
+              <p className="text-sm font-semibold text-[var(--ph-blue-dark)]">
+                Total encoded:{" "}
+                <span className="text-base font-bold">{encodedCount}</span>
+              </p>
             </div>
             <div className="p-2 sm:p-4">
               <FacedForm
@@ -67,6 +77,8 @@ export default function HomePage() {
                 setEditId(id);
                 window.scrollTo({ top: 0, behavior: "smooth" });
               }}
+              onSynced={() => setRefreshKey((k) => k + 1)}
+              onRecordsChanged={() => setRefreshKey((k) => k + 1)}
             />
           </section>
         </main>
