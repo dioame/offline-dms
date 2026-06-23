@@ -366,16 +366,13 @@ export default function VerifyPage() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link
-              href="/"
-              className="faced-btn-secondary !border-white/40 !text-white hover:!bg-white/10"
-            >
+            <Link href="/" className="ph-header-btn">
               FACED app
             </Link>
             <button
               type="button"
               onClick={handleLock}
-              className="faced-btn-danger !border-white/40 !text-white hover:!bg-white/10"
+              className="ph-header-btn ph-header-btn--danger"
             >
               Lock
             </button>

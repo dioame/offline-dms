@@ -498,10 +498,10 @@ export default function AdminPage() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Link href="/" className="faced-btn-secondary !border-white/40 !text-white hover:!bg-white/10">
+            <Link href="/" className="ph-header-btn">
               FACED app
             </Link>
-            <button type="button" onClick={handleLock} className="faced-btn-danger !border-white/40 !text-white hover:!bg-white/10">
+            <button type="button" onClick={handleLock} className="ph-header-btn ph-header-btn--danger">
               Lock admin
             </button>
           </div>

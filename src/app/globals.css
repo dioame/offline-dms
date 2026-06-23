@@ -302,6 +302,37 @@ body {
   background: var(--ph-red-light);
 }
 
+/* Header actions on dark blue app bar */
+.ph-header-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  border: 1.5px solid rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.14);
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: white;
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.ph-header-btn:hover {
+  background: rgba(255, 255, 255, 0.24);
+  border-color: rgba(255, 255, 255, 0.8);
+}
+
+.ph-header-btn--danger {
+  border-color: rgba(255, 190, 190, 0.75);
+  background: rgba(206, 17, 38, 0.22);
+}
+
+.ph-header-btn--danger:hover {
+  background: rgba(206, 17, 38, 0.38);
+  border-color: rgba(255, 210, 210, 0.9);
+}
+
 /* Chips (occupation suggestions) */
 .faced-chip {
   border-radius: 9999px;
