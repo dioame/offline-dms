@@ -55,10 +55,14 @@ export function exportFacedToExcel(
     Owner: r.house_ownership.owner ? "Yes" : "No",
     Renter: r.house_ownership.renter ? "Yes" : "No",
     Sharer: r.house_ownership.sharer ? "Yes" : "No",
+    "House Ownership Not Identified": r.house_ownership.not_identified ? "Yes" : "No",
     "Partially Damaged": r.shelter_damage_classification.partially_damaged
       ? "Yes"
       : "No",
     "Totally Damaged": r.shelter_damage_classification.totally_damaged
+      ? "Yes"
+      : "No",
+    "Shelter Damage Not Identified": r.shelter_damage_classification.not_identified
       ? "Yes"
       : "No",
     "Date Registered": r.date_registered,

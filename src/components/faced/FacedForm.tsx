@@ -11,7 +11,13 @@ import {
 import {
   computeAge,
   emptyFamilyMember,
+  hasHouseOwnershipSelection,
+  hasShelterDamageSelection,
+  houseOwnershipFromRadio,
+  houseOwnershipRadioValue,
   mergePermanentAddressLine,
+  shelterDamageFromRadio,
+  shelterDamageRadioValue,
   toDateInputValue,
   type FacedRecordData,
   type FamilyMember,
@@ -30,12 +36,24 @@ import SectionHeader from "./SectionHeader";
 import FamilyMemberCard from "./FamilyMemberCard";
 import BrandEmblem from "@/components/brand/BrandEmblem";
 import {
-  CheckboxGroup,
   FormField,
   RadioGroup,
   SelectInput,
   TextInput,
 } from "./FormField";
+
+const HOUSE_OWNERSHIP_OPTIONS = [
+  { value: "owner", label: "Owner" },
+  { value: "renter", label: "Renter" },
+  { value: "sharer", label: "Sharer" },
+  { value: "not_identified", label: "Not Identified" },
+];
+
+const SHELTER_DAMAGE_OPTIONS = [
+  { value: "partially_damaged", label: "Partially Damaged" },
+  { value: "totally_damaged", label: "Totally Damaged" },
+  { value: "not_identified", label: "Not Identified" },
+];
 
 type FacedFormProps = {
   editId?: number | null;
@@ -65,13 +83,32 @@ const NAME_EXTENSIONS = [
 ];
 
 function hasHouseOwnership(form: FacedRecordData): boolean {
-  const h = form.house_ownership;
-  return h.owner || h.renter || h.sharer;
+  return hasHouseOwnershipSelection(form.house_ownership);
 }
 
 function hasShelterDamage(form: FacedRecordData): boolean {
-  const s = form.shelter_damage_classification;
-  return s.partially_damaged || s.totally_damaged;
+  return hasShelterDamageSelection(form.shelter_damage_classification);
+}
+
+function normalizeHouseOwnership(
+  value: FacedRecordData["house_ownership"] | undefined,
+): FacedRecordData["house_ownership"] {
+  return {
+    owner: value?.owner ?? false,
+    renter: value?.renter ?? false,
+    sharer: value?.sharer ?? false,
+    not_identified: value?.not_identified ?? false,
+  };
+}
+
+function normalizeShelterDamage(
+  value: FacedRecordData["shelter_damage_classification"] | undefined,
+): FacedRecordData["shelter_damage_classification"] {
+  return {
+    partially_damaged: value?.partially_damaged ?? false,
+    totally_damaged: value?.totally_damaged ?? false,
+    not_identified: value?.not_identified ?? false,
+  };
 }
 
 function normalizeLoadedRecord(
@@ -111,6 +148,10 @@ function normalizeLoadedRecord(
       const age = m.age || computeAge(birthdate);
       return applyAgeVulnerability({ ...m, birthdate, age });
     }),
+    house_ownership: normalizeHouseOwnership(data.house_ownership),
+    shelter_damage_classification: normalizeShelterDamage(
+      data.shelter_damage_classification,
+    ),
   };
 }
 
@@ -737,20 +778,12 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
       {/* House Ownership */}
       <SectionHeader title="House Ownership (Required)" number="30" />
       <div className="faced-section-body">
-        <CheckboxGroup
-          exclusive
-          options={[
-            { key: "owner", label: "Owner" },
-            { key: "renter", label: "Renter" },
-            { key: "sharer", label: "Sharer" },
-          ]}
-          values={form.house_ownership}
-          onChange={(key, checked) =>
-            updateField("house_ownership", {
-              owner: key === "owner" ? checked : false,
-              renter: key === "renter" ? checked : false,
-              sharer: key === "sharer" ? checked : false,
-            })
+        <RadioGroup
+          name="house_ownership"
+          options={HOUSE_OWNERSHIP_OPTIONS}
+          value={houseOwnershipRadioValue(form.house_ownership)}
+          onChange={(value) =>
+            updateField("house_ownership", houseOwnershipFromRadio(value))
           }
         />
       </div>
@@ -758,18 +791,15 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
       {/* Shelter Damage */}
       <SectionHeader title="Shelter Damage Classification (Required)" number="31" />
       <div className="faced-section-body">
-        <CheckboxGroup
-          exclusive
-          options={[
-            { key: "partially_damaged", label: "Partially Damaged" },
-            { key: "totally_damaged", label: "Totally Damaged" },
-          ]}
-          values={form.shelter_damage_classification}
-          onChange={(key, checked) =>
-            updateField("shelter_damage_classification", {
-              partially_damaged: key === "partially_damaged" ? checked : false,
-              totally_damaged: key === "totally_damaged" ? checked : false,
-            })
+        <RadioGroup
+          name="shelter_damage_classification"
+          options={SHELTER_DAMAGE_OPTIONS}
+          value={shelterDamageRadioValue(form.shelter_damage_classification)}
+          onChange={(value) =>
+            updateField(
+              "shelter_damage_classification",
+              shelterDamageFromRadio(value),
+            )
           }
         />
       </div>

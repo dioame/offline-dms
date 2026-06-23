@@ -58,12 +58,54 @@ export type HouseOwnership = {
   owner: boolean;
   renter: boolean;
   sharer: boolean;
+  not_identified: boolean;
 };
 
 export type ShelterDamageClassification = {
   partially_damaged: boolean;
   totally_damaged: boolean;
+  not_identified: boolean;
 };
+
+export function houseOwnershipRadioValue(h: HouseOwnership): string {
+  if (h.not_identified) return "not_identified";
+  if (h.owner) return "owner";
+  if (h.renter) return "renter";
+  if (h.sharer) return "sharer";
+  return "";
+}
+
+export function houseOwnershipFromRadio(value: string): HouseOwnership {
+  return {
+    owner: value === "owner",
+    renter: value === "renter",
+    sharer: value === "sharer",
+    not_identified: value === "not_identified",
+  };
+}
+
+export function shelterDamageRadioValue(s: ShelterDamageClassification): string {
+  if (s.not_identified) return "not_identified";
+  if (s.partially_damaged) return "partially_damaged";
+  if (s.totally_damaged) return "totally_damaged";
+  return "";
+}
+
+export function shelterDamageFromRadio(value: string): ShelterDamageClassification {
+  return {
+    partially_damaged: value === "partially_damaged",
+    totally_damaged: value === "totally_damaged",
+    not_identified: value === "not_identified",
+  };
+}
+
+export function hasHouseOwnershipSelection(h: HouseOwnership): boolean {
+  return h.owner || h.renter || h.sharer || h.not_identified;
+}
+
+export function hasShelterDamageSelection(s: ShelterDamageClassification): boolean {
+  return s.partially_damaged || s.totally_damaged || s.not_identified;
+}
 
 export type FacedMetadata = {
   form_type: string;
@@ -176,10 +218,12 @@ export function createEmptyFacedRecord(
       owner: false,
       renter: false,
       sharer: false,
+      not_identified: false,
     },
     shelter_damage_classification: {
       partially_damaged: false,
       totally_damaged: false,
+      not_identified: false,
     },
     date_registered: defaults?.date_registered ?? todayDateInputValue(),
     privacy_declaration_acknowledged: false,
