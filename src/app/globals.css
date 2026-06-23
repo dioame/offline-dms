@@ -691,3 +691,54 @@ body {
   color: var(--ph-blue-dark);
 }
 
+.app-nav-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.app-nav-tab {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 0.5rem;
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.45rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.88);
+  text-decoration: none;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+
+.app-nav-tab:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.55);
+  color: white;
+}
+
+.app-nav-tab--active {
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.75);
+  color: white;
+  font-weight: 700;
+}
+
+.verify-progress {
+  overflow: hidden;
+  border-radius: 9999px;
+  background: var(--ph-blue-light);
+  height: 0.625rem;
+}
+
+.verify-progress-bar {
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(to right, var(--ph-blue), #2563eb);
+  transition: width 0.2s ease;
+}
+

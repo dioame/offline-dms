@@ -1,7 +1,8 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
+import AppNavTabs from "@/components/AppNavTabs";
 import BrandEmblem from "@/components/brand/BrandEmblem";
 import TricolorBar from "@/components/brand/TricolorBar";
 import {
@@ -16,8 +17,19 @@ import {
   municipalityOptions,
   SARANGANI_PROVINCE,
 } from "@/lib/sarangani-locations";
+import {
+  clearVerifyCache,
+  downloadVerifyCache,
+  getAllVerifyCacheEntries,
+  getVerifyCacheCount,
+  getVerifyCacheMeta,
+  searchCachedBeneficiary,
+  type VerifyDownloadProgress,
+} from "@/lib/verify-cache";
+import type { VerifyCacheMeta } from "@/lib/db";
 
-type VerifyTab = "search" | "export";
+type VerifyTab = "search" | "export" | "offline";
+type SearchSource = "online" | "offline";
 
 type VerifyMatch = {
   uuid: string;
@@ -99,6 +111,23 @@ function toFacedRecords(records: ExportRecordJson[]): FacedRecord[] {
   }));
 }
 
+function subscribeOnline(callback: () => void) {
+  window.addEventListener("online", callback);
+  window.addEventListener("offline", callback);
+  return () => {
+    window.removeEventListener("online", callback);
+    window.removeEventListener("offline", callback);
+  };
+}
+
+function getOnlineSnapshot() {
+  return navigator.onLine;
+}
+
+function getOnlineServerSnapshot() {
+  return true;
+}
+
 export default function VerifyPage() {
   const [unlocked, setUnlocked] = useState(false);
   const [password, setPassword] = useState("");
@@ -111,6 +140,20 @@ export default function VerifyPage() {
   const [searchError, setSearchError] = useState("");
   const [matches, setMatches] = useState<VerifyMatch[] | null>(null);
   const [lastQuery, setLastQuery] = useState<SearchForm | null>(null);
+  const [searchSource, setSearchSource] = useState<SearchSource | null>(null);
+
+  const [cacheMeta, setCacheMeta] = useState<VerifyCacheMeta | undefined>();
+  const [cacheCount, setCacheCount] = useState(0);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState<VerifyDownloadProgress | null>(null);
+  const [downloadMessage, setDownloadMessage] = useState("");
+  const [downloadError, setDownloadError] = useState("");
+
+  const isOnline = useSyncExternalStore(
+    subscribeOnline,
+    getOnlineSnapshot,
+    getOnlineServerSnapshot,
+  );
 
   const [exportFilter, setExportFilter] = useState<ExportFilter>(emptyExportFilter);
   const [exporting, setExporting] = useState(false);
@@ -143,6 +186,17 @@ export default function VerifyPage() {
       })
       .catch(() => sessionStorage.removeItem(VERIFY_STORAGE_KEY));
   }, [verifyFetch]);
+
+  const refreshCacheStatus = useCallback(async () => {
+    const [meta, count] = await Promise.all([getVerifyCacheMeta(), getVerifyCacheCount()]);
+    setCacheMeta(meta);
+    setCacheCount(count);
+  }, []);
+
+  useEffect(() => {
+    if (!unlocked) return;
+    void refreshCacheStatus();
+  }, [unlocked, refreshCacheStatus]);
 
   const searchBarangays = useMemo(
     () => barangayOptions(form.city_municipality),
@@ -184,6 +238,44 @@ export default function VerifyPage() {
     setExportFilter(emptyExportFilter);
     setExportMessage("");
     setExportError("");
+    setSearchSource(null);
+    setDownloadMessage("");
+    setDownloadError("");
+  }
+
+  async function handleDownloadOffline() {
+    setDownloadError("");
+    setDownloadMessage("");
+    setDownloading(true);
+    setDownloadProgress({ downloaded: 0, total: 0 });
+
+    try {
+      if (!isOnline) {
+        throw new Error("Connect to the internet to download the latest verify data.");
+      }
+
+      const result = await downloadVerifyCache(
+        (offset, limit) => verifyFetch(`/api/verify/sync?offset=${offset}&limit=${limit}`),
+        setDownloadProgress,
+      );
+
+      await refreshCacheStatus();
+      setDownloadMessage(
+        `Downloaded ${result.totalRecords} record(s). You can verify duplicates offline until the next download.`,
+      );
+    } catch (err) {
+      setDownloadError(err instanceof Error ? err.message : "Download failed.");
+    } finally {
+      setDownloading(false);
+      setDownloadProgress(null);
+    }
+  }
+
+  async function handleClearOffline() {
+    await clearVerifyCache();
+    await refreshCacheStatus();
+    setDownloadMessage("Offline verify data cleared.");
+    setDownloadError("");
   }
 
   function updateSearchField<K extends keyof SearchForm>(key: K, value: SearchForm[K]) {
@@ -216,22 +308,36 @@ export default function VerifyPage() {
     setSearchError("");
     setSearching(true);
     setMatches(null);
+    setSearchSource(null);
 
     try {
       if (!form.last_name.trim() || !form.first_name.trim()) {
         throw new Error("Please enter the beneficiary's first and last name.");
       }
 
-      const res = await verifyFetch("/api/verify/search", {
-        method: "POST",
-        body: JSON.stringify(form),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Search failed.");
+      if (isOnline) {
+        const res = await verifyFetch("/api/verify/search", {
+          method: "POST",
+          body: JSON.stringify(form),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || "Search failed.");
+        }
+        setMatches(data.matches ?? []);
+        setSearchSource("online");
+      } else {
+        if (cacheCount === 0) {
+          throw new Error(
+            "No offline data on this device. Download the latest records while online first.",
+          );
+        }
+        const entries = await getAllVerifyCacheEntries();
+        const result = searchCachedBeneficiary(entries, form);
+        setMatches(result.matches);
+        setSearchSource("offline");
       }
 
-      setMatches(data.matches ?? []);
       setLastQuery({ ...form });
     } catch (err) {
       setSearchError(err instanceof Error ? err.message : "Search failed.");
@@ -308,6 +414,9 @@ export default function VerifyPage() {
             <p className="ph-subtitle mx-auto mt-2 max-w-md text-sm">
               Check for duplicate beneficiaries or export synced FACED records by area.
             </p>
+            <div className="mt-4 flex justify-center">
+              <AppNavTabs />
+            </div>
           </div>
           <TricolorBar thick />
         </header>
@@ -363,6 +472,7 @@ export default function VerifyPage() {
                 Check duplicates before encoding, or download synced records by
                 municipality and barangay.
               </p>
+              <AppNavTabs />
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -401,7 +511,23 @@ export default function VerifyPage() {
           >
             Export Excel
           </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "offline"}
+            className={`verify-tab ${activeTab === "offline" ? "verify-tab--active" : ""}`}
+            onClick={() => setActiveTab("offline")}
+          >
+            Offline data
+          </button>
         </div>
+
+        {!isOnline ? (
+          <div className="ph-alert-warning">
+            You are offline. Duplicate check uses downloaded data only. Export Excel requires
+            internet.
+          </div>
+        ) : null}
 
         {activeTab === "search" ? (
           <>
@@ -412,8 +538,23 @@ export default function VerifyPage() {
               <form onSubmit={handleSearch} className="space-y-5 p-5">
                 <p className="rounded-lg bg-[var(--ph-blue-light)]/60 px-4 py-3 text-sm text-[var(--ph-blue-dark)]">
                   Tip: Start with <strong>first and last name</strong>. Add barangay or
-                  birthdate to narrow results if you get multiple matches.
+                  birthdate to narrow results. When offline, search uses your downloaded copy
+                  from the <strong>Offline data</strong> tab.
                 </p>
+
+                {cacheCount > 0 ? (
+                  <p className="text-sm text-zinc-600">
+                    Offline copy: <strong>{cacheCount}</strong> record(s)
+                    {cacheMeta?.syncedAt
+                      ? ` · last downloaded ${formatWhen(cacheMeta.syncedAt)}`
+                      : ""}
+                  </p>
+                ) : (
+                  <p className="text-sm text-amber-800">
+                    No offline copy yet. Download data in the <strong>Offline data</strong> tab
+                    while online.
+                  </p>
+                )}
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <FormField label="First name" required>
@@ -495,6 +636,14 @@ export default function VerifyPage() {
 
             {matches !== null ? (
               <section className="space-y-4">
+                {searchSource ? (
+                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                    Searched {searchSource === "online" ? "live database" : "offline copy"}
+                    {searchSource === "offline" && cacheMeta?.syncedAt
+                      ? ` · downloaded ${formatWhen(cacheMeta.syncedAt)}`
+                      : ""}
+                  </p>
+                ) : null}
                 {matches.length === 0 ? (
                   <div className="verify-result verify-result--clear">
                     <div className="verify-result-icon" aria-hidden>
@@ -583,7 +732,7 @@ export default function VerifyPage() {
               </section>
             ) : null}
           </>
-        ) : (
+        ) : activeTab === "export" ? (
           <section className="ph-card">
             <div className="ph-card-header">
               <h2>Export synced records</h2>
@@ -668,6 +817,95 @@ export default function VerifyPage() {
                 </button>
               </div>
             </form>
+          </section>
+        ) : (
+          <section className="ph-card">
+            <div className="ph-card-header">
+              <h2>Offline verify data</h2>
+            </div>
+            <div className="space-y-5 p-5">
+              <p className="rounded-lg bg-[var(--ph-blue-light)]/60 px-4 py-3 text-sm text-[var(--ph-blue-dark)]">
+                Download the latest synced records from the database to this device. After
+                that, <strong>Duplicate check</strong> works without internet.
+              </p>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-lg border border-[var(--faced-blue-border)] bg-white px-4 py-3">
+                  <p className="text-xs font-bold uppercase tracking-wide text-zinc-500">
+                    Records on device
+                  </p>
+                  <p className="mt-1 text-2xl font-bold text-[var(--ph-blue-dark)]">
+                    {cacheCount}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-[var(--faced-blue-border)] bg-white px-4 py-3">
+                  <p className="text-xs font-bold uppercase tracking-wide text-zinc-500">
+                    Last downloaded
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-zinc-800">
+                    {cacheMeta?.syncedAt ? formatWhen(cacheMeta.syncedAt) : "Not yet downloaded"}
+                  </p>
+                </div>
+              </div>
+
+              {downloadProgress ? (
+                <div className="space-y-2">
+                  <p className="text-sm text-zinc-600">
+                    Downloading {downloadProgress.downloaded}
+                    {downloadProgress.total > 0 ? ` of ${downloadProgress.total}` : ""}…
+                  </p>
+                  <div className="verify-progress">
+                    <div
+                      className="verify-progress-bar"
+                      style={{
+                        width:
+                          downloadProgress.total > 0
+                            ? `${Math.min(100, (downloadProgress.downloaded / downloadProgress.total) * 100)}%`
+                            : "30%",
+                      }}
+                    />
+                  </div>
+                </div>
+              ) : null}
+
+              {downloadError ? <div className="ph-alert-error">{downloadError}</div> : null}
+              {downloadMessage ? (
+                <div
+                  className={
+                    downloadMessage.startsWith("Downloaded")
+                      ? "ph-alert-success"
+                      : "ph-alert-warning"
+                  }
+                >
+                  {downloadMessage}
+                </div>
+              ) : null}
+
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => void handleDownloadOffline()}
+                  disabled={downloading || !isOnline}
+                  className="faced-btn-primary min-w-[10rem]"
+                >
+                  {downloading ? "Downloading…" : "Download latest data"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleClearOffline()}
+                  disabled={downloading || cacheCount === 0}
+                  className="faced-btn-secondary"
+                >
+                  Clear offline data
+                </button>
+              </div>
+
+              {!isOnline ? (
+                <p className="text-sm text-amber-800">
+                  Connect to the internet to download or refresh offline data.
+                </p>
+              ) : null}
+            </div>
           </section>
         )}
       </main>

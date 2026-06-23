@@ -7,9 +7,17 @@ import {
   type SyncStatus,
 } from "./faced-types";
 
+export type VerifyCacheMeta = {
+  id: "current";
+  syncedAt: string;
+  totalRecords: number;
+};
+
 const db = new Dexie("OfflineDMS") as Dexie & {
   faced_records: EntityTable<FacedRecord, "id">;
   auth_session: EntityTable<AuthSession, "id">;
+  verify_cache: EntityTable<import("./verify-match").VerifyCacheEntry, "uuid">;
+  verify_meta: EntityTable<VerifyCacheMeta, "id">;
 };
 
 export type AuthSession = {
@@ -72,6 +80,14 @@ db.version(5)
         }
       });
   });
+
+db.version(6).stores({
+  faced_records:
+    "++id, uuid, barangay, access_code, enumerator_name, sync_status, createdAt, date_registered",
+  auth_session: "id",
+  verify_cache: "uuid, last_name, first_name, barangay, city_municipality",
+  verify_meta: "id",
+});
 
 export async function getAuthSession(): Promise<AuthSession | undefined> {
   return db.auth_session.get("current");
