@@ -23,6 +23,7 @@ type AssigneeDraft = {
 };
 
 type EnumeratorSummary = {
+  access_code: string | null;
   enumerator_name: string;
   enumerator_email: string | null;
   total_encoded: number;
@@ -548,7 +549,7 @@ export default function AdminPage() {
                   <p className="mt-1 text-2xl font-bold text-zinc-900">
                     {summaryTotals.enumerators}
                   </p>
-                  <p className="text-xs text-zinc-600">With codes or encoded records</p>
+                  <p className="text-xs text-zinc-600">One access code per enumerator</p>
                 </div>
                 <div className="rounded-lg border border-[var(--faced-blue-border)] bg-white px-4 py-3">
                   <p className="text-xs font-bold uppercase tracking-wide text-zinc-600">
@@ -597,8 +598,15 @@ export default function AdminPage() {
                     </tr>
                   ) : (
                     paginatedSummaries.map((row) => (
-                      <tr key={`${row.enumerator_name}-${row.enumerator_email ?? ""}`}>
-                        <td className="font-medium">{row.enumerator_name}</td>
+                      <tr key={row.access_code ?? `unmatched-${row.enumerator_name}`}>
+                        <td className="font-medium">
+                          <div>{row.enumerator_name}</div>
+                          {row.access_code ? (
+                            <div className="text-xs font-normal text-zinc-500">
+                              {row.access_code}
+                            </div>
+                          ) : null}
+                        </td>
                         <td className="text-zinc-600">{row.enumerator_email || "—"}</td>
                         <td className="font-semibold text-[var(--ph-blue-dark)]">
                           {row.total_encoded}
@@ -628,7 +636,7 @@ export default function AdminPage() {
               ) : (
                 paginatedSummaries.map((row) => (
                   <article
-                    key={`${row.enumerator_name}-${row.enumerator_email ?? ""}`}
+                    key={row.access_code ?? `unmatched-${row.enumerator_name}`}
                     className="admin-code-card"
                   >
                     <div className="admin-code-card-header">
