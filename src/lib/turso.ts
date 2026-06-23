@@ -18,6 +18,7 @@ export async function ensureTursoSchema(): Promise<void> {
 
 export type TursoFacedRow = {
   uuid: string;
+  access_code: string;
   enumerator_name: string;
   barangay: string;
   city_municipality: string;
@@ -34,10 +35,11 @@ export async function upsertFacedRecord(row: TursoFacedRow): Promise<void> {
   await db.execute({
     sql: `
       INSERT INTO faced_records (
-        uuid, enumerator_name, barangay, city_municipality, province,
+        uuid, access_code, enumerator_name, barangay, city_municipality, province,
         date_registered, payload, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(uuid) DO UPDATE SET
+        access_code = excluded.access_code,
         enumerator_name = excluded.enumerator_name,
         barangay = excluded.barangay,
         city_municipality = excluded.city_municipality,
@@ -48,6 +50,7 @@ export async function upsertFacedRecord(row: TursoFacedRow): Promise<void> {
     `,
     args: [
       row.uuid,
+      row.access_code,
       row.enumerator_name,
       row.barangay,
       row.city_municipality,

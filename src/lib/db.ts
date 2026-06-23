@@ -56,6 +56,23 @@ db.version(4).stores({
   auth_session: "id",
 });
 
+db.version(5)
+  .stores({
+    faced_records:
+      "++id, uuid, barangay, access_code, enumerator_name, sync_status, createdAt, date_registered",
+    auth_session: "id",
+  })
+  .upgrade(async (tx) => {
+    await tx
+      .table("faced_records")
+      .toCollection()
+      .modify((record) => {
+        if (record.access_code === undefined) {
+          record.access_code = "";
+        }
+      });
+  });
+
 export async function getAuthSession(): Promise<AuthSession | undefined> {
   return db.auth_session.get("current");
 }

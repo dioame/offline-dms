@@ -114,6 +114,7 @@ export type FacedMetadata = {
 };
 
 export type FacedRecordData = {
+  access_code: string;
   enumerator_name: string;
   region: string;
   province: string;
@@ -166,9 +167,12 @@ export function todayDateInputValue(date = new Date()): string {
 }
 
 export function createEmptyFacedRecord(
-  defaults?: Partial<Pick<FacedRecordData, "enumerator_name" | "date_registered">>,
+  defaults?: Partial<
+    Pick<FacedRecordData, "access_code" | "enumerator_name" | "date_registered">
+  >,
 ): FacedRecordData {
   return {
+    access_code: defaults?.access_code ?? "",
     enumerator_name: defaults?.enumerator_name ?? "",
     region: SARANGANI_REGION,
     province: SARANGANI_PROVINCE,

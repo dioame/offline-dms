@@ -126,6 +126,7 @@ function normalizeLoadedRecord(
   const perm = data.permanent_address ?? createEmptyFacedRecord().permanent_address;
   return {
     ...data,
+    access_code: data.access_code ?? "",
     enumerator_name: data.enumerator_name ?? "",
     region: data.region || SARANGANI_REGION,
     province: data.province || SARANGANI_PROVINCE,
@@ -165,6 +166,7 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
       void getAuthSession().then((session) => {
         setForm(
           createEmptyFacedRecord({
+            access_code: session?.code ?? "",
             enumerator_name: session?.enumeratorName ?? "",
           }),
         );
@@ -368,12 +370,24 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
 
     setSaving(true);
     try {
+      const session = await getAuthSession();
+      const recordData: FacedRecordData = {
+        ...form,
+        access_code: form.access_code.trim() || session?.code || "",
+        enumerator_name: session?.enumeratorName?.trim() || form.enumerator_name.trim(),
+      };
+
       if (editId) {
-        await updateFacedRecord(editId, form);
+        await updateFacedRecord(editId, recordData);
         setMessage("Record updated locally.");
       } else {
-        await addFacedRecord(form);
-        setForm(createEmptyFacedRecord());
+        await addFacedRecord(recordData);
+        setForm(
+          createEmptyFacedRecord({
+            access_code: session?.code ?? "",
+            enumerator_name: session?.enumeratorName ?? "",
+          }),
+        );
         setMessage("FACED record saved locally.");
       }
       onSaved();

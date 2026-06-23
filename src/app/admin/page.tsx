@@ -23,7 +23,7 @@ type AssigneeDraft = {
 };
 
 type EnumeratorSummary = {
-  access_code: string | null;
+  access_code: string;
   enumerator_name: string;
   enumerator_email: string | null;
   total_encoded: number;
@@ -598,14 +598,12 @@ export default function AdminPage() {
                     </tr>
                   ) : (
                     paginatedSummaries.map((row) => (
-                      <tr key={row.access_code ?? `unmatched-${row.enumerator_name}`}>
+                      <tr key={row.access_code}>
                         <td className="font-medium">
                           <div>{row.enumerator_name}</div>
-                          {row.access_code ? (
-                            <div className="text-xs font-normal text-zinc-500">
-                              {row.access_code}
-                            </div>
-                          ) : null}
+                          <div className="text-xs font-normal text-zinc-500">
+                            {row.access_code}
+                          </div>
                         </td>
                         <td className="text-zinc-600">{row.enumerator_email || "—"}</td>
                         <td className="font-semibold text-[var(--ph-blue-dark)]">
@@ -636,7 +634,7 @@ export default function AdminPage() {
               ) : (
                 paginatedSummaries.map((row) => (
                   <article
-                    key={row.access_code ?? `unmatched-${row.enumerator_name}`}
+                    key={row.access_code}
                     className="admin-code-card"
                   >
                     <div className="admin-code-card-header">
