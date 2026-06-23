@@ -39,7 +39,10 @@ export async function upsertFacedRecord(row: TursoFacedRow): Promise<void> {
         date_registered, payload, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(uuid) DO UPDATE SET
-        access_code = excluded.access_code,
+        access_code = CASE
+          WHEN TRIM(excluded.access_code) != '' THEN excluded.access_code
+          ELSE faced_records.access_code
+        END,
         enumerator_name = excluded.enumerator_name,
         barangay = excluded.barangay,
         city_municipality = excluded.city_municipality,

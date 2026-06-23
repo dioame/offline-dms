@@ -1,4 +1,5 @@
 import { ensureTursoSchema, getTursoClient } from "./turso";
+import { backfillFacedRecordAccessCodes } from "./backfill-access-codes";
 
 export type EnumeratorSummary = {
   access_code: string;
@@ -28,6 +29,8 @@ export async function getEnumeratorSummaries(): Promise<{
 }> {
   await ensureTursoSchema();
   const db = getTursoClient();
+
+  await backfillFacedRecordAccessCodes(db);
 
   const [codeResult, totalEncodedResult] = await Promise.all([
     db.execute({

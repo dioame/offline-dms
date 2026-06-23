@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSyncApiSecret, isTursoConfigured } from "@/lib/env";
 import type { FacedRecord } from "@/lib/faced-types";
 import { ensureTursoSchema, upsertFacedRecord } from "@/lib/turso";
+import { normalizeRecordAccessCode } from "@/lib/backfill-access-codes";
 
 type SyncPayload = {
   records: (Omit<FacedRecord, "createdAt" | "updatedAt"> & {
@@ -69,7 +70,7 @@ export async function POST(request: Request) {
 
       await upsertFacedRecord({
         uuid: record.uuid,
-        access_code: record.access_code ?? "",
+        access_code: normalizeRecordAccessCode(record.access_code),
         enumerator_name: record.enumerator_name ?? "",
         barangay: record.barangay || "",
         city_municipality: record.city_municipality || "",

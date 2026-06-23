@@ -1,4 +1,5 @@
 import { createClient } from "@libsql/client";
+import { backfillFacedRecordAccessCodes } from "../src/lib/backfill-access-codes";
 import { runMigrations } from "../src/lib/run-migrations";
 
 async function main() {
@@ -19,6 +20,8 @@ async function main() {
 
   const { applied, skipped } = await runMigrations(db);
 
+  const backfilled = await backfillFacedRecordAccessCodes(db);
+
   console.log("");
   if (applied.length === 0 && skipped.length > 0) {
     console.log(
@@ -32,6 +35,10 @@ async function main() {
     }
   } else {
     console.log("Nothing to migrate.");
+  }
+
+  if (backfilled > 0) {
+    console.log(`Backfilled access_code on ${backfilled} faced record(s).`);
   }
 }
 

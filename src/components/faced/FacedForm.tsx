@@ -22,6 +22,7 @@ import {
   type FacedRecordData,
   type FamilyMember,
 } from "@/lib/faced-types";
+import { normalizeAccessCode } from "@/lib/code-generator";
 import {
   barangayOptions,
   municipalityOptions,
@@ -373,7 +374,9 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
       const session = await getAuthSession();
       const recordData: FacedRecordData = {
         ...form,
-        access_code: form.access_code.trim() || session?.code || "",
+        access_code: normalizeAccessCode(
+          form.access_code.trim() || session?.code || "",
+        ),
         enumerator_name: session?.enumeratorName?.trim() || form.enumerator_name.trim(),
       };
 
