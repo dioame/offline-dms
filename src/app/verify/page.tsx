@@ -229,20 +229,6 @@ export default function VerifyPage() {
     }
   }
 
-  function handleLock() {
-    sessionStorage.removeItem(VERIFY_STORAGE_KEY);
-    setUnlocked(false);
-    setMatches(null);
-    setLastQuery(null);
-    setForm(emptySearchForm);
-    setExportFilter(emptyExportFilter);
-    setExportMessage("");
-    setExportError("");
-    setSearchSource(null);
-    setDownloadMessage("");
-    setDownloadError("");
-  }
-
   async function handleDownloadOffline() {
     setDownloadError("");
     setDownloadMessage("");
@@ -460,7 +446,7 @@ export default function VerifyPage() {
   return (
     <div className="ph-page-bg min-h-full">
       <header className="ph-app-header">
-        <div className="mx-auto flex max-w-3xl flex-wrap items-start justify-between gap-4 px-4 py-6">
+        <div className="mx-auto max-w-3xl px-4 py-6">
           <div className="flex items-start gap-4">
             <BrandEmblem size={56} className="hidden shrink-0 sm:block" />
             <div>
@@ -474,18 +460,6 @@ export default function VerifyPage() {
               </p>
               <AppNavTabs />
             </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Link href="/" className="ph-header-btn">
-              FACED app
-            </Link>
-            <button
-              type="button"
-              onClick={handleLock}
-              className="ph-header-btn ph-header-btn--danger"
-            >
-              Lock
-            </button>
           </div>
         </div>
         <TricolorBar thick />
