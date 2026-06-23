@@ -33,3 +33,11 @@ export function verifyAdminPassword(password: string): boolean {
   }
   return password === expected;
 }
+
+export function getVerifyPassword(): string {
+  return process.env.VERIFY_PASSWORD?.trim() || "verify123";
+}
+
+export function verifyVerifyPassword(password: string): boolean {
+  return password === getVerifyPassword();
+}
