@@ -1,6 +1,11 @@
 import type { FamilyMember } from "@/lib/faced-types";
-import { educationalAttainmentOptions, relationOptions, vulnerabilityOptions } from "@/lib/faced-options";
-import { FormField, SelectInput, TextInput } from "./FormField";
+import {
+  educationalAttainmentOptions,
+  FAMILY_MEMBER_OCCUPATION_SUGGESTIONS,
+  relationOptions,
+  vulnerabilityOptions,
+} from "@/lib/faced-options";
+import { FormField, SelectInput, SuggestionChips, TextInput } from "./FormField";
 
 const SEX_OPTIONS = [
   { value: "M", label: "Male" },
@@ -119,6 +124,10 @@ export default function FamilyMemberCard({
             value={member.occupation}
             onChange={(e) => onChange("occupation", e.target.value)}
             placeholder="Occupation"
+          />
+          <SuggestionChips
+            suggestions={FAMILY_MEMBER_OCCUPATION_SUGGESTIONS}
+            onSelect={(value) => onChange("occupation", value)}
           />
         </FormField>
 

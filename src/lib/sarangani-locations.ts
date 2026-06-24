@@ -188,3 +188,14 @@ export function isSaranganiMunicipality(
 ): value is SaranganiMunicipality {
   return (SARANGANI_MUNICIPALITIES as readonly string[]).includes(value);
 }
+
+export function birthplaceSuggestion(
+  barangay: string,
+  cityMunicipality: string,
+  province = SARANGANI_PROVINCE,
+): string | null {
+  const barangayName = barangay.trim();
+  const municipality = cityMunicipality.trim();
+  if (!barangayName || !municipality) return null;
+  return `${barangayName}, ${municipality}, ${province.trim() || SARANGANI_PROVINCE}`;
+}

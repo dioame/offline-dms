@@ -25,13 +25,17 @@ import {
 import { normalizeAccessCode } from "@/lib/code-generator";
 import {
   barangayOptions,
+  birthplaceSuggestion,
   municipalityOptions,
   SARANGANI_PROVINCE,
   SARANGANI_REGION,
 } from "@/lib/sarangani-locations";
 import {
   applyAgeVulnerability,
+  ETHNICITY_SUGGESTIONS,
+  ID_CARD_SUGGESTIONS,
   OCCUPATION_SUGGESTIONS,
+  RELIGION_SUGGESTIONS,
 } from "@/lib/faced-options";
 import SectionHeader from "./SectionHeader";
 import FamilyMemberCard from "./FamilyMemberCard";
@@ -40,6 +44,7 @@ import {
   FormField,
   RadioGroup,
   SelectInput,
+  SuggestionChips,
   TextInput,
 } from "./FormField";
 
@@ -63,12 +68,12 @@ type FacedFormProps = {
 };
 
 const CIVIL_STATUS = [
-  "SINGLE",
-  "MARRIED",
-  "WIDOWED",
-  "SEPARATED",
-  "ANNULLED",
-  "COMMON LAW",
+  "Single",
+  "Married",
+  "Widowed",
+  "Separated",
+  "Annulled",
+  "Common Law",
 ].map((v) => ({ value: v, label: v }));
 
 const NAME_EXTENSIONS = [
@@ -154,6 +159,11 @@ function normalizeLoadedRecord(
     shelter_damage_classification: normalizeShelterDamage(
       data.shelter_damage_classification,
     ),
+    others: {
+      "4ps_beneficiary": data.others?.["4ps_beneficiary"] ?? false,
+      ip_type_of_ethnicity: data.others?.ip_type_of_ethnicity ?? "",
+      religion: data.others?.religion ?? "",
+    },
   };
 }
 
@@ -401,6 +411,15 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
     }
   }
 
+  const birthplaceSuggestions = (() => {
+    const suggestion = birthplaceSuggestion(
+      form.barangay,
+      form.city_municipality,
+      form.province,
+    );
+    return suggestion ? [suggestion] : [];
+  })();
+
   return (
     <form onSubmit={handleSubmit} className="faced-form space-y-0">
       {/* Form header */}
@@ -546,6 +565,11 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
           <TextInput
             value={form.head_of_family.birthplace}
             onChange={(e) => updateHead("birthplace", e.target.value)}
+            placeholder="Birthplace"
+          />
+          <SuggestionChips
+            suggestions={birthplaceSuggestions}
+            onSelect={(value) => updateHead("birthplace", value)}
           />
         </FormField>
         <FormField label="Sex" number="14" required>
@@ -579,18 +603,10 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
             onChange={(e) => updateHead("occupation", e.target.value)}
             placeholder="Occupation"
           />
-          <div className="mt-2 flex flex-wrap gap-2">
-            {OCCUPATION_SUGGESTIONS.map((suggestion) => (
-              <button
-                key={suggestion}
-                type="button"
-                onClick={() => updateHead("occupation", suggestion)}
-                className="faced-chip"
-              >
-                {suggestion}
-              </button>
-            ))}
-          </div>
+          <SuggestionChips
+            suggestions={OCCUPATION_SUGGESTIONS}
+            onSelect={(value) => updateHead("occupation", value)}
+          />
         </FormField>
         <FormField label="Monthly Family Net Income" number="18">
           <TextInput
@@ -604,7 +620,11 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
           <TextInput
             value={form.head_of_family.id_card_presented}
             onChange={(e) => updateHead("id_card_presented", e.target.value)}
-            placeholder="NATIONAL ID, Driver's License, etc."
+            placeholder="PhilHealth, Nat'l ID, etc."
+          />
+          <SuggestionChips
+            suggestions={ID_CARD_SUGGESTIONS}
+            onSelect={(value) => updateHead("id_card_presented", value)}
           />
         </FormField>
         <FormField label="ID Card Number" number="20">
@@ -713,6 +733,37 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
               updateField("others", {
                 ...form.others,
                 ip_type_of_ethnicity: e.target.value,
+              })
+            }
+            placeholder="Type of ethnicity"
+          />
+          <SuggestionChips
+            suggestions={ETHNICITY_SUGGESTIONS}
+            onSelect={(value) =>
+              updateField("others", {
+                ...form.others,
+                ip_type_of_ethnicity: value,
+              })
+            }
+          />
+        </FormField>
+        <FormField label="Religion">
+          <TextInput
+            value={form.others.religion}
+            onChange={(e) =>
+              updateField("others", {
+                ...form.others,
+                religion: e.target.value,
+              })
+            }
+            placeholder="Religion"
+          />
+          <SuggestionChips
+            suggestions={RELIGION_SUGGESTIONS}
+            onSelect={(value) =>
+              updateField("others", {
+                ...form.others,
+                religion: value,
               })
             }
           />

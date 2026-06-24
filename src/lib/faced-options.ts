@@ -85,3 +85,33 @@ export const OCCUPATION_SUGGESTIONS = [
   "Teacher",
   "Driver",
 ] as const;
+
+export const FAMILY_MEMBER_OCCUPATION_SUGGESTIONS = [
+  ...OCCUPATION_SUGGESTIONS,
+  "Student",
+] as const;
+
+export const ID_CARD_SUGGESTIONS = [
+  "PhilHealth",
+  "Driver's License",
+  "Nat'l ID",
+  "Voter's ID",
+  "Voter's Certificate",
+  "UMID",
+] as const;
+
+export const ETHNICITY_SUGGESTIONS = [
+  "Blaan",
+  "Bisaya",
+  "Maguindanaon",
+  "Tausug",
+  "Maranao",
+] as const;
+
+export const RELIGION_SUGGESTIONS = [
+  "Islam",
+  "Roman Catholic",
+  "Born Again",
+  "Seventh Day Adventist",
+  "Camacop",
+] as const;

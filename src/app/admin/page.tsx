@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import BrandEmblem from "@/components/brand/BrandEmblem";
 import TricolorBar from "@/components/brand/TricolorBar";
+import { exportAccessCodesToExcel, exportFacedToExcel } from "@/lib/export-excel";
+import type { FacedRecord } from "@/lib/faced-types";
 
 type AccessCodeRow = {
   code: string;
@@ -46,6 +48,27 @@ type EnumeratorSummaryTotals = {
 
 const ADMIN_STORAGE_KEY = "dms_admin_password";
 const PAGE_SIZE = 20;
+
+type ExportRecordJson = Omit<FacedRecord, "createdAt" | "updatedAt"> & {
+  createdAt: string;
+  updatedAt: string;
+};
+
+function slugify(value: string): string {
+  return value
+    .trim()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, "_")
+    .slice(0, 40);
+}
+
+function toFacedRecords(records: ExportRecordJson[]): FacedRecord[] {
+  return records.map((record) => ({
+    ...record,
+    createdAt: new Date(record.createdAt),
+    updatedAt: new Date(record.updatedAt),
+  }));
+}
 
 function paginate<T>(items: T[], page: number, pageSize: number): T[] {
   const start = (page - 1) * pageSize;
@@ -153,6 +176,7 @@ export default function AdminPage() {
   const [statsLoading, setStatsLoading] = useState(false);
   const [summaryPage, setSummaryPage] = useState(1);
   const [codesPage, setCodesPage] = useState(1);
+  const [exportingCode, setExportingCode] = useState<string | null>(null);
 
   useEffect(() => {
     const stored = sessionStorage.getItem(ADMIN_STORAGE_KEY);
@@ -263,6 +287,11 @@ export default function AdminPage() {
   const paginatedCodes = useMemo(
     () => paginate(filteredCodes, codesPage, PAGE_SIZE),
     [filteredCodes, codesPage],
+  );
+
+  const usedCodesCount = useMemo(
+    () => codes.filter((row) => row.status === "used").length,
+    [codes],
   );
 
   async function handleUnlock(e: React.FormEvent) {
@@ -438,6 +467,62 @@ export default function AdminPage() {
     setMessage("Copied to clipboard.");
   }
 
+  async function handleExportEnumerator(accessCode?: string, label?: string) {
+    const exportKey = accessCode ?? "all";
+    setMessage("");
+    setError("");
+    setExportingCode(exportKey);
+
+    try {
+      const res = await adminFetch("/api/admin/export", {
+        method: "POST",
+        body: JSON.stringify(accessCode ? { access_code: accessCode } : {}),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Export failed.");
+      }
+
+      const records = toFacedRecords((data.records ?? []) as ExportRecordJson[]);
+      if (records.length === 0) {
+        setMessage(
+          accessCode
+            ? `No synced records found for ${label ?? accessCode}.`
+            : "No synced records found for any enumerator.",
+        );
+        return;
+      }
+
+      const date = new Date().toISOString().slice(0, 10);
+      const filename = accessCode
+        ? `FACED_${slugify(label ?? accessCode)}.xlsx`
+        : `FACED_all_enumerators_${date}.xlsx`;
+      exportFacedToExcel(records, filename);
+      setMessage(
+        `Downloaded ${records.length} record(s) for ${label ?? "all enumerators"}.`,
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Export failed.");
+    } finally {
+      setExportingCode(null);
+    }
+  }
+
+  function handleExportUsedCodes() {
+    setMessage("");
+    setError("");
+
+    const usedCodes = codes.filter((row) => row.status === "used");
+    if (usedCodes.length === 0) {
+      setMessage("No used codes to export.");
+      return;
+    }
+
+    const date = new Date().toISOString().slice(0, 10);
+    exportAccessCodesToExcel(usedCodes, `FACED_used_codes_${date}.xlsx`);
+    setMessage(`Exported ${usedCodes.length} used code(s) to Excel.`);
+  }
+
   if (!unlocked) {
     return (
       <div className="ph-page-bg flex min-h-full flex-col">
@@ -519,14 +604,24 @@ export default function AdminPage() {
         <section className="ph-card">
           <div className="faced-section-header flex flex-wrap items-center justify-between gap-2">
             <span>Enumerator summary</span>
-            <button
-              type="button"
-              onClick={() => void refreshAdminData()}
-              disabled={loading || statsLoading}
-              className="text-xs font-normal normal-case tracking-normal underline"
-            >
-              Refresh
-            </button>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => void handleExportEnumerator()}
+                disabled={exportingCode !== null || statsLoading}
+                className="text-xs font-normal normal-case tracking-normal underline"
+              >
+                {exportingCode === "all" ? "Exporting..." : "Export all to Excel"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void refreshAdminData()}
+                disabled={loading || statsLoading}
+                className="text-xs font-normal normal-case tracking-normal underline"
+              >
+                Refresh
+              </button>
+            </div>
           </div>
           <div className="faced-section-body space-y-4">
             {statsLoading && summaries.length === 0 ? (
@@ -587,12 +682,13 @@ export default function AdminPage() {
                     <th>Rejected</th>
                     <th>Last encoded</th>
                     <th>Last used</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
                   {summaries.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="p-4 text-center text-zinc-500">
+                      <td colSpan={10} className="p-4 text-center text-zinc-500">
                         No enumerator activity yet. Assign codes and sync records to see totals here.
                       </td>
                     </tr>
@@ -618,6 +714,25 @@ export default function AdminPage() {
                         </td>
                         <td className="text-xs text-zinc-600">
                           {formatDate(row.last_used_at)}
+                        </td>
+                        <td className="whitespace-nowrap">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void handleExportEnumerator(
+                                row.access_code,
+                                row.enumerator_name,
+                              )
+                            }
+                            disabled={
+                              exportingCode !== null || row.total_encoded === 0
+                            }
+                            className="ph-link text-xs disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {exportingCode === row.access_code
+                              ? "Exporting..."
+                              : "Export"}
+                          </button>
                         </td>
                       </tr>
                     ))
@@ -671,6 +786,23 @@ export default function AdminPage() {
                           {formatDate(row.last_used_at)}
                         </span>
                       </p>
+                      <div className="sm:col-span-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void handleExportEnumerator(
+                              row.access_code,
+                              row.enumerator_name,
+                            )
+                          }
+                          disabled={exportingCode !== null || row.total_encoded === 0}
+                          className="faced-btn-secondary text-xs disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {exportingCode === row.access_code
+                            ? "Exporting..."
+                            : "Export to Excel"}
+                        </button>
+                      </div>
                     </div>
                   </article>
                 ))
@@ -776,14 +908,24 @@ export default function AdminPage() {
         <section className="ph-card">
           <div className="faced-section-header flex flex-wrap items-center justify-between gap-2">
             <span>All codes ({filteredCodes.length}{search ? ` of ${codes.length}` : ""})</span>
-            <button
-              type="button"
-              onClick={() => void refreshAdminData()}
-              disabled={loading || statsLoading}
-              className="text-xs font-normal normal-case tracking-normal underline"
-            >
-              Refresh
-            </button>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={handleExportUsedCodes}
+                disabled={loading || usedCodesCount === 0}
+                className="text-xs font-normal normal-case tracking-normal underline disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Export used codes ({usedCodesCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => void refreshAdminData()}
+                disabled={loading || statsLoading}
+                className="text-xs font-normal normal-case tracking-normal underline"
+              >
+                Refresh
+              </button>
+            </div>
           </div>
           <div className="border-b border-[var(--faced-blue-border)] bg-[var(--ph-blue-light)]/50 px-4 py-3">
             <input

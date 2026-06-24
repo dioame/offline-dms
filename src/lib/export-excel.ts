@@ -48,6 +48,7 @@ export function exportFacedToExcel(
     "Zip Code": r.permanent_address.zip_code,
     "4Ps Beneficiary": r.others["4ps_beneficiary"] ? "Yes" : "No",
     "IP Type of Ethnicity": r.others.ip_type_of_ethnicity,
+    Religion: r.others.religion ?? "",
     "Bank/E-Wallet": r.account_information.bank_e_wallet_name,
     "Account Name": r.account_information.account_name,
     "Account Type": r.account_information.account_type,
@@ -97,5 +98,45 @@ export function exportFacedToExcel(
     XLSX.utils.json_to_sheet(members),
     "FamilyMembers",
   );
+  XLSX.writeFile(workbook, filename);
+}
+
+export type AccessCodeExportRow = {
+  code: string;
+  enumerator_name: string | null;
+  enumerator_email: string | null;
+  status: string;
+  created_at: string;
+  used_at: string | null;
+  last_used_at: string | null;
+  rejected_at: string | null;
+};
+
+function formatExportDate(iso: string | null): string {
+  if (!iso) return "";
+  try {
+    return new Date(iso).toLocaleString();
+  } catch {
+    return iso;
+  }
+}
+
+export function exportAccessCodesToExcel(
+  rows: AccessCodeExportRow[],
+  filename = "FACED_Access_Codes.xlsx",
+): void {
+  const sheet = rows.map((row) => ({
+    Code: row.code,
+    "Enumerator Name": row.enumerator_name ?? "",
+    Email: row.enumerator_email ?? "",
+    Status: row.status,
+    "Created At": formatExportDate(row.created_at),
+    "Used At": formatExportDate(row.used_at),
+    "Last Used At": formatExportDate(row.last_used_at),
+    "Rejected At": formatExportDate(row.rejected_at),
+  }));
+
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(sheet), "Access Codes");
   XLSX.writeFile(workbook, filename);
 }

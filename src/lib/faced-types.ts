@@ -128,6 +128,7 @@ export type FacedRecordData = {
   others: {
     "4ps_beneficiary": boolean;
     ip_type_of_ethnicity: string;
+    religion: string;
   };
   family_members: FamilyMember[];
   account_information: AccountInformation;
@@ -210,6 +211,7 @@ export function createEmptyFacedRecord(
     others: {
       "4ps_beneficiary": false,
       ip_type_of_ethnicity: "",
+      religion: "",
     },
     family_members: [emptyFamilyMember()],
     account_information: {

@@ -106,6 +106,30 @@ type RadioGroupProps = {
   onChange: (value: string) => void;
 };
 
+type SuggestionChipsProps = {
+  suggestions: readonly string[];
+  onSelect: (value: string) => void;
+};
+
+export function SuggestionChips({ suggestions, onSelect }: SuggestionChipsProps) {
+  if (suggestions.length === 0) return null;
+
+  return (
+    <div className="mt-2 flex flex-wrap gap-2">
+      {suggestions.map((suggestion) => (
+        <button
+          key={suggestion}
+          type="button"
+          onClick={() => onSelect(suggestion)}
+          className="faced-chip"
+        >
+          {suggestion}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function RadioGroup({
   name,
   options,
