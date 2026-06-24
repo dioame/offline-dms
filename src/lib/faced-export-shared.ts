@@ -37,12 +37,20 @@ export function parseTursoFacedRecordRow(
 }
 
 export const FACED_RECORDS_ACTIVE_FILTER = `deleted_at IS NULL`;
+export const FACED_RECORDS_TRASH_FILTER = `deleted_at IS NOT NULL`;
 
 export function facedRecordsWhere(clause?: string): string {
   if (!clause?.trim()) {
     return `WHERE ${FACED_RECORDS_ACTIVE_FILTER}`;
   }
   return `WHERE ${FACED_RECORDS_ACTIVE_FILTER} AND (${clause})`;
+}
+
+export function facedRecordsTrashWhere(clause?: string): string {
+  if (!clause?.trim()) {
+    return `WHERE ${FACED_RECORDS_TRASH_FILTER}`;
+  }
+  return `WHERE ${FACED_RECORDS_TRASH_FILTER} AND (${clause})`;
 }
 
 export const FACED_EXPORT_SELECT = `

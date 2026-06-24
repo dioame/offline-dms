@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { listFacedRecordsTrashAdmin } from "@/lib/records-trash";
 import { listFacedRecordsAdmin } from "@/lib/records-admin";
 import { isTursoConfigured, verifyAdminPassword } from "@/lib/env";
 
@@ -31,9 +32,13 @@ export async function GET(request: Request) {
   const search = searchParams.get("search") ?? "";
   const page = Number(searchParams.get("page") ?? "1");
   const pageSize = Number(searchParams.get("pageSize") ?? "25");
+  const scope = searchParams.get("scope");
 
   try {
-    const data = await listFacedRecordsAdmin({ search, page, pageSize });
+    const data =
+      scope === "trash"
+        ? await listFacedRecordsTrashAdmin({ search, page, pageSize })
+        : await listFacedRecordsAdmin({ search, page, pageSize });
     return NextResponse.json(data);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to load records.";

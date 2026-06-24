@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   deleteFacedRecordAdmin,
   getFacedRecordAdmin,
+  getFacedRecordTrashAdmin,
   isFullFacedRecordPayload,
   replaceFacedRecordAdmin,
   updateFacedRecordAdmin,
@@ -39,9 +40,13 @@ export async function GET(_request: Request, context: RouteContext) {
   if (denied) return denied;
 
   const { uuid } = await context.params;
+  const scope = new URL(_request.url).searchParams.get("scope");
 
   try {
-    const record = await getFacedRecordAdmin(uuid);
+    const record =
+      scope === "trash"
+        ? await getFacedRecordTrashAdmin(uuid)
+        : await getFacedRecordAdmin(uuid);
     if (!record) {
       return NextResponse.json({ error: "Record not found." }, { status: 404 });
     }
@@ -87,7 +92,7 @@ export async function DELETE(request: Request, context: RouteContext) {
     await deleteFacedRecordAdmin(uuid);
     return NextResponse.json({ success: true, softDeleted: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to soft-delete record.";
+    const message = err instanceof Error ? err.message : "Failed to delete record.";
     const status = message === "Record not found." ? 404 : 400;
     return NextResponse.json({ error: message }, { status });
   }

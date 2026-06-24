@@ -12,11 +12,20 @@ import type {
 } from "@/lib/records-admin";
 import SoftDeleteConfirmDialog from "@/components/records/SoftDeleteConfirmDialog";
 import FacedRecordViewModal from "@/components/records/FacedRecordViewModal";
+import RecordRowActions from "@/components/records/RecordRowActions";
+import TrashRowActions from "@/components/records/TrashRowActions";
+import RestoreConfirmDialog from "@/components/records/RestoreConfirmDialog";
+import {
+  buildOfflineDmsPrintBundle,
+  buildOfflineDmsPrintMap,
+} from "@/lib/print/offlineDmsFacedPrint";
+import { openFacedFormPrint } from "@/lib/print/openFacedFormPrint";
+import { exportFacedToExcel, exportRecordsJsonToFacedRecords, type ExportRecordJson } from "@/lib/export-excel";
 
 const ADMIN_STORAGE_KEY = "dms_admin_password";
 const PAGE_SIZE = 25;
 
-type RecordsTab = "records" | "duplicates";
+type RecordsTab = "records" | "duplicates" | "trash";
 
 function formatWhen(iso: string): string {
   if (!iso) return "—";
@@ -80,6 +89,8 @@ export default function RecordsPage() {
   const [unlocked, setUnlocked] = useState(false);
   const [loading, setLoading] = useState(false);
   const [duplicatesLoading, setDuplicatesLoading] = useState(false);
+  const [trashLoading, setTrashLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [activeTab, setActiveTab] = useState<RecordsTab>("records");
@@ -95,11 +106,22 @@ export default function RecordsPage() {
   const [duplicateSearch, setDuplicateSearch] = useState("");
   const [duplicateSearchInput, setDuplicateSearchInput] = useState("");
 
+  const [trashRecords, setTrashRecords] = useState<FacedRecordListItem[]>([]);
+  const [totalTrash, setTotalTrash] = useState(0);
+  const [trashPage, setTrashPage] = useState(1);
+  const [trashSearch, setTrashSearch] = useState("");
+  const [trashSearchInput, setTrashSearchInput] = useState("");
+
   const [viewRecord, setViewRecord] = useState<FacedRecordAdminDetail | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ uuid: string; headName: string } | null>(
     null,
   );
+  const [restoreTarget, setRestoreTarget] = useState<{ uuid: string; headName: string } | null>(
+    null,
+  );
   const [deleting, setDeleting] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const [printingUuid, setPrintingUuid] = useState<string | null>(null);
 
   useEffect(() => {
     const stored = sessionStorage.getItem(ADMIN_STORAGE_KEY);
@@ -172,11 +194,51 @@ export default function RecordsPage() {
     }
   }, [adminFetch]);
 
+  const loadTrashCount = useCallback(async () => {
+    try {
+      const res = await adminFetch("/api/admin/records?scope=trash&page=1&pageSize=1");
+      const data = await res.json();
+      if (!res.ok) {
+        console.error("Trash count failed:", data.error);
+        return;
+      }
+      setTotalTrash(Number(data.total ?? 0));
+    } catch (err) {
+      console.error("Trash count failed:", err);
+    }
+  }, [adminFetch]);
+
+  const loadTrash = useCallback(async () => {
+    setTrashLoading(true);
+    setError("");
+    try {
+      const params = new URLSearchParams({
+        page: String(trashPage),
+        pageSize: String(PAGE_SIZE),
+        search: trashSearch,
+      });
+      const res = await adminFetch(`/api/admin/records?scope=trash&${params}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load trash.");
+      setTrashRecords(data.records || []);
+      setTotalTrash(Number(data.total ?? 0));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load trash.");
+      if (err instanceof Error && err.message === "Unauthorized") {
+        setUnlocked(false);
+        sessionStorage.removeItem(ADMIN_STORAGE_KEY);
+      }
+    } finally {
+      setTrashLoading(false);
+    }
+  }, [adminFetch, trashPage, trashSearch]);
+
   useEffect(() => {
     if (!unlocked) return;
     void loadRecords();
     void loadDuplicates();
-  }, [unlocked, loadRecords, loadDuplicates]);
+    void loadTrashCount();
+  }, [unlocked, loadRecords, loadDuplicates, loadTrashCount]);
 
   useEffect(() => {
     if (!unlocked || activeTab !== "records") return;
@@ -189,10 +251,20 @@ export default function RecordsPage() {
   }, [unlocked, activeTab, loadDuplicates]);
 
   useEffect(() => {
+    if (!unlocked || activeTab !== "trash") return;
+    void loadTrash();
+  }, [unlocked, activeTab, trashPage, trashSearch, loadTrash]);
+
+  useEffect(() => {
     setPage(1);
   }, [search]);
 
+  useEffect(() => {
+    setTrashPage(1);
+  }, [trashSearch]);
+
   const pages = useMemo(() => totalPages(totalRecords, PAGE_SIZE), [totalRecords]);
+  const trashPages = useMemo(() => totalPages(totalTrash, PAGE_SIZE), [totalTrash]);
 
   const filteredDuplicateGroups = useMemo(
     () => filterDuplicateGroups(duplicateGroups, duplicateSearch),
@@ -229,18 +301,48 @@ export default function RecordsPage() {
     setUnlocked(false);
     setRecords([]);
     setDuplicateGroups([]);
+    setTrashRecords([]);
     setViewRecord(null);
+  }
+
+  async function handleExportExcel() {
+    setMessage("");
+    setError("");
+    setExporting(true);
+    try {
+      const res = await adminFetch("/api/admin/export", {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Export failed.");
+
+      const records = exportRecordsJsonToFacedRecords((data.records ?? []) as ExportRecordJson[]);
+      if (records.length === 0) {
+        setMessage("No synced records to export.");
+        return;
+      }
+
+      const date = new Date().toISOString().slice(0, 10);
+      exportFacedToExcel(records, `FACED_records_${date}.xlsx`);
+      setMessage(`Exported ${records.length} record(s) to Excel.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Export failed.");
+    } finally {
+      setExporting(false);
+    }
   }
 
   function goToEdit(uuid: string) {
     router.push(`/records/${uuid}/edit`);
   }
 
-  async function openView(uuid: string) {
+  async function openView(uuid: string, scope: "active" | "trash" = "active") {
     setMessage("");
     setError("");
     try {
-      const res = await adminFetch(`/api/admin/records/${uuid}`);
+      const query = scope === "trash" ? "?scope=trash" : "";
+      const res = await adminFetch(`/api/admin/records/${uuid}${query}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to load record.");
       setViewRecord(data.record);
@@ -249,10 +351,63 @@ export default function RecordsPage() {
     }
   }
 
+  function requestRestore(uuid: string, headName: string) {
+    setMessage("");
+    setError("");
+    setRestoreTarget({ uuid, headName });
+  }
+
+  async function confirmRestore() {
+    if (!restoreTarget) return;
+
+    const { uuid } = restoreTarget;
+    setRestoring(true);
+    setMessage("");
+    setError("");
+    try {
+      const res = await adminFetch(`/api/admin/records/${uuid}/restore`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to restore record.");
+      setMessage("Record restored.");
+      setRestoreTarget(null);
+      if (viewRecord?.uuid === uuid) setViewRecord(null);
+      await Promise.all([loadRecords(), loadDuplicates(), loadTrash()]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Restore failed.");
+    } finally {
+      setRestoring(false);
+    }
+  }
+
   function requestDelete(uuid: string, headName: string) {
     setMessage("");
     setError("");
     setDeleteTarget({ uuid, headName });
+  }
+
+  async function handlePrint(uuid: string, headName: string) {
+    setMessage("");
+    setError("");
+    setPrintingUuid(uuid);
+    try {
+      const res = await adminFetch(`/api/admin/records/${uuid}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load record for printing.");
+      const record = data.record as FacedRecordAdminDetail;
+      const { head } = buildOfflineDmsPrintBundle(record);
+      const opened = openFacedFormPrint(
+        [head],
+        buildOfflineDmsPrintMap(record),
+        `FACED Form — ${headName}`,
+      );
+      if (!opened) {
+        throw new Error("Pop-up blocked. Allow pop-ups for this site, then try Print FACED again.");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Print failed.");
+    } finally {
+      setPrintingUuid(null);
+    }
   }
 
   async function confirmDelete() {
@@ -266,10 +421,10 @@ export default function RecordsPage() {
       const res = await adminFetch(`/api/admin/records/${uuid}`, { method: "DELETE" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to delete record.");
-      setMessage("Record soft-deleted.");
+      setMessage("Record deleted.");
       setDeleteTarget(null);
       if (viewRecord?.uuid === uuid) setViewRecord(null);
-      await Promise.all([loadRecords(), loadDuplicates()]);
+      await Promise.all([loadRecords(), loadDuplicates(), loadTrashCount()]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Delete failed.");
     } finally {
@@ -291,7 +446,7 @@ export default function RecordsPage() {
             <div className="faced-section-header justify-center">Admin access</div>
             <div className="faced-section-body space-y-4 rounded-b-xl border-b border-[var(--faced-blue-border)]">
               <p className="text-sm text-zinc-600">
-                Enter the admin password to view, update, or soft-delete synced FACED records.
+                Enter the admin password to view, update, or delete synced FACED records.
               </p>
               <form onSubmit={(e) => void handleUnlock(e)} className="space-y-3">
                 <label className="block">
@@ -332,17 +487,11 @@ export default function RecordsPage() {
               <p className="ph-kicker text-xs font-bold uppercase">DSWD · Offline DMS</p>
               <h1 className="text-xl font-bold text-white">FACED records (RUD)</h1>
               <p className="ph-subtitle text-sm">
-                Read, update, and soft-delete synced FACED forms. Review duplicates.
+                Read, update, and delete synced FACED forms. Export, review duplicates, or restore from trash.
               </p>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link href="/admin" className="ph-header-btn">
-              Admin
-            </Link>
-            <Link href="/" className="ph-header-btn">
-              Encoding
-            </Link>
             <button type="button" onClick={handleLock} className="ph-header-btn ph-header-btn--danger">
               Lock
             </button>
@@ -375,20 +524,39 @@ export default function RecordsPage() {
           >
             Duplicates ({duplicateStats.groupCount || duplicateGroups.length})
           </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "trash"}
+            className={`verify-tab ${activeTab === "trash" ? "verify-tab--active" : ""}`}
+            onClick={() => setActiveTab("trash")}
+          >
+            Trash ({totalTrash})
+          </button>
         </div>
 
         {activeTab === "records" ? (
           <section className="ph-card">
             <div className="faced-section-header flex flex-wrap items-center justify-between gap-2">
               <span>Synced FACED records</span>
-              <button
-                type="button"
-                onClick={() => void loadRecords()}
-                disabled={loading}
-                className="text-xs font-normal normal-case tracking-normal underline"
-              >
-                Refresh
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => void handleExportExcel()}
+                  disabled={exporting || loading}
+                  className="record-action-btn record-action-btn--print normal-case tracking-normal"
+                >
+                  {exporting ? "Exporting…" : "Export Excel"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void loadRecords()}
+                  disabled={loading}
+                  className="text-xs font-normal normal-case tracking-normal underline"
+                >
+                  Refresh
+                </button>
+              </div>
             </div>
             <div className="border-b border-[var(--faced-blue-border)] bg-[var(--ph-blue-light)]/50 px-4 py-3">
               <form
@@ -411,7 +579,7 @@ export default function RecordsPage() {
               </form>
             </div>
             <div className="faced-section-body overflow-x-auto p-0">
-              <table className="faced-table w-full min-w-[920px] text-sm">
+              <table className="faced-table w-full min-w-[980px] text-sm">
                 <thead>
                   <tr>
                     <th>Head of family</th>
@@ -419,7 +587,7 @@ export default function RecordsPage() {
                     <th>Encoder</th>
                     <th>Registered</th>
                     <th>Updated</th>
-                    <th></th>
+                    <th className="text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -448,28 +616,14 @@ export default function RecordsPage() {
                         <td className="text-zinc-700">{row.enumerator_name || "—"}</td>
                         <td className="text-xs text-zinc-600">{row.date_registered || "—"}</td>
                         <td className="text-xs text-zinc-600">{formatWhen(row.updated_at)}</td>
-                        <td className="whitespace-nowrap">
-                          <button
-                            type="button"
-                            onClick={() => void openView(row.uuid)}
-                            className="ph-link mr-2 text-xs"
-                          >
-                            View
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => goToEdit(row.uuid)}
-                            className="ph-link mr-2 text-xs"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => requestDelete(row.uuid, row.headName)}
-                            className="text-xs font-bold text-[var(--ph-red)] hover:underline"
-                          >
-                            Soft delete
-                          </button>
+                        <td className="text-right">
+                          <RecordRowActions
+                            onView={() => void openView(row.uuid)}
+                            onEdit={() => goToEdit(row.uuid)}
+                            onPrint={() => void handlePrint(row.uuid, row.headName)}
+                            onDelete={() => requestDelete(row.uuid, row.headName)}
+                            printing={printingUuid === row.uuid}
+                          />
                         </td>
                       </tr>
                     ))
@@ -503,7 +657,7 @@ export default function RecordsPage() {
               </div>
             )}
           </section>
-        ) : (
+        ) : activeTab === "duplicates" ? (
           <section className="ph-card">
             <div className="faced-section-header flex flex-wrap items-center justify-between gap-2">
               <span>
@@ -593,29 +747,13 @@ export default function RecordsPage() {
                               {row.enumerator_name ? ` · Encoder: ${row.enumerator_name}` : ""}
                             </span>
                           </div>
-                          <div className="flex gap-2">
-                            <button
-                              type="button"
-                              onClick={() => void openView(row.uuid)}
-                              className="ph-link text-xs"
-                            >
-                              View
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => goToEdit(row.uuid)}
-                              className="ph-link text-xs"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => requestDelete(row.uuid, row.headName)}
-                              className="text-xs font-bold text-[var(--ph-red)] hover:underline"
-                            >
-                              Soft delete
-                            </button>
-                          </div>
+                          <RecordRowActions
+                            onView={() => void openView(row.uuid)}
+                            onEdit={() => goToEdit(row.uuid)}
+                            onPrint={() => void handlePrint(row.uuid, row.headName)}
+                            onDelete={() => requestDelete(row.uuid, row.headName)}
+                            printing={printingUuid === row.uuid}
+                          />
                         </li>
                       ))}
                     </ul>
@@ -623,6 +761,127 @@ export default function RecordsPage() {
                 ))
               )}
             </div>
+          </section>
+        ) : (
+          <section className="ph-card">
+            <div className="faced-section-header flex flex-wrap items-center justify-between gap-2">
+              <span>Deleted records ({totalTrash})</span>
+              <button
+                type="button"
+                onClick={() => void loadTrash()}
+                disabled={trashLoading}
+                className="text-xs font-normal normal-case tracking-normal underline"
+              >
+                Refresh
+              </button>
+            </div>
+            <div className="border-b border-[var(--faced-blue-border)] bg-[var(--ph-blue-light)]/50 px-4 py-3">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setTrashSearch(trashSearchInput.trim());
+                }}
+                className="flex flex-wrap gap-2"
+              >
+                <input
+                  type="search"
+                  value={trashSearchInput}
+                  onChange={(e) => setTrashSearchInput(e.target.value)}
+                  placeholder="Search deleted records..."
+                  className="faced-input min-w-[16rem] flex-1"
+                />
+                <button type="submit" className="faced-btn-secondary text-sm">
+                  Search
+                </button>
+                {trashSearch ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTrashSearch("");
+                      setTrashSearchInput("");
+                    }}
+                    className="faced-btn-secondary text-sm"
+                  >
+                    Clear
+                  </button>
+                ) : null}
+              </form>
+            </div>
+            <div className="faced-section-body overflow-x-auto p-0">
+              <table className="faced-table w-full min-w-[900px] text-sm">
+                <thead>
+                  <tr>
+                    <th>Head of family</th>
+                    <th>Location</th>
+                    <th>Encoder</th>
+                    <th>Deleted</th>
+                    <th className="text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {trashLoading && trashRecords.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="p-4 text-center text-zinc-500">
+                        Loading trash...
+                      </td>
+                    </tr>
+                  ) : trashRecords.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="p-4 text-center text-zinc-500">
+                        No deleted records in trash.
+                      </td>
+                    </tr>
+                  ) : (
+                    trashRecords.map((row) => (
+                      <tr key={row.uuid}>
+                        <td>
+                          <div className="font-medium">{row.headName}</div>
+                          <div className="text-xs text-zinc-500">{row.birthdate || "—"}</div>
+                        </td>
+                        <td className="text-zinc-700">
+                          {[row.barangay, row.city_municipality].filter(Boolean).join(", ") || "—"}
+                        </td>
+                        <td className="text-zinc-700">{row.enumerator_name || "—"}</td>
+                        <td className="text-xs text-zinc-600">
+                          {formatWhen(row.deleted_at ?? row.updated_at)}
+                        </td>
+                        <td className="text-right">
+                          <TrashRowActions
+                            onView={() => void openView(row.uuid, "trash")}
+                            onRestore={() => requestRestore(row.uuid, row.headName)}
+                          />
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {totalTrash > PAGE_SIZE && (
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--faced-blue-border)] px-4 py-3">
+                <p className="text-xs text-zinc-600">
+                  Page {trashPage} of {trashPages} · {totalTrash} total
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setTrashPage((p) => Math.max(1, p - 1))}
+                    disabled={trashPage <= 1 || trashLoading}
+                    className="faced-btn-secondary text-xs disabled:opacity-50"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTrashPage((p) => Math.min(trashPages, p + 1))}
+                    disabled={trashPage >= trashPages || trashLoading}
+                    className="faced-btn-secondary text-xs disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </section>
         )}
       </main>
@@ -647,6 +906,16 @@ export default function RecordsPage() {
           if (!deleting) setDeleteTarget(null);
         }}
         onYes={() => void confirmDelete()}
+      />
+
+      <RestoreConfirmDialog
+        open={restoreTarget !== null}
+        headName={restoreTarget?.headName ?? ""}
+        restoring={restoring}
+        onNo={() => {
+          if (!restoring) setRestoreTarget(null);
+        }}
+        onYes={() => void confirmRestore()}
       />
     </div>
   );

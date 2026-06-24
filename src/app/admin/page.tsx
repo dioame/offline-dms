@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import BrandEmblem from "@/components/brand/BrandEmblem";
 import TricolorBar from "@/components/brand/TricolorBar";
+import DailyEncodeTracker, { type DailyEncodeStat } from "@/components/admin/DailyEncodeTracker";
 import { exportAccessCodesToExcel, exportFacedToExcel } from "@/lib/export-excel";
 import type { FacedRecord } from "@/lib/faced-types";
 
@@ -180,6 +181,7 @@ export default function AdminPage() {
   const [summaries, setSummaries] = useState<EnumeratorSummary[]>([]);
   const [summaryTotals, setSummaryTotals] = useState<EnumeratorSummaryTotals | null>(null);
   const [recordsMetrics, setRecordsMetrics] = useState<RecordsAdminMetrics | null>(null);
+  const [dailyEncode, setDailyEncode] = useState<DailyEncodeStat[]>([]);
   const [statsLoading, setStatsLoading] = useState(false);
   const [summaryPage, setSummaryPage] = useState(1);
   const [codesPage, setCodesPage] = useState(1);
@@ -242,6 +244,7 @@ export default function AdminPage() {
       setSummaries(data.summaries || []);
       setSummaryTotals(data.totals || null);
       setRecordsMetrics(data.records || null);
+      setDailyEncode(data.daily_encode || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load stats.");
       if (err instanceof Error && err.message === "Unauthorized") {
@@ -332,6 +335,7 @@ export default function AdminPage() {
     setSummaries([]);
     setSummaryTotals(null);
     setRecordsMetrics(null);
+    setDailyEncode([]);
   }
 
   function updateDraft(code: string, field: keyof AssigneeDraft, value: string) {
@@ -697,7 +701,7 @@ export default function AdminPage() {
                   className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 transition-colors hover:bg-red-100/80"
                 >
                   <p className="text-xs font-bold uppercase tracking-wide text-red-800">
-                    Soft deleted
+                    Deleted
                   </p>
                   <p className="mt-1 text-2xl font-bold text-red-900">
                     {recordsMetrics?.soft_deleted_count ?? 0}
@@ -706,6 +710,8 @@ export default function AdminPage() {
                 </Link>
               </div>
             ) : null}
+
+            <DailyEncodeTracker data={dailyEncode} loading={statsLoading} />
 
             <div className="hidden overflow-x-auto lg:block">
               <table className="faced-table w-full min-w-[880px] text-sm">

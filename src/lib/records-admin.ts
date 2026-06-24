@@ -22,6 +22,7 @@ export type FacedRecordListItem = {
   access_code: string;
   date_registered: string;
   updated_at: string;
+  deleted_at?: string;
 };
 
 export type FacedRecordAdminDetail = TursoExportRecord;
@@ -70,6 +71,7 @@ function rowToListItem(row: Record<string, unknown>, payload: FacedRecordData): 
     access_code: String(row.access_code ?? payload.access_code ?? ""),
     date_registered: String(row.date_registered ?? payload.date_registered ?? ""),
     updated_at: String(row.updated_at ?? ""),
+    deleted_at: row.deleted_at ? String(row.deleted_at) : undefined,
   };
 }
 
@@ -168,15 +170,30 @@ export async function listFacedRecordsAdmin(
 }
 
 export async function getFacedRecordAdmin(uuid: string): Promise<FacedRecordAdminDetail | null> {
+  return getFacedRecordByUuid(uuid, "active");
+}
+
+async function getFacedRecordByUuid(
+  uuid: string,
+  scope: "active" | "trash" | "any",
+): Promise<FacedRecordAdminDetail | null> {
   const trimmed = uuid.trim();
   if (!trimmed) return null;
 
   await ensureTursoSchema();
   const db = getTursoClient();
+
+  const scopeClause =
+    scope === "active"
+      ? facedRecordsWhere("uuid = ?")
+      : scope === "trash"
+        ? "WHERE deleted_at IS NOT NULL AND uuid = ?"
+        : "WHERE uuid = ?";
+
   const result = await db.execute({
     sql: `
       ${FACED_EXPORT_SELECT}
-      ${facedRecordsWhere("uuid = ?")}
+      ${scopeClause}
       LIMIT 1
     `,
     args: [trimmed],
@@ -184,6 +201,10 @@ export async function getFacedRecordAdmin(uuid: string): Promise<FacedRecordAdmi
 
   if (result.rows.length === 0) return null;
   return parseTursoFacedRecordRow(result.rows[0] as Record<string, unknown>);
+}
+
+export async function getFacedRecordTrashAdmin(uuid: string): Promise<FacedRecordAdminDetail | null> {
+  return getFacedRecordByUuid(uuid, "trash");
 }
 
 export type UpdateFacedRecordAdminInput = {
@@ -320,6 +341,38 @@ export async function deleteFacedRecordAdmin(uuid: string): Promise<void> {
   }
 }
 
+
+export async function restoreFacedRecordAdmin(uuid: string): Promise<void> {
+  const trimmed = uuid.trim();
+  if (!trimmed) {
+    throw new Error("Record uuid is required.");
+  }
+
+  await ensureTursoSchema();
+  const db = getTursoClient();
+  const updatedAt = new Date().toISOString();
+
+  const result = await db.execute({
+    sql: `
+      UPDATE faced_records
+      SET deleted_at = NULL, updated_at = ?
+      WHERE uuid = ? AND deleted_at IS NOT NULL
+    `,
+    args: [updatedAt, trimmed],
+  });
+
+  if ((result.rowsAffected ?? 0) === 0) {
+    const existing = await db.execute({
+      sql: `SELECT deleted_at FROM faced_records WHERE uuid = ?`,
+      args: [trimmed],
+    });
+    if (existing.rows.length === 0) {
+      throw new Error("Record not found.");
+    }
+    throw new Error("Record is not in trash.");
+  }
+}
+
 export async function listDuplicateGroups(): Promise<DuplicateGroup[]> {
   await ensureTursoSchema();
   const db = getTursoClient();
@@ -356,3 +409,5 @@ export async function listDuplicateGroups(): Promise<DuplicateGroup[]> {
     }))
     .sort((a, b) => b.count - a.count || a.last_name.localeCompare(b.last_name));
 }
+
+export { countFacedRecordsTrash, listFacedRecordsTrashAdmin } from "./records-trash";

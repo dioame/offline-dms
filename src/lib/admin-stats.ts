@@ -29,6 +29,59 @@ export type RecordsAdminMetrics = {
   soft_deleted_count: number;
 };
 
+export type DailyEncodeStat = {
+  date: string;
+  count: number;
+};
+
+function isoDateOnly(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function buildDailyRange(days: number): string[] {
+  const result: string[] = [];
+  const end = new Date();
+  end.setHours(12, 0, 0, 0);
+  for (let i = days - 1; i >= 0; i -= 1) {
+    const d = new Date(end);
+    d.setDate(end.getDate() - i);
+    result.push(isoDateOnly(d));
+  }
+  return result;
+}
+
+export async function getDailyEncodeStats(days = 30): Promise<DailyEncodeStat[]> {
+  const safeDays = Math.min(90, Math.max(7, days));
+  await ensureTursoSchema();
+  const db = getTursoClient();
+
+  const range = buildDailyRange(safeDays);
+  const startDate = range[0];
+
+  const result = await db.execute({
+    sql: `
+      SELECT substr(created_at, 1, 10) AS day, COUNT(*) AS count
+      FROM faced_records
+      WHERE deleted_at IS NULL
+        AND substr(created_at, 1, 10) >= ?
+      GROUP BY day
+    `,
+    args: [startDate],
+  });
+
+  const counts = new Map<string, number>();
+  for (const row of result.rows) {
+    const day = String(row.day ?? "");
+    if (!day) continue;
+    counts.set(day, Number(row.count ?? 0));
+  }
+
+  return range.map((date) => ({
+    date,
+    count: counts.get(date) ?? 0,
+  }));
+}
+
 export async function getRecordsAdminMetrics(): Promise<RecordsAdminMetrics> {
   await ensureTursoSchema();
   const db = getTursoClient();

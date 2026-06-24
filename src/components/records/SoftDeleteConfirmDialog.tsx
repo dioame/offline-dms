@@ -31,16 +31,15 @@ export default function SoftDeleteConfirmDialog({
         onClick={(event) => event.stopPropagation()}
       >
         <div className="faced-modal-header faced-modal-header--danger">
-          <h3 id="soft-delete-title">Soft delete record?</h3>
+          <h3 id="soft-delete-title">Delete record?</h3>
         </div>
         <div className="faced-modal-body">
           <p className="text-sm text-zinc-700">
-            Soft-delete the FACED record for{" "}
+            Delete the FACED record for{" "}
             <span className="font-semibold text-[var(--ph-blue-dark)]">{headName}</span>?
           </p>
           <p className="mt-2 text-sm text-zinc-600">
-            The record will be hidden from lists, exports, and duplicate checks. It is not
-            permanently removed from the database.
+            The record will be removed from lists, exports, and duplicate checks.
           </p>
         </div>
         <div className="faced-modal-actions">
@@ -58,7 +57,7 @@ export default function SoftDeleteConfirmDialog({
             disabled={deleting}
             className="faced-btn-danger"
           >
-            {deleting ? "Deleting..." : "Yes, soft delete"}
+            {deleting ? "Deleting..." : "Yes, delete"}
           </button>
         </div>
       </div>

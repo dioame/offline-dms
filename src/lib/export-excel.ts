@@ -1,5 +1,27 @@
 import * as XLSX from "xlsx";
 import { mergePermanentAddressLine, type FacedRecord } from "./faced-types";
+import type { TursoExportRecord } from "./faced-export-shared";
+
+export type ExportRecordJson = Omit<FacedRecord, "createdAt" | "updatedAt"> & {
+  createdAt: string;
+  updatedAt: string;
+};
+
+export function tursoExportRecordsToFacedRecords(records: TursoExportRecord[]): FacedRecord[] {
+  return records.map((record) => ({
+    ...record,
+    createdAt: new Date(record.createdAt),
+    updatedAt: new Date(record.updatedAt),
+  }));
+}
+
+export function exportRecordsJsonToFacedRecords(records: ExportRecordJson[]): FacedRecord[] {
+  return records.map((record) => ({
+    ...record,
+    createdAt: new Date(record.createdAt),
+    updatedAt: new Date(record.updatedAt),
+  }));
+}
 
 function headFullName(record: FacedRecord): string {
   const h = record.head_of_family;

@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
-import { getEnumeratorSummaries, getRecordsAdminMetrics, getDailyEncodeStats } from "@/lib/admin-stats";
+import { restoreFacedRecordAdmin } from "@/lib/records-admin";
 import { isTursoConfigured, verifyAdminPassword } from "@/lib/env";
+
+type RouteContext = {
+  params: Promise<{ uuid: string }>;
+};
 
 function unauthorized() {
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -23,19 +27,19 @@ function checkAdmin(request: Request) {
   return null;
 }
 
-export async function GET(request: Request) {
-  const denied = checkAdmin(request);
+export async function POST(_request: Request, context: RouteContext) {
+  const denied = checkAdmin(_request);
   if (denied) return denied;
 
+  const { uuid } = await context.params;
+
   try {
-    const [data, records, dailyEncode] = await Promise.all([
-      getEnumeratorSummaries(),
-      getRecordsAdminMetrics(),
-      getDailyEncodeStats(30),
-    ]);
-    return NextResponse.json({ ...data, records, daily_encode: dailyEncode });
+    await restoreFacedRecordAdmin(uuid);
+    return NextResponse.json({ success: true, restored: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to load stats.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const message = err instanceof Error ? err.message : "Failed to restore record.";
+    const status =
+      message === "Record not found." || message === "Record is not in trash." ? 404 : 400;
+    return NextResponse.json({ error: message }, { status });
   }
 }
