@@ -1,4 +1,4 @@
-import { type CSSProperties, type InputHTMLAttributes, type ReactNode } from "react";
+import { type InputHTMLAttributes, type ReactNode } from "react";
 
 type FormFieldProps = {
   label: string;
@@ -104,7 +104,8 @@ type RadioGroupProps = {
   options: { value: string; label: string }[];
   value: string;
   onChange: (value: string) => void;
-  spread?: boolean;
+  /** `true` spreads options across the row; `"start"` left-aligns with even gaps between options. */
+  spread?: boolean | "start";
 };
 
 type SuggestionChipsProps = {
@@ -138,19 +139,15 @@ export function RadioGroup({
   onChange,
   spread = false,
 }: RadioGroupProps) {
+  const groupClass =
+    spread === "start"
+      ? "faced-radio-group--start"
+      : spread
+        ? "faced-radio-group--even"
+        : "flex flex-wrap gap-4";
+
   return (
-    <div
-      className={
-        spread
-          ? "faced-radio-group--even"
-          : "flex flex-wrap gap-4"
-      }
-      style={
-        spread
-          ? ({ "--radio-count": options.length } as CSSProperties)
-          : undefined
-      }
-    >
+    <div className={groupClass}>
       {options.map((o) => (
         <label key={o.value} className="flex cursor-pointer items-center gap-2 text-sm">
           <input

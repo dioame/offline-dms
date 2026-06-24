@@ -35,6 +35,7 @@ import {
   applyAgeVulnerability,
   ETHNICITY_SUGGESTIONS,
   ID_CARD_SUGGESTIONS,
+  INCOME_SUGGESTIONS,
   OCCUPATION_SUGGESTIONS,
   RELIGION_SUGGESTIONS,
 } from "@/lib/faced-options";
@@ -768,6 +769,7 @@ export default function FacedForm({
             ]}
             value={form.head_of_family.sex}
             onChange={handleSexChange}
+            spread="start"
           />
         </FormField>
         <FormField label="Civil Status" number="15" required>
@@ -795,12 +797,16 @@ export default function FacedForm({
             onSelect={(value) => updateHead("occupation", value)}
           />
         </FormField>
-        <FormField label="Monthly Family Net Income" number="18">
+        <FormField label="Monthly Family Net Income" number="18" className="sm:col-span-2">
           <TextInput
             value={form.head_of_family.monthly_family_net_income}
             onChange={(e) => updateHead("monthly_family_net_income", e.target.value)}
             type="number"
             min="0"
+          />
+          <SuggestionChips
+            suggestions={INCOME_SUGGESTIONS}
+            onSelect={(value) => updateHead("monthly_family_net_income", value)}
           />
         </FormField>
         <FormField label="ID Card Presented" number="19">

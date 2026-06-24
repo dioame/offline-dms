@@ -34,10 +34,13 @@ export const VULNERABILITY_TYPES = [
 ] as const;
 
 export const EDUCATIONAL_ATTAINMENT_LEVELS = [
+  "Kinder",
   "Elementary Level",
   "Elementary Graduate",
   "High School Level",
   "High School Graduate",
+  "Senior High Level",
+  "Senior High Graduate",
   "College Level",
   "College Graduate",
   "Post Graduate",
@@ -98,6 +101,15 @@ export const ID_CARD_SUGGESTIONS = [
   "Voter's ID",
   "Voter's Certificate",
   "UMID",
+  "OSCA ID",
+] as const;
+
+export const INCOME_SUGGESTIONS = [
+  "3000",
+  "5000",
+  "8000",
+  "10000",
+  "15000",
 ] as const;
 
 export const ETHNICITY_SUGGESTIONS = [

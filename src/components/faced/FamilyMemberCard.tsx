@@ -107,6 +107,7 @@ export default function FamilyMemberCard({
             options={SEX_OPTIONS}
             value={member.sex}
             onChange={(value) => onChange("sex", value)}
+            spread="start"
           />
         </FormField>
 
