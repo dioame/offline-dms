@@ -1,0 +1,67 @@
+"use client";
+
+type SoftDeleteConfirmDialogProps = {
+  open: boolean;
+  headName: string;
+  deleting: boolean;
+  onNo: () => void;
+  onYes: () => void;
+};
+
+export default function SoftDeleteConfirmDialog({
+  open,
+  headName,
+  deleting,
+  onNo,
+  onYes,
+}: SoftDeleteConfirmDialogProps) {
+  if (!open) return null;
+
+  return (
+    <div
+      className="faced-modal-backdrop"
+      role="presentation"
+      onClick={deleting ? undefined : onNo}
+    >
+      <div
+        className="faced-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="soft-delete-title"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="faced-modal-header faced-modal-header--danger">
+          <h3 id="soft-delete-title">Soft delete record?</h3>
+        </div>
+        <div className="faced-modal-body">
+          <p className="text-sm text-zinc-700">
+            Soft-delete the FACED record for{" "}
+            <span className="font-semibold text-[var(--ph-blue-dark)]">{headName}</span>?
+          </p>
+          <p className="mt-2 text-sm text-zinc-600">
+            The record will be hidden from lists, exports, and duplicate checks. It is not
+            permanently removed from the database.
+          </p>
+        </div>
+        <div className="faced-modal-actions">
+          <button
+            type="button"
+            onClick={onNo}
+            disabled={deleting}
+            className="faced-btn-secondary"
+          >
+            No
+          </button>
+          <button
+            type="button"
+            onClick={onYes}
+            disabled={deleting}
+            className="faced-btn-danger"
+          >
+            {deleting ? "Deleting..." : "Yes, soft delete"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

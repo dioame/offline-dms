@@ -1,5 +1,6 @@
 import {
   FACED_EXPORT_SELECT,
+  facedRecordsWhere,
   parseTursoFacedRecordRow,
   type TursoExportRecord,
 } from "./faced-export-shared";
@@ -21,7 +22,7 @@ export async function listFacedRecordsForAdminExport(
     ? await db.execute({
         sql: `
           ${FACED_EXPORT_SELECT}
-          WHERE access_code = ?
+          ${facedRecordsWhere("access_code = ?")}
           ORDER BY updated_at DESC
         `,
         args: [accessCode],
@@ -29,6 +30,7 @@ export async function listFacedRecordsForAdminExport(
     : await db.execute({
         sql: `
           ${FACED_EXPORT_SELECT}
+          ${facedRecordsWhere()}
           ORDER BY updated_at DESC
         `,
       });

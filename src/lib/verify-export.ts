@@ -1,5 +1,6 @@
 import {
   FACED_EXPORT_SELECT,
+  facedRecordsWhere,
   parseTursoFacedRecordRow,
   type TursoExportRecord,
 } from "./faced-export-shared";
@@ -35,8 +36,10 @@ export async function listFacedRecordsForExport(
   const result = await db.execute({
     sql: `
       ${FACED_EXPORT_SELECT}
-      WHERE LOWER(TRIM(city_municipality)) = ?
+      ${facedRecordsWhere(`
+        LOWER(TRIM(city_municipality)) = ?
         AND LOWER(TRIM(barangay)) = ?
+      `)}
       ORDER BY updated_at DESC
     `,
     args: [norm(municipality), norm(barangay)],

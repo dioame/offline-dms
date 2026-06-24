@@ -36,6 +36,15 @@ export function parseTursoFacedRecordRow(
   };
 }
 
+export const FACED_RECORDS_ACTIVE_FILTER = `deleted_at IS NULL`;
+
+export function facedRecordsWhere(clause?: string): string {
+  if (!clause?.trim()) {
+    return `WHERE ${FACED_RECORDS_ACTIVE_FILTER}`;
+  }
+  return `WHERE ${FACED_RECORDS_ACTIVE_FILTER} AND (${clause})`;
+}
+
 export const FACED_EXPORT_SELECT = `
   SELECT
     uuid,
@@ -47,6 +56,7 @@ export const FACED_EXPORT_SELECT = `
     date_registered,
     payload,
     created_at,
-    updated_at
+    updated_at,
+    deleted_at
   FROM faced_records
 `;

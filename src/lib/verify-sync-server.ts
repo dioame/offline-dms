@@ -1,4 +1,5 @@
 import { ensureTursoSchema, getTursoClient } from "./turso";
+import { facedRecordsWhere } from "./faced-export-shared";
 import type { VerifyCacheEntry } from "./verify-match";
 
 export type VerifySyncChunk = {
@@ -57,7 +58,9 @@ export async function listVerifyCacheChunk(
   const safeLimit = Math.min(Math.max(1, limit), 1000);
 
   const [countResult, pageResult] = await Promise.all([
-    db.execute({ sql: `SELECT COUNT(*) AS total FROM faced_records` }),
+    db.execute({
+      sql: `SELECT COUNT(*) AS total FROM faced_records ${facedRecordsWhere()}`,
+    }),
     db.execute({
       sql: `
         SELECT
@@ -69,6 +72,7 @@ export async function listVerifyCacheChunk(
           updated_at,
           payload
         FROM faced_records
+        ${facedRecordsWhere()}
         ORDER BY updated_at DESC
         LIMIT ? OFFSET ?
       `,

@@ -67,6 +67,9 @@ const SHELTER_DAMAGE_OPTIONS = [
 
 type FacedFormProps = {
   editId?: number | null;
+  syncedEditUuid?: string | null;
+  syncedInitialRecord?: FacedRecordData | null;
+  onSyncedSave?: (data: FacedRecordData) => Promise<void>;
   onSaved: () => void;
   onCancelEdit?: () => void;
 };
@@ -171,7 +174,15 @@ function normalizeLoadedRecord(
   };
 }
 
-export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormProps) {
+export default function FacedForm({
+  editId,
+  syncedEditUuid,
+  syncedInitialRecord,
+  onSyncedSave,
+  onSaved,
+  onCancelEdit,
+}: FacedFormProps) {
+  const isSyncedEdit = Boolean(syncedEditUuid && syncedInitialRecord && onSyncedSave);
   const [form, setForm] = useState<FacedRecordData>(createEmptyFacedRecord);
   const [editUuid, setEditUuid] = useState<string | undefined>();
   const [saving, setSaving] = useState(false);
@@ -204,6 +215,12 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
   }
 
   useEffect(() => {
+    if (isSyncedEdit && syncedInitialRecord && syncedEditUuid) {
+      setEditUuid(syncedEditUuid);
+      setForm(normalizeLoadedRecord(syncedInitialRecord));
+      return;
+    }
+
     if (!editId) {
       setEditUuid(undefined);
       void getAuthSession().then((session) => {
@@ -224,7 +241,7 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
         setForm(normalizeLoadedRecord(data));
       }
     });
-  }, [editId]);
+  }, [editId, isSyncedEdit, syncedEditUuid, syncedInitialRecord]);
 
   useEffect(() => {
     const lastName = form.head_of_family.last_name.trim();
@@ -259,7 +276,7 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
           city_municipality: form.city_municipality,
           barangay: form.barangay,
         },
-        { excludeUuid: editUuid, excludeEditId: editId ?? undefined },
+        { excludeUuid: editUuid, excludeEditId: isSyncedEdit ? undefined : editId ?? undefined },
       )
         .then((result) => {
           setDuplicateMatches(result.matches);
@@ -279,6 +296,7 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
     return () => window.clearTimeout(timer);
   }, [
     editId,
+    isSyncedEdit,
     editUuid,
     form.barangay,
     form.city_municipality,
@@ -446,12 +464,17 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
       const recordData: FacedRecordData = {
         ...form,
         access_code: normalizeAccessCode(
-          form.access_code.trim() || session?.code || "",
+          form.access_code.trim() || (isSyncedEdit ? "" : session?.code || ""),
         ),
-        enumerator_name: session?.enumeratorName?.trim() || form.enumerator_name.trim(),
+        enumerator_name: isSyncedEdit
+          ? form.enumerator_name.trim()
+          : session?.enumeratorName?.trim() || form.enumerator_name.trim(),
       };
 
-      if (editId) {
+      if (isSyncedEdit && onSyncedSave) {
+        await onSyncedSave(recordData);
+        setMessage("Record updated on server.");
+      } else if (editId) {
         await updateFacedRecord(editId, recordData);
         setMessage("Record updated locally.");
       } else {
@@ -1075,9 +1098,13 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
       {/* Actions */}
       <div className="faced-section-body flex flex-wrap gap-3 border-t border-[var(--faced-blue-border)] pt-4">
         <button type="submit" disabled={saving} className="faced-btn-primary">
-          {saving ? "Saving..." : editId ? "Update record" : "Save FACED record"}
+          {saving
+            ? "Saving..."
+            : editId || isSyncedEdit
+              ? "Update record"
+              : "Save FACED record"}
         </button>
-        {editId && onCancelEdit && (
+        {(editId || isSyncedEdit) && onCancelEdit && (
           <button type="button" onClick={onCancelEdit} className="faced-btn-secondary">
             Cancel edit
           </button>

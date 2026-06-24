@@ -49,7 +49,8 @@ export async function upsertFacedRecord(row: TursoFacedRow): Promise<void> {
         province = excluded.province,
         date_registered = excluded.date_registered,
         payload = excluded.payload,
-        updated_at = excluded.updated_at
+        updated_at = excluded.updated_at,
+        deleted_at = faced_records.deleted_at
     `,
     args: [
       row.uuid,

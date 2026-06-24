@@ -23,6 +23,66 @@ export type EnumeratorSummaryTotals = {
   rejected_codes: number;
 };
 
+export type RecordsAdminMetrics = {
+  duplicate_group_count: number;
+  duplicate_record_count: number;
+  soft_deleted_count: number;
+};
+
+export async function getRecordsAdminMetrics(): Promise<RecordsAdminMetrics> {
+  await ensureTursoSchema();
+  const db = getTursoClient();
+
+  const [groupsResult, recordsResult, softDeletedResult] = await Promise.all([
+    db.execute({
+      sql: `
+        SELECT COUNT(*) AS group_count
+        FROM (
+          SELECT 1
+          FROM faced_records
+          WHERE deleted_at IS NULL
+            AND TRIM(json_extract(payload, '$.head_of_family.first_name')) != ''
+            AND TRIM(json_extract(payload, '$.head_of_family.last_name')) != ''
+          GROUP BY
+            LOWER(TRIM(json_extract(payload, '$.head_of_family.first_name'))),
+            LOWER(TRIM(json_extract(payload, '$.head_of_family.last_name')))
+          HAVING COUNT(*) > 1
+        )
+      `,
+    }),
+    db.execute({
+      sql: `
+        WITH duplicate_keys AS (
+          SELECT
+            LOWER(TRIM(json_extract(payload, '$.head_of_family.first_name'))) AS first_name,
+            LOWER(TRIM(json_extract(payload, '$.head_of_family.last_name'))) AS last_name
+          FROM faced_records
+          WHERE deleted_at IS NULL
+            AND TRIM(json_extract(payload, '$.head_of_family.first_name')) != ''
+            AND TRIM(json_extract(payload, '$.head_of_family.last_name')) != ''
+          GROUP BY first_name, last_name
+          HAVING COUNT(*) > 1
+        )
+        SELECT COUNT(*) AS record_count
+        FROM faced_records fr
+        INNER JOIN duplicate_keys dk ON
+          dk.first_name = LOWER(TRIM(json_extract(fr.payload, '$.head_of_family.first_name')))
+          AND dk.last_name = LOWER(TRIM(json_extract(fr.payload, '$.head_of_family.last_name')))
+        WHERE fr.deleted_at IS NULL
+      `,
+    }),
+    db.execute({
+      sql: `SELECT COUNT(*) AS soft_deleted FROM faced_records WHERE deleted_at IS NOT NULL`,
+    }),
+  ]);
+
+  return {
+    duplicate_group_count: Number(groupsResult.rows[0]?.group_count ?? 0),
+    duplicate_record_count: Number(recordsResult.rows[0]?.record_count ?? 0),
+    soft_deleted_count: Number(softDeletedResult.rows[0]?.soft_deleted ?? 0),
+  };
+}
+
 export async function getEnumeratorSummaries(): Promise<{
   summaries: EnumeratorSummary[];
   totals: EnumeratorSummaryTotals;
@@ -51,13 +111,14 @@ export async function getEnumeratorSummaries(): Promise<{
             MAX(updated_at) AS last_encoded_at
           FROM faced_records
           WHERE TRIM(access_code) != ''
+            AND deleted_at IS NULL
           GROUP BY access_code
         ) fr ON fr.access_code = ac.code
         ORDER BY total_encoded DESC, ac.code ASC
       `,
     }),
     db.execute({
-      sql: `SELECT COUNT(*) AS total_encoded FROM faced_records`,
+      sql: `SELECT COUNT(*) AS total_encoded FROM faced_records WHERE deleted_at IS NULL`,
     }),
   ]);
 

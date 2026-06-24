@@ -1,7 +1,7 @@
 "use client";
 
 import { SARANGANI_PROVINCE } from "@/lib/sarangani-locations";
-import type { VerifyMatch } from "@/lib/verify-match";
+import { formatDuplicateMatchSummary, type VerifyMatch } from "@/lib/verify-match";
 
 type DuplicateConfirmDialogProps = {
   open: boolean;
@@ -18,14 +18,6 @@ function sourceLabel(source: DuplicateConfirmDialogProps["source"]): string {
   if (source === "offline") return "your downloaded offline copy";
   if (source === "local") return "records saved on this device";
   return "available records";
-}
-
-function matchSummary(match: VerifyMatch): string {
-  const location = [match.barangay, match.cityMunicipality, SARANGANI_PROVINCE]
-    .filter(Boolean)
-    .join(", ");
-  const parts = [location, match.birthdate, match.matchLabel].filter(Boolean);
-  return parts.join(" · ");
 }
 
 export default function DuplicateConfirmDialog({
@@ -71,7 +63,10 @@ export default function DuplicateConfirmDialog({
                 <span className="font-semibold text-[var(--ph-blue-dark)]">
                   {match.headName}
                 </span>
-                <span className="text-zinc-600"> — {matchSummary(match)}</span>
+                <span className="text-zinc-600">
+                  {" "}
+                  — {formatDuplicateMatchSummary(match, SARANGANI_PROVINCE)}
+                </span>
               </li>
             ))}
           </ul>

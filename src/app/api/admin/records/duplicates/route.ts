@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getEnumeratorSummaries, getRecordsAdminMetrics } from "@/lib/admin-stats";
+import { listDuplicateGroups } from "@/lib/records-admin";
 import { isTursoConfigured, verifyAdminPassword } from "@/lib/env";
 
 function unauthorized() {
@@ -28,13 +28,15 @@ export async function GET(request: Request) {
   if (denied) return denied;
 
   try {
-    const [data, records] = await Promise.all([
-      getEnumeratorSummaries(),
-      getRecordsAdminMetrics(),
-    ]);
-    return NextResponse.json({ ...data, records });
+    const groups = await listDuplicateGroups();
+    const totalDuplicates = groups.reduce((sum, group) => sum + group.count, 0);
+    return NextResponse.json({
+      groups,
+      groupCount: groups.length,
+      totalDuplicates,
+    });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to load stats.";
+    const message = err instanceof Error ? err.message : "Failed to load duplicates.";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -112,3 +112,19 @@ export function filterVerifyEntries(
   matches.sort((a, b) => b.encodedAt.localeCompare(a.encodedAt));
   return matches;
 }
+
+export function formatDuplicateMatchSummary(
+  match: VerifyMatch,
+  province?: string,
+): string {
+  const location = [match.barangay, match.cityMunicipality, province]
+    .filter(Boolean)
+    .join(", ");
+  const parts = [
+    location,
+    match.birthdate,
+    match.enumeratorName ? `Encoder: ${match.enumeratorName}` : "",
+    match.matchLabel,
+  ].filter(Boolean);
+  return parts.join(" · ");
+}

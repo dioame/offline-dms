@@ -1,4 +1,5 @@
 import { ensureTursoSchema, getTursoClient } from "./turso";
+import { facedRecordsWhere } from "./faced-export-shared";
 import {
   filterVerifyEntries,
   normField,
@@ -74,8 +75,10 @@ export async function searchEncodedBeneficiary(
         updated_at,
         payload
       FROM faced_records
-      WHERE LOWER(TRIM(json_extract(payload, '$.head_of_family.last_name'))) = ?
+      ${facedRecordsWhere(`
+        LOWER(TRIM(json_extract(payload, '$.head_of_family.last_name'))) = ?
         AND LOWER(TRIM(json_extract(payload, '$.head_of_family.first_name'))) = ?
+      `)}
     `,
     args: [normField(lastName), normField(firstName)],
   });

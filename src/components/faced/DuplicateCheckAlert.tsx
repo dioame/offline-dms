@@ -1,7 +1,7 @@
 "use client";
 
 import { SARANGANI_PROVINCE } from "@/lib/sarangani-locations";
-import type { VerifyMatch } from "@/lib/verify-match";
+import { formatDuplicateMatchSummary, type VerifyMatch } from "@/lib/verify-match";
 
 type DuplicateCheckAlertProps = {
   matches: VerifyMatch[];
@@ -15,14 +15,6 @@ function sourceLabel(source: DuplicateCheckAlertProps["source"]): string {
   if (source === "offline") return "offline copy";
   if (source === "local") return "this device";
   return "records";
-}
-
-function matchSummary(match: VerifyMatch): string {
-  const location = [match.barangay, match.cityMunicipality, SARANGANI_PROVINCE]
-    .filter(Boolean)
-    .join(", ");
-  const parts = [location, match.birthdate, match.matchLabel].filter(Boolean);
-  return parts.join(" · ");
 }
 
 export default function DuplicateCheckAlert({
@@ -69,7 +61,10 @@ export default function DuplicateCheckAlert({
         {visible.map((match) => (
           <li key={match.uuid} className="encode-duplicate-item">
             <span className="font-semibold text-[var(--ph-blue-dark)]">{match.headName}</span>
-            <span className="text-zinc-600"> — {matchSummary(match)}</span>
+            <span className="text-zinc-600">
+              {" "}
+              — {formatDuplicateMatchSummary(match, SARANGANI_PROVINCE)}
+            </span>
           </li>
         ))}
       </ul>

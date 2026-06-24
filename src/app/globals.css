@@ -772,6 +772,10 @@ body {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18);
 }
 
+.faced-modal--large {
+  max-width: min(72rem, 96vw);
+}
+
 .faced-modal-header {
   padding: 0.875rem 1rem;
   font-size: 0.9375rem;
@@ -781,6 +785,10 @@ body {
 
 .faced-modal-header--warning {
   background: linear-gradient(135deg, #c98a00 0%, #a86800 100%);
+}
+
+.faced-modal-header--danger {
+  background: linear-gradient(135deg, #b42318 0%, #8f1d14 100%);
 }
 
 .faced-modal-body {

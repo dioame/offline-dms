@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getEnumeratorSummaries, getRecordsAdminMetrics } from "@/lib/admin-stats";
+import { listFacedRecordsAdmin } from "@/lib/records-admin";
 import { isTursoConfigured, verifyAdminPassword } from "@/lib/env";
 
 function unauthorized() {
@@ -27,14 +27,16 @@ export async function GET(request: Request) {
   const denied = checkAdmin(request);
   if (denied) return denied;
 
+  const { searchParams } = new URL(request.url);
+  const search = searchParams.get("search") ?? "";
+  const page = Number(searchParams.get("page") ?? "1");
+  const pageSize = Number(searchParams.get("pageSize") ?? "25");
+
   try {
-    const [data, records] = await Promise.all([
-      getEnumeratorSummaries(),
-      getRecordsAdminMetrics(),
-    ]);
-    return NextResponse.json({ ...data, records });
+    const data = await listFacedRecordsAdmin({ search, page, pageSize });
+    return NextResponse.json(data);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to load stats.";
+    const message = err instanceof Error ? err.message : "Failed to load records.";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

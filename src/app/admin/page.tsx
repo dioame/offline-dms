@@ -46,6 +46,12 @@ type EnumeratorSummaryTotals = {
   rejected_codes: number;
 };
 
+type RecordsAdminMetrics = {
+  duplicate_group_count: number;
+  duplicate_record_count: number;
+  soft_deleted_count: number;
+};
+
 const ADMIN_STORAGE_KEY = "dms_admin_password";
 const PAGE_SIZE = 20;
 
@@ -173,6 +179,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [summaries, setSummaries] = useState<EnumeratorSummary[]>([]);
   const [summaryTotals, setSummaryTotals] = useState<EnumeratorSummaryTotals | null>(null);
+  const [recordsMetrics, setRecordsMetrics] = useState<RecordsAdminMetrics | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
   const [summaryPage, setSummaryPage] = useState(1);
   const [codesPage, setCodesPage] = useState(1);
@@ -234,6 +241,7 @@ export default function AdminPage() {
       }
       setSummaries(data.summaries || []);
       setSummaryTotals(data.totals || null);
+      setRecordsMetrics(data.records || null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load stats.");
       if (err instanceof Error && err.message === "Unauthorized") {
@@ -323,6 +331,7 @@ export default function AdminPage() {
     setGeneratedCodes([]);
     setSummaries([]);
     setSummaryTotals(null);
+    setRecordsMetrics(null);
   }
 
   function updateDraft(code: string, field: keyof AssigneeDraft, value: string) {
@@ -586,6 +595,9 @@ export default function AdminPage() {
             <Link href="/" className="ph-header-btn">
               FACED app
             </Link>
+            <Link href="/records" className="ph-header-btn">
+              Records (RUD)
+            </Link>
             <button type="button" onClick={handleLock} className="ph-header-btn ph-header-btn--danger">
               Lock admin
             </button>
@@ -627,7 +639,7 @@ export default function AdminPage() {
             {statsLoading && summaries.length === 0 ? (
               <p className="text-sm text-zinc-500">Loading summary...</p>
             ) : summaryTotals ? (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="rounded-lg border border-[var(--faced-blue-border)] bg-[var(--ph-blue-light)]/40 px-4 py-3">
                   <p className="text-xs font-bold uppercase tracking-wide text-[var(--ph-blue-dark)]">
                     Total encoded
@@ -666,6 +678,32 @@ export default function AdminPage() {
                   </p>
                   <p className="text-xs text-zinc-600">No longer valid for login</p>
                 </div>
+                <Link
+                  href="/records"
+                  className="rounded-lg border border-amber-300/70 bg-[var(--ph-yellow-light)]/50 px-4 py-3 transition-colors hover:bg-[var(--ph-yellow-light)]/80"
+                >
+                  <p className="text-xs font-bold uppercase tracking-wide text-amber-900">
+                    Duplicates
+                  </p>
+                  <p className="mt-1 text-2xl font-bold text-[var(--ph-blue-dark)]">
+                    {recordsMetrics?.duplicate_group_count ?? 0}
+                  </p>
+                  <p className="text-xs text-amber-900/80">
+                    {recordsMetrics?.duplicate_record_count ?? 0} records with matching names
+                  </p>
+                </Link>
+                <Link
+                  href="/records"
+                  className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 transition-colors hover:bg-red-100/80"
+                >
+                  <p className="text-xs font-bold uppercase tracking-wide text-red-800">
+                    Soft deleted
+                  </p>
+                  <p className="mt-1 text-2xl font-bold text-red-900">
+                    {recordsMetrics?.soft_deleted_count ?? 0}
+                  </p>
+                  <p className="text-xs text-red-800/80">Hidden from lists and duplicate checks</p>
+                </Link>
               </div>
             ) : null}
 

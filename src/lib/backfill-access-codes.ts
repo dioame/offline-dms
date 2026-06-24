@@ -29,6 +29,7 @@ export async function backfillFacedRecordAccessCodes(
         FROM faced_records
         WHERE TRIM(COALESCE(access_code, '')) = ''
           AND TRIM(enumerator_name) != ''
+          AND deleted_at IS NULL
       `,
     }),
   ]);
@@ -57,7 +58,7 @@ export async function backfillFacedRecordAccessCodes(
     if (!match) continue;
 
     await db.execute({
-      sql: `UPDATE faced_records SET access_code = ? WHERE uuid = ?`,
+      sql: `UPDATE faced_records SET access_code = ? WHERE uuid = ? AND deleted_at IS NULL`,
       args: [match.code, String(row.uuid)],
     });
     updated += 1;
