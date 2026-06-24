@@ -5,7 +5,7 @@ import {
   relationOptions,
   vulnerabilityOptions,
 } from "@/lib/faced-options";
-import { FormField, SelectInput, SuggestionChips, TextInput } from "./FormField";
+import { FormField, RadioGroup, SelectInput, SuggestionChips, TextInput } from "./FormField";
 
 const SEX_OPTIONS = [
   { value: "M", label: "Male" },
@@ -102,11 +102,11 @@ export default function FamilyMemberCard({
         </div>
 
         <FormField label="Sex">
-          <SelectInput
-            value={member.sex}
-            onChange={(e) => onChange("sex", e.target.value)}
+          <RadioGroup
+            name={`family_member_sex_${index}`}
             options={SEX_OPTIONS}
-            placeholder="Select"
+            value={member.sex}
+            onChange={(value) => onChange("sex", value)}
           />
         </FormField>
 

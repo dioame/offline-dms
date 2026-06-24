@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import {
   addFacedRecord,
   createEmptyFacedRecord,
@@ -23,6 +23,7 @@ import {
   type FamilyMember,
 } from "@/lib/faced-types";
 import { normalizeAccessCode } from "@/lib/code-generator";
+import { checkEncodingDuplicates } from "@/lib/encode-duplicate-check";
 import {
   barangayOptions,
   birthplaceSuggestion,
@@ -37,7 +38,10 @@ import {
   OCCUPATION_SUGGESTIONS,
   RELIGION_SUGGESTIONS,
 } from "@/lib/faced-options";
+import type { VerifyMatch } from "@/lib/verify-match";
 import SectionHeader from "./SectionHeader";
+import DuplicateCheckAlert from "./DuplicateCheckAlert";
+import DuplicateConfirmDialog from "./DuplicateConfirmDialog";
 import FamilyMemberCard from "./FamilyMemberCard";
 import BrandEmblem from "@/components/brand/BrandEmblem";
 import {
@@ -169,11 +173,39 @@ function normalizeLoadedRecord(
 
 export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormProps) {
   const [form, setForm] = useState<FacedRecordData>(createEmptyFacedRecord);
+  const [editUuid, setEditUuid] = useState<string | undefined>();
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [duplicateMatches, setDuplicateMatches] = useState<VerifyMatch[]>([]);
+  const [duplicateSource, setDuplicateSource] = useState<"online" | "offline" | "local" | null>(
+    null,
+  );
+  const [duplicateChecking, setDuplicateChecking] = useState(false);
+  const [duplicateCanCheck, setDuplicateCanCheck] = useState(false);
+  const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false);
+  const [duplicateConfirmIntent, setDuplicateConfirmIntent] = useState<"detect" | "save">(
+    "detect",
+  );
+  const [duplicateAcknowledged, setDuplicateAcknowledged] = useState(false);
+  const [duplicateDismissedQuery, setDuplicateDismissedQuery] = useState("");
+  const duplicateQueryRef = useRef("");
+
+  function buildDuplicateQuery(): string {
+    return [
+      form.head_of_family.last_name,
+      form.head_of_family.first_name,
+      form.head_of_family.middle_name,
+      form.head_of_family.birthdate,
+      form.barangay,
+      form.city_municipality,
+    ]
+      .map((value) => value.trim().toLowerCase())
+      .join("|");
+  }
 
   useEffect(() => {
     if (!editId) {
+      setEditUuid(undefined);
       void getAuthSession().then((session) => {
         setForm(
           createEmptyFacedRecord({
@@ -186,12 +218,106 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
     }
     void getFacedRecord(editId).then((record) => {
       if (record) {
+        setEditUuid(record.uuid);
         const { id: _id, uuid: _uuid, sync_status: _s, createdAt: _c, updatedAt: _u, ...data } =
           record;
         setForm(normalizeLoadedRecord(data));
       }
     });
   }, [editId]);
+
+  useEffect(() => {
+    const lastName = form.head_of_family.last_name.trim();
+    const firstName = form.head_of_family.first_name.trim();
+
+    if (!lastName || !firstName) {
+      setDuplicateMatches([]);
+      setDuplicateSource(null);
+      setDuplicateChecking(false);
+      setDuplicateCanCheck(false);
+      setDuplicateAcknowledged(false);
+      duplicateQueryRef.current = "";
+      setDuplicateDismissedQuery("");
+      return;
+    }
+
+    const query = buildDuplicateQuery();
+    if (query !== duplicateQueryRef.current) {
+      duplicateQueryRef.current = query;
+      setDuplicateAcknowledged(false);
+      setDuplicateDismissedQuery("");
+    }
+
+    setDuplicateChecking(true);
+    const timer = window.setTimeout(() => {
+      void checkEncodingDuplicates(
+        {
+          last_name: form.head_of_family.last_name,
+          first_name: form.head_of_family.first_name,
+          middle_name: form.head_of_family.middle_name,
+          birthdate: form.head_of_family.birthdate,
+          city_municipality: form.city_municipality,
+          barangay: form.barangay,
+        },
+        { excludeUuid: editUuid, excludeEditId: editId ?? undefined },
+      )
+        .then((result) => {
+          setDuplicateMatches(result.matches);
+          setDuplicateSource(result.source);
+          setDuplicateCanCheck(result.canCheck);
+        })
+        .catch(() => {
+          setDuplicateMatches([]);
+          setDuplicateSource(null);
+          setDuplicateCanCheck(false);
+        })
+        .finally(() => {
+          setDuplicateChecking(false);
+        });
+    }, 400);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    editId,
+    editUuid,
+    form.barangay,
+    form.city_municipality,
+    form.head_of_family.birthdate,
+    form.head_of_family.first_name,
+    form.head_of_family.last_name,
+    form.head_of_family.middle_name,
+  ]);
+
+  useEffect(() => {
+    const query = buildDuplicateQuery();
+
+    if (
+      !duplicateCanCheck ||
+      duplicateChecking ||
+      duplicateMatches.length === 0 ||
+      duplicateAcknowledged ||
+      duplicateDismissedQuery === query ||
+      showDuplicateConfirm
+    ) {
+      return;
+    }
+
+    setDuplicateConfirmIntent("detect");
+    setShowDuplicateConfirm(true);
+  }, [
+    duplicateAcknowledged,
+    duplicateCanCheck,
+    duplicateChecking,
+    duplicateDismissedQuery,
+    duplicateMatches.length,
+    form.barangay,
+    form.city_municipality,
+    form.head_of_family.birthdate,
+    form.head_of_family.first_name,
+    form.head_of_family.last_name,
+    form.head_of_family.middle_name,
+    showDuplicateConfirm,
+  ]);
 
   function updateField<K extends keyof FacedRecordData>(
     key: K,
@@ -313,6 +439,40 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
     }));
   }
 
+  async function saveRecord() {
+    setSaving(true);
+    try {
+      const session = await getAuthSession();
+      const recordData: FacedRecordData = {
+        ...form,
+        access_code: normalizeAccessCode(
+          form.access_code.trim() || session?.code || "",
+        ),
+        enumerator_name: session?.enumeratorName?.trim() || form.enumerator_name.trim(),
+      };
+
+      if (editId) {
+        await updateFacedRecord(editId, recordData);
+        setMessage("Record updated locally.");
+      } else {
+        await addFacedRecord(recordData);
+        setForm(
+          createEmptyFacedRecord({
+            access_code: session?.code ?? "",
+            enumerator_name: session?.enumeratorName ?? "",
+          }),
+        );
+        setMessage("FACED record saved locally.");
+      }
+      setShowDuplicateConfirm(false);
+      onSaved();
+    } catch {
+      setMessage("Could not save record. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setMessage(null);
@@ -379,36 +539,33 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
       return;
     }
 
-    setSaving(true);
-    try {
-      const session = await getAuthSession();
-      const recordData: FacedRecordData = {
-        ...form,
-        access_code: normalizeAccessCode(
-          form.access_code.trim() || session?.code || "",
-        ),
-        enumerator_name: session?.enumeratorName?.trim() || form.enumerator_name.trim(),
-      };
-
-      if (editId) {
-        await updateFacedRecord(editId, recordData);
-        setMessage("Record updated locally.");
-      } else {
-        await addFacedRecord(recordData);
-        setForm(
-          createEmptyFacedRecord({
-            access_code: session?.code ?? "",
-            enumerator_name: session?.enumeratorName ?? "",
-          }),
-        );
-        setMessage("FACED record saved locally.");
-      }
-      onSaved();
-    } catch {
-      setMessage("Could not save record. Please try again.");
-    } finally {
-      setSaving(false);
+    if (duplicateChecking) {
+      setMessage("Please wait while the duplicate check finishes.");
+      return;
     }
+
+    if (duplicateCanCheck && duplicateMatches.length > 0 && !duplicateAcknowledged) {
+      setDuplicateConfirmIntent("save");
+      setShowDuplicateConfirm(true);
+      return;
+    }
+
+    await saveRecord();
+  }
+
+  function handleDuplicateConfirmContinue() {
+    if (duplicateConfirmIntent === "save") {
+      void saveRecord();
+      return;
+    }
+
+    setDuplicateAcknowledged(true);
+    setShowDuplicateConfirm(false);
+  }
+
+  function handleDuplicateConfirmCancel() {
+    setShowDuplicateConfirm(false);
+    setDuplicateDismissedQuery(buildDuplicateQuery());
   }
 
   const birthplaceSuggestions = (() => {
@@ -421,7 +578,8 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
   })();
 
   return (
-    <form onSubmit={handleSubmit} className="faced-form space-y-0">
+    <>
+      <form onSubmit={handleSubmit} className="faced-form space-y-0">
       {/* Form header */}
       <div className="faced-form-banner mb-4">
         <BrandEmblem size={56} className="mx-auto mb-2" />
@@ -531,6 +689,12 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
             onChange={(e) => updateHead("first_name", e.target.value)}
           />
         </FormField>
+        <DuplicateCheckAlert
+          matches={duplicateMatches}
+          source={duplicateSource}
+          checking={duplicateChecking}
+          canCheck={duplicateCanCheck}
+        />
         <FormField label="Middle Name" number="9">
           <TextInput
             value={form.head_of_family.middle_name}
@@ -853,6 +1017,7 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
           onChange={(value) =>
             updateField("house_ownership", houseOwnershipFromRadio(value))
           }
+          spread
         />
       </div>
 
@@ -869,6 +1034,7 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
               shelterDamageFromRadio(value),
             )
           }
+          spread
         />
       </div>
 
@@ -926,6 +1092,17 @@ export default function FacedForm({ editId, onSaved, onCancelEdit }: FacedFormPr
           {message}
         </p>
       )}
-    </form>
+      </form>
+
+      <DuplicateConfirmDialog
+        open={showDuplicateConfirm}
+        matches={duplicateMatches}
+        source={duplicateSource}
+        saving={saving}
+        intent={duplicateConfirmIntent}
+        onCancel={handleDuplicateConfirmCancel}
+        onContinue={handleDuplicateConfirmContinue}
+      />
+    </>
   );
 }
