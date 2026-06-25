@@ -15,7 +15,12 @@ import type {
   SectoralRow,
   ShelterPayload,
 } from "./dashboard-types";
-import { SARANGANI_MUNICIPALITIES, SARANGANI_REGION } from "./sarangani-locations";
+import { SARANGANI_MUNICIPALITIES, SARANGANI_PROVINCE, SARANGANI_REGION } from "./sarangani-locations";
+import {
+  isRecordInsideEc,
+  evacuationSiteLabel,
+  OUTSIDE_EC_LABEL,
+} from "./evacuation-site";
 import { ensureTursoSchema, getTursoClient } from "./turso";
 
 export const AGE_GROUPS = [
@@ -127,16 +132,16 @@ function sectoralFromPerson(
 }
 
 function recordInEc(record: FacedRecordData): boolean {
-  if (record.evacuation_center_status === "yes") return true;
-  if (record.evacuation_center_status === "no") return false;
-  return Boolean(record.evacuation_center_site?.trim());
+  return isRecordInsideEc(record);
 }
 
 function ecSiteName(record: FacedRecordData): string {
-  const site = record.evacuation_center_site?.trim();
-  if (site) return site;
-  if (record.evacuation_center_status === "yes") return "Evacuation Center (unspecified)";
-  return "";
+  return evacuationSiteLabel(record);
+}
+
+function memberCount(record: TursoExportRecord): number {
+  const named = (record.family_members ?? []).filter((m) => m.family_member_name?.trim()).length;
+  return 1 + named;
 }
 
 function personsFromRecord(record: TursoExportRecord): PersonRow[] {
@@ -307,6 +312,7 @@ function insideEcGroups(records: TursoExportRecord[]): InsideEcGroup[] {
   for (const record of records) {
     if (!recordInEc(record)) continue;
     const ecName = ecSiteName(record);
+    if (ecName === OUTSIDE_EC_LABEL) continue;
     const key = ecName.toUpperCase();
     if (!buckets.has(key)) {
       buckets.set(key, {
@@ -361,12 +367,141 @@ function insideEcGroups(records: TursoExportRecord[]): InsideEcGroup[] {
     .sort((a, b) => b.totals.persons_cum - a.totals.persons_cum || a.ec_name.localeCompare(b.ec_name));
 }
 
+function buildInfoBoardFromRecords(
+  groupRecords: TursoExportRecord[],
+  ecName: string,
+  address: string,
+): InfoBoardGroup {
+  const persons = groupRecords.flatMap(personsFromRecord);
+  const ageRows = ageDistributionRows(countAgeSex(persons), true);
+  const first = groupRecords[0];
+
+  return {
+    ec_name: ecName,
+    ec_address: [first?.city_municipality, first?.province || SARANGANI_PROVINCE].filter(Boolean).join(", "),
+    region: first?.region?.trim() || SARANGANI_REGION,
+    address,
+    families_cum: groupRecords.length,
+    families_now: 0,
+    persons_cum: persons.length,
+    persons_now: 0,
+    age_distribution: ageRows,
+    sectoral: countSectoral(persons),
+  };
+}
+
+function emptyOutsideInfoBoard(address = "—"): InfoBoardGroup {
+  return {
+    ec_name: OUTSIDE_EC_LABEL,
+    ec_address: "",
+    region: SARANGANI_REGION,
+    address,
+    families_cum: 0,
+    families_now: 0,
+    persons_cum: 0,
+    persons_now: 0,
+    age_distribution: ageDistributionRows(emptyAgeSex(), true),
+    sectoral: countSectoral([]),
+  };
+}
+
+function outsideEcBundle(records: TursoExportRecord[], cityMunFilter = ""): ReportsBundle["outside_ec"] {
+  const barangays = new Map<string, BarangayRow>();
+  const recordsByBarangay = new Map<string, TursoExportRecord[]>();
+  const outsideRecords: TursoExportRecord[] = [];
+
+  for (const record of records) {
+    if (recordInEc(record)) continue;
+    outsideRecords.push(record);
+
+    const barangay = record.barangay?.trim() || "Unknown";
+    const key = barangay.toUpperCase();
+    let row = barangays.get(key);
+    if (!row) {
+      row = {
+        barangay,
+        families_cum: 0,
+        families_now: 0,
+        persons_cum: 0,
+        persons_now: 0,
+        shelter: { totally: 0, partially: 0, not_identified: 0 },
+      };
+      barangays.set(key, row);
+    }
+
+    const barangayRecords = recordsByBarangay.get(key) ?? [];
+    barangayRecords.push(record);
+    recordsByBarangay.set(key, barangayRecords);
+
+    const persons = memberCount(record);
+    row.families_cum += 1;
+    row.persons_cum += persons;
+
+    const shelterKey = classifyShelterDamage(record);
+    if (shelterKey && row.shelter) row.shelter[shelterKey] += 1;
+  }
+
+  const by_barangay = [...barangays.values()].sort(
+    (a, b) => b.persons_cum - a.persons_cum || a.barangay.localeCompare(b.barangay),
+  );
+
+  const totals = {
+    families_cum: 0,
+    families_now: 0,
+    persons_cum: 0,
+    persons_now: 0,
+    shelter: { totally: 0, partially: 0, not_identified: 0 },
+  };
+
+  for (const row of by_barangay) {
+    totals.families_cum += row.families_cum;
+    totals.persons_cum += row.persons_cum;
+    if (row.shelter) {
+      totals.shelter!.totally += row.shelter.totally;
+      totals.shelter!.partially += row.shelter.partially;
+      totals.shelter!.not_identified += row.shelter.not_identified;
+    }
+  }
+
+  const summaryAddress = cityMunFilter.trim()
+    ? cityMunFilter.trim()
+    : outsideRecords[0]?.city_municipality
+      ? `${outsideRecords[0].city_municipality}, ${SARANGANI_PROVINCE}`
+      : SARANGANI_PROVINCE;
+
+  const summary_board =
+    outsideRecords.length > 0
+      ? buildInfoBoardFromRecords(outsideRecords, OUTSIDE_EC_LABEL, summaryAddress)
+      : emptyOutsideInfoBoard(summaryAddress);
+
+  const barangay_groups = [...recordsByBarangay.entries()]
+    .map(([, groupRecords]) => {
+      const first = groupRecords[0];
+      return buildInfoBoardFromRecords(
+        groupRecords,
+        OUTSIDE_EC_LABEL,
+        [first?.city_municipality, first?.barangay].filter(Boolean).join(", "),
+      );
+    })
+    .sort((a, b) => b.persons_cum - a.persons_cum || a.address.localeCompare(b.address));
+
+  return {
+    ec_name: OUTSIDE_EC_LABEL,
+    totals,
+    by_barangay,
+    summary_board,
+    barangay_groups,
+  };
+}
+
 function infoBoardGroups(records: TursoExportRecord[]): InfoBoardGroup[] {
   const insideRecords = records.filter(recordInEc);
   const ecGroups = new Map<string, TursoExportRecord[]>();
 
   for (const record of insideRecords) {
-    const key = ecSiteName(record).toUpperCase();
+    const site = ecSiteName(record);
+    if (site === OUTSIDE_EC_LABEL) continue;
+    const key = site.toUpperCase();
     const list = ecGroups.get(key) ?? [];
     list.push(record);
     ecGroups.set(key, list);
@@ -468,6 +603,7 @@ export function buildReportsBundle(
   const ageRows = ageDistributionRows(countAgeSex(allPersons), true);
   const sectoralRows = countSectoral(allPersons);
   const insideGroups = insideEcGroups(records);
+  const outsideEc = outsideEcBundle(records, cityMunFilter);
   const infoGroups = infoBoardGroups(records);
 
   const insideTotals = insideGroups.reduce(
@@ -487,6 +623,7 @@ export function buildReportsBundle(
       totals: insideTotals,
       groups: insideGroups,
     },
+    outside_ec: outsideEc,
     sex_age_sectoral: {
       age_distribution: ageRows,
       sectoral: sectoralRows,
@@ -505,5 +642,6 @@ export function buildReportsBundle(
     city_mun_filter: cityMunFilter,
     total_records: records.length,
     inside_ec_records: records.filter(recordInEc).length,
+    outside_ec_records: records.filter((r) => !recordInEc(r)).length,
   };
 }
