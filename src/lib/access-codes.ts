@@ -1,5 +1,6 @@
 import { getTursoClient, ensureTursoSchema } from "./turso";
 import { generateAccessCode, normalizeAccessCode } from "./code-generator";
+import { normalizeEnumeratorName } from "./enumerator-name";
 
 export type AccessCodeStatus = "active" | "used" | "rejected";
 
@@ -220,7 +221,7 @@ export async function addAccessCode(
   await ensureTursoSchema();
   const db = getTursoClient();
   const now = new Date().toISOString();
-  const name = assignee?.enumerator_name?.trim() || null;
+  const name = normalizeEnumeratorName(assignee?.enumerator_name);
 
   await db.execute({
     sql: `
@@ -238,7 +239,7 @@ export async function assignAccessCode(
   assignee: { enumerator_name?: string; enumerator_email?: string },
 ): Promise<void> {
   const code = normalizeAccessCode(rawCode);
-  const name = assignee.enumerator_name?.trim() || null;
+  const name = normalizeEnumeratorName(assignee.enumerator_name);
   const email = assignee.enumerator_email?.trim() || null;
 
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {

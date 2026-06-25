@@ -5,6 +5,16 @@ import { deleteFacedRecord, getFacedRecords } from "@/lib/db";
 import { exportFacedToExcel } from "@/lib/export-excel";
 import { syncPendingRecords } from "@/lib/sync-client";
 import type { FacedRecord, SyncStatus } from "@/lib/faced-types";
+import {
+  CloudUpload,
+  Download,
+  Loader2,
+  Pencil,
+  Trash2,
+} from "lucide-react";
+import * as ui from "@/lib/ui";
+import { cn } from "@/lib/cn";
+import { SkeletonRecordList, SkeletonScreen } from "@/components/ui/Skeleton";
 
 type FacedRecordListProps = {
   refreshKey: number;
@@ -20,9 +30,9 @@ function headName(record: FacedRecord): string {
 
 function syncBadge(status: SyncStatus) {
   const styles: Record<SyncStatus, string> = {
-    pending: "ph-badge-pending",
-    synced: "ph-badge-synced",
-    failed: "ph-badge-failed",
+    pending: ui.badgePending,
+    synced: ui.badgeSynced,
+    failed: ui.badgeFailed,
   };
   return (
     <span
@@ -122,7 +132,9 @@ export default function FacedRecordList({ refreshKey, onEdit, onSynced, onRecord
 
   if (loading) {
     return (
-      <p className="text-sm font-medium text-[var(--ph-blue)]">Loading records...</p>
+      <SkeletonScreen label="Loading saved records">
+        <SkeletonRecordList rows={4} />
+      </SkeletonScreen>
     );
   }
 
@@ -132,7 +144,7 @@ export default function FacedRecordList({ refreshKey, onEdit, onSynced, onRecord
         <select
           value={filter}
           onChange={(e) => setFilter(e.target.value as "all" | SyncStatus)}
-          className="faced-input w-auto text-sm"
+          className={cn(ui.input, "w-auto text-sm")}
         >
           <option value="all">All records ({records.length})</option>
           <option value="pending">
@@ -149,22 +161,34 @@ export default function FacedRecordList({ refreshKey, onEdit, onSynced, onRecord
           type="button"
           onClick={() => void handleSync()}
           disabled={syncing || pendingCount === 0}
-          className="faced-btn-primary text-sm disabled:cursor-not-allowed disabled:opacity-60"
+          className={cn(ui.btnPrimary, ui.withIcon, "text-sm disabled:cursor-not-allowed disabled:opacity-60")}
         >
-          {syncing ? "Syncing online..." : `Sync online (${pendingCount})`}
+          {syncing ? (
+            <>
+              <Loader2 className={cn(ui.iconSm, "animate-spin")} aria-hidden />
+              Syncing online...
+            </>
+          ) : (
+            <>
+              <CloudUpload className={ui.iconSm} aria-hidden />
+              Sync online ({pendingCount})
+            </>
+          )}
         </button>
         <button
           type="button"
           onClick={() => handleExport("all")}
-          className="faced-btn-secondary text-sm"
+          className={cn(ui.btnSecondary, ui.withIcon, "text-sm")}
         >
+          <Download className={ui.iconSm} aria-hidden />
           Export all to Excel
         </button>
         <button
           type="button"
           onClick={() => handleExport("pending")}
-          className="faced-btn-secondary text-sm"
+          className={cn(ui.btnSecondary, ui.withIcon, "text-sm")}
         >
+          <Download className={ui.iconSm} aria-hidden />
           Export unsynced
         </button>
       </div>
@@ -172,7 +196,7 @@ export default function FacedRecordList({ refreshKey, onEdit, onSynced, onRecord
       {syncMessage && (
         <p
           className={
-            syncMessage.includes("Successfully") ? "ph-alert-success" : "ph-alert-warning"
+            syncMessage.includes("Successfully") ? ui.alertSuccess : ui.alertWarning
           }
           role="status"
         >
@@ -181,15 +205,15 @@ export default function FacedRecordList({ refreshKey, onEdit, onSynced, onRecord
       )}
 
       {filtered.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-[var(--faced-blue-border)] bg-white px-4 py-10 text-center text-sm text-zinc-500 shadow-sm">
+        <p className="rounded-xl border border-dashed border-faced-blue-border bg-white px-4 py-10 text-center text-sm text-zinc-500 shadow-sm">
           No FACED records yet. Fill out the form above to add the first record.
         </p>
       ) : (
-        <ul className="ph-card divide-y divide-[var(--faced-blue-border)]">
+        <ul className={cn(ui.card, "divide-y divide-faced-blue-border")}>
           {filtered.map((record) => (
             <li
               key={record.id}
-              className="flex items-start justify-between gap-4 px-4 py-3.5 transition-colors hover:bg-[var(--ph-blue-light)]/40"
+              className="flex items-start justify-between gap-4 px-4 py-3.5 transition-colors hover:bg-ph-blue-light/40"
             >
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
@@ -210,15 +234,17 @@ export default function FacedRecordList({ refreshKey, onEdit, onSynced, onRecord
                 <button
                   type="button"
                   onClick={() => record.id && onEdit(record.id)}
-                  className="ph-link text-sm"
+                  className={cn(ui.link, ui.withIcon, "text-sm")}
                 >
+                  <Pencil className={ui.iconSm} aria-hidden />
                   Edit
                 </button>
                 <button
                   type="button"
                   onClick={() => record.id && void handleDelete(record.id)}
-                  className="text-sm font-semibold text-[var(--ph-red)] hover:underline"
+                  className={cn(ui.withIcon, "text-sm font-semibold text-ph-red hover:underline")}
                 >
+                  <Trash2 className={ui.iconSm} aria-hidden />
                   Delete
                 </button>
               </div>

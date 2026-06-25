@@ -8,6 +8,9 @@ import OfflineIndicator from "@/components/OfflineIndicator";
 import BrandEmblem from "@/components/brand/BrandEmblem";
 import TricolorBar from "@/components/brand/TricolorBar";
 import { getFacedRecords } from "@/lib/db";
+import { Archive, FilePenLine, Users } from "lucide-react";
+import * as ui from "@/lib/ui";
+import { cn } from "@/lib/cn";
 
 export default function HomePage() {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -20,18 +23,18 @@ export default function HomePage() {
 
   return (
     <LoginGate>
-      <div className="ph-page-bg min-h-full">
-        <header className="ph-app-header">
+      <div className={ui.pageBg}>
+        <header className={ui.appHeader}>
           <div className="mx-auto max-w-4xl px-4 py-6">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-4">
                 <BrandEmblem size={64} className="hidden shrink-0 sm:block" />
                 <div>
-                  <p className="ph-kicker text-xs font-bold uppercase">DSWD · Offline DMS</p>
+                  <p className={cn(ui.kicker, "text-xs font-bold uppercase")}>DSWD · Offline DMS</p>
                   <h1 className="mt-1 text-xl font-bold text-white sm:text-2xl">
                     Family Assistance Card (FACED)
                   </h1>
-                  <p className="ph-subtitle mt-2 max-w-xl text-sm" suppressHydrationWarning>
+                  <p className={cn(ui.subtitle, "mt-2 max-w-xl text-sm")} suppressHydrationWarning>
                     Collect FACED survey records offline on this device. Data is stored
                     locally, exported to Excel, and synced online when connected.
                   </p>
@@ -44,10 +47,14 @@ export default function HomePage() {
         </header>
 
         <main className="mx-auto max-w-4xl space-y-8 px-4 py-6">
-          <section className="ph-card">
-            <div className="ph-card-header flex flex-wrap items-center justify-between gap-2">
-              <h2>{editId ? "Edit FACED record" : "New FACED record"}</h2>
-              <p className="text-sm font-semibold text-[var(--ph-blue-dark)]">
+          <section className={ui.card}>
+            <div className={cn(ui.cardHeader, "flex flex-wrap items-center justify-between gap-2")}>
+              <h2 className={ui.withIcon}>
+                <FilePenLine className={ui.iconMd} aria-hidden />
+                {editId ? "Edit FACED record" : "New FACED record"}
+              </h2>
+              <p className={cn(ui.withIcon, "text-sm font-semibold text-ph-blue-dark")}>
+                <Users className={ui.iconSm} aria-hidden />
                 Total encoded:{" "}
                 <span className="text-base font-bold">{encodedCount}</span>
               </p>
@@ -66,8 +73,8 @@ export default function HomePage() {
 
           <section>
             <div className="mb-3 flex items-center gap-3">
-              <span className="h-6 w-1 rounded-full bg-[var(--ph-yellow)]" aria-hidden />
-              <h2 className="text-lg font-bold text-[var(--ph-blue-dark)]">Saved records</h2>
+              <Archive className={ui.iconLg} aria-hidden />
+              <h2 className="text-lg font-bold text-ph-blue-dark">Saved records</h2>
             </div>
             <FacedRecordList
               refreshKey={refreshKey}

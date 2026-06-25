@@ -1,4 +1,7 @@
 import type { FamilyMember } from "@/lib/faced-types";
+import { UserMinus } from "lucide-react";
+import * as ui from "@/lib/ui";
+import { cn } from "@/lib/cn";
 import {
   educationalAttainmentOptions,
   FAMILY_MEMBER_OCCUPATION_SUGGESTIONS,
@@ -37,13 +40,13 @@ export default function FamilyMemberCard({
   const hasRelation = Boolean(member.relationship_to_family_head.trim());
 
   return (
-    <article className="family-member-card">
-      <div className="family-member-card-header">
+    <article className={ui.familyCard}>
+      <div className={ui.familyCardHeader}>
         <div className="min-w-0 flex-1">
-          <span className="family-member-badge">#{index + 1}</span>
-          <h3 className="family-member-title">{memberTitle(member, index)}</h3>
+          <span className={ui.familyBadge}>#{index + 1}</span>
+          <h3 className={ui.familyTitle}>{memberTitle(member, index)}</h3>
           {(hasName || hasRelation) && (
-            <p className="family-member-subtitle">
+            <p className={ui.familySubtitle}>
               {[member.relationship_to_family_head, member.age && `${member.age} yrs`]
                 .filter(Boolean)
                 .join(" · ")}
@@ -54,15 +57,16 @@ export default function FamilyMemberCard({
           <button
             type="button"
             onClick={onRemove}
-            className="family-member-remove"
+            className={cn(ui.familyRemove, ui.withIcon)}
             aria-label={`Remove ${memberTitle(member, index)}`}
           >
+            <UserMinus className={ui.iconSm} aria-hidden />
             Remove
           </button>
         )}
       </div>
 
-      <div className="family-member-card-body">
+      <div className={ui.familyCardBody}>
         <FormField label="Full name" required>
           <TextInput
             value={member.family_member_name}

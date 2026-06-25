@@ -1,3 +1,6 @@
+import { Eye, Pencil, Printer, Trash2 } from "lucide-react";
+import RowActionsMenu from "./RowActionsMenu";
+
 type RecordRowActionsProps = {
   onView: () => void;
   onEdit: () => void;
@@ -14,24 +17,19 @@ export default function RecordRowActions({
   printing = false,
 }: RecordRowActionsProps) {
   return (
-    <div className="record-actions">
-      <button type="button" onClick={onView} className="record-action-btn record-action-btn--view">
-        View
-      </button>
-      <button type="button" onClick={onEdit} className="record-action-btn record-action-btn--edit">
-        Edit
-      </button>
-      <button
-        type="button"
-        onClick={onPrint}
-        disabled={printing}
-        className="record-action-btn record-action-btn--print"
-      >
-        {printing ? "Printing…" : "Print FACED"}
-      </button>
-      <button type="button" onClick={onDelete} className="record-action-btn record-action-btn--delete">
-        Delete
-      </button>
-    </div>
+    <RowActionsMenu
+      items={[
+        { label: "View", icon: Eye, onClick: onView },
+        { label: "Edit", icon: Pencil, onClick: onEdit },
+        {
+          label: printing ? "Printing…" : "Print FACED",
+          icon: Printer,
+          onClick: onPrint,
+          disabled: printing,
+          variant: "success",
+        },
+        { label: "Delete", icon: Trash2, onClick: onDelete, variant: "danger" },
+      ]}
+    />
   );
 }

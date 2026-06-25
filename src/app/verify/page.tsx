@@ -2,6 +2,19 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Download,
+  HardDriveDownload,
+  Loader2,
+  RotateCcw,
+  Search,
+  SearchCheck,
+  ShieldCheck,
+  Trash2,
+  WifiOff,
+} from "lucide-react";
 import BrandEmblem from "@/components/brand/BrandEmblem";
 import TricolorBar from "@/components/brand/TricolorBar";
 import {
@@ -26,6 +39,9 @@ import {
   type VerifyDownloadProgress,
 } from "@/lib/verify-cache";
 import type { VerifyCacheMeta } from "@/lib/db";
+import * as ui from "@/lib/ui";
+import { cn } from "@/lib/cn";
+import { SkeletonScreen, SkeletonVerifyResults } from "@/components/ui/Skeleton";
 
 type VerifyTab = "search" | "export" | "offline";
 type SearchSource = "online" | "offline";
@@ -390,13 +406,13 @@ export default function VerifyPage() {
 
   if (!unlocked) {
     return (
-      <div className="ph-page-bg min-h-full">
-        <header className="ph-app-header">
+      <div className={ui.pageBg}>
+        <header className={ui.appHeader}>
           <div className="mx-auto max-w-lg px-4 py-8 text-center">
             <BrandEmblem size={72} className="mx-auto mb-3" />
-            <p className="ph-kicker text-xs font-bold uppercase">DSWD · Offline DMS</p>
+            <p className={cn(ui.kicker, "text-xs font-bold uppercase")}>DSWD · Offline DMS</p>
             <h1 className="mt-2 text-2xl font-bold text-white">Verify & export</h1>
-            <p className="ph-subtitle mx-auto mt-2 max-w-md text-sm">
+            <p className={cn(ui.subtitle, "mx-auto mt-2 max-w-md text-sm")}>
               Check for duplicate beneficiaries or export synced FACED records by area.
             </p>
           </div>
@@ -404,12 +420,12 @@ export default function VerifyPage() {
         </header>
 
         <main className="mx-auto max-w-md px-4 py-8">
-          <div className="ph-card">
-            <div className="ph-card-header">
+          <div className={ui.card}>
+            <div className={ui.cardHeader}>
               <h2>Enter verify password</h2>
             </div>
             <form onSubmit={handleUnlock} className="space-y-4 p-5">
-              {unlockError ? <div className="ph-alert-error">{unlockError}</div> : null}
+              {unlockError ? <div className={ui.alertError}>{unlockError}</div> : null}
               <FormField label="Password" required>
                 <TextInput
                   type="password"
@@ -423,12 +439,22 @@ export default function VerifyPage() {
               <button
                 type="submit"
                 disabled={unlocking || !password.trim()}
-                className="faced-btn-primary w-full"
+                className={cn(ui.btnPrimary, "w-full", ui.withIcon)}
               >
-                {unlocking ? "Checking..." : "Continue"}
+                {unlocking ? (
+                  <>
+                    <Loader2 className={cn(ui.iconSm, "animate-spin")} aria-hidden />
+                    Checking...
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck className={ui.iconSm} aria-hidden />
+                    Continue
+                  </>
+                )}
               </button>
               <p className="text-center text-xs text-zinc-500">
-                <Link href="/" className="underline hover:text-[var(--ph-blue)]">
+                <Link href="/" className={cn(ui.link, "underline")}>
                   Back to FACED encoding
                 </Link>
               </p>
@@ -440,17 +466,17 @@ export default function VerifyPage() {
   }
 
   return (
-    <div className="ph-page-bg min-h-full">
-      <header className="ph-app-header">
+    <div className={ui.pageBg}>
+      <header className={ui.appHeader}>
         <div className="mx-auto max-w-3xl px-4 py-6">
           <div className="flex items-start gap-4">
             <BrandEmblem size={56} className="hidden shrink-0 sm:block" />
             <div>
-              <p className="ph-kicker text-xs font-bold uppercase">DSWD · Offline DMS</p>
+              <p className={cn(ui.kicker, "text-xs font-bold uppercase")}>DSWD · Offline DMS</p>
               <h1 className="mt-1 text-xl font-bold text-white sm:text-2xl">
                 Verify & export
               </h1>
-              <p className="ph-subtitle mt-2 max-w-xl text-sm">
+              <p className={cn(ui.subtitle, "mt-2 max-w-xl text-sm")}>
                 Check duplicates before encoding, or download synced records by
                 municipality and barangay.
               </p>
@@ -461,51 +487,57 @@ export default function VerifyPage() {
       </header>
 
       <main className="mx-auto max-w-3xl space-y-6 px-4 py-6">
-        <div className="verify-tabs" role="tablist" aria-label="Verify tools">
+        <div className={ui.verifyTabs} role="tablist" aria-label="Verify tools">
           <button
             type="button"
             role="tab"
             aria-selected={activeTab === "search"}
-            className={`verify-tab ${activeTab === "search" ? "verify-tab--active" : ""}`}
+            className={cn(ui.verifyTabClass(activeTab === "search"), ui.withIcon)}
             onClick={() => setActiveTab("search")}
           >
+            <SearchCheck className={ui.iconSm} aria-hidden />
             Duplicate check
           </button>
           <button
             type="button"
             role="tab"
             aria-selected={activeTab === "export"}
-            className={`verify-tab ${activeTab === "export" ? "verify-tab--active" : ""}`}
+            className={cn(ui.verifyTabClass(activeTab === "export"), ui.withIcon)}
             onClick={() => setActiveTab("export")}
           >
+            <Download className={ui.iconSm} aria-hidden />
             Export Excel
           </button>
           <button
             type="button"
             role="tab"
             aria-selected={activeTab === "offline"}
-            className={`verify-tab ${activeTab === "offline" ? "verify-tab--active" : ""}`}
+            className={cn(ui.verifyTabClass(activeTab === "offline"), ui.withIcon)}
             onClick={() => setActiveTab("offline")}
           >
+            <HardDriveDownload className={ui.iconSm} aria-hidden />
             Offline data
           </button>
         </div>
 
         {!isOnline ? (
-          <div className="ph-alert-warning">
-            You are offline. Duplicate check uses downloaded data only. Export Excel requires
-            internet.
+          <div className={cn(ui.alertWarning, ui.withIcon)}>
+            <WifiOff className={ui.iconMd} aria-hidden />
+            <span>
+              You are offline. Duplicate check uses downloaded data only. Export Excel requires
+              internet.
+            </span>
           </div>
         ) : null}
 
         {activeTab === "search" ? (
           <>
-            <section className="ph-card">
-              <div className="ph-card-header">
+            <section className={ui.card}>
+              <div className={ui.cardHeader}>
                 <h2>Who are you looking for?</h2>
               </div>
               <form onSubmit={handleSearch} className="space-y-5 p-5">
-                <p className="rounded-lg bg-[var(--ph-blue-light)]/60 px-4 py-3 text-sm text-[var(--ph-blue-dark)]">
+                <p className="rounded-lg bg-ph-blue-light/60 px-4 py-3 text-sm text-ph-blue-dark">
                   Tip: Start with <strong>first and last name</strong>. Add barangay or
                   birthdate to narrow results. When offline, search uses your downloaded copy
                   from the <strong>Offline data</strong> tab.
@@ -582,26 +614,43 @@ export default function VerifyPage() {
                   </FormField>
                 </div>
 
-                {searchError ? <div className="ph-alert-error">{searchError}</div> : null}
+                {searchError ? <div className={ui.alertError}>{searchError}</div> : null}
 
                 <div className="flex flex-wrap gap-3">
                   <button
                     type="submit"
                     disabled={searching}
-                    className="faced-btn-primary min-w-[10rem] flex-1 sm:flex-none"
+                    className={cn(ui.btnPrimary, "min-w-[10rem] flex-1 sm:flex-none", ui.withIcon)}
                   >
-                    {searching ? "Searching..." : "Check for duplicates"}
+                    {searching ? (
+                      <>
+                        <Loader2 className={cn(ui.iconSm, "animate-spin")} aria-hidden />
+                        Searching...
+                      </>
+                    ) : (
+                      <>
+                        <Search className={ui.iconSm} aria-hidden />
+                        Check for duplicates
+                      </>
+                    )}
                   </button>
                   <button
                     type="button"
                     onClick={handleClearSearch}
-                    className="faced-btn-secondary"
+                    className={cn(ui.btnSecondary, ui.withIcon)}
                   >
+                    <RotateCcw className={ui.iconSm} aria-hidden />
                     Clear form
                   </button>
                 </div>
               </form>
             </section>
+
+            {searching ? (
+              <SkeletonScreen label="Searching for duplicates">
+                <SkeletonVerifyResults cards={2} />
+              </SkeletonScreen>
+            ) : null}
 
             {matches !== null ? (
               <section className="space-y-4">
@@ -614,9 +663,9 @@ export default function VerifyPage() {
                   </p>
                 ) : null}
                 {matches.length === 0 ? (
-                  <div className="verify-result verify-result--clear">
-                    <div className="verify-result-icon" aria-hidden>
-                      ✓
+                  <div className={ui.verifyResultClear}>
+                    <div className={cn(ui.verifyResultIcon, ui.verifyResultIconClear)} aria-hidden>
+                      <CheckCircle2 className={ui.iconLg} />
                     </div>
                     <div>
                       <h2 className="text-lg font-bold">No match found</h2>
@@ -632,9 +681,9 @@ export default function VerifyPage() {
                   </div>
                 ) : (
                   <>
-                    <div className="verify-result verify-result--warning">
-                      <div className="verify-result-icon" aria-hidden>
-                        !
+                    <div className={ui.verifyResultWarning}>
+                      <div className={cn(ui.verifyResultIcon, ui.verifyResultIconWarning)} aria-hidden>
+                        <AlertTriangle className={ui.iconLg} />
                       </div>
                       <div>
                         <h2 className="text-lg font-bold">
@@ -651,19 +700,19 @@ export default function VerifyPage() {
 
                     <ul className="space-y-3">
                       {matches.map((match) => (
-                        <li key={match.uuid} className="verify-match-card">
-                          <div className="verify-match-card-header">
+                        <li key={match.uuid} className={ui.verifyMatchCard}>
+                          <div className={ui.verifyMatchCardHeader}>
                             <div>
-                              <p className="text-lg font-bold text-[var(--ph-blue-dark)]">
+                              <p className="text-lg font-bold text-ph-blue-dark">
                                 {match.headName}
                               </p>
                               <p className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-amber-800">
                                 {match.matchLabel}
                               </p>
                             </div>
-                            <span className="verify-match-badge">Encoded</span>
+                            <span className={ui.verifyMatchBadge}>Encoded</span>
                           </div>
-                          <dl className="verify-match-grid">
+                          <dl className={ui.verifyMatchGrid}>
                             <div>
                               <dt>Birthdate</dt>
                               <dd>{formatDate(match.birthdate)}</dd>
@@ -702,12 +751,12 @@ export default function VerifyPage() {
             ) : null}
           </>
         ) : activeTab === "export" ? (
-          <section className="ph-card">
-            <div className="ph-card-header">
+          <section className={ui.card}>
+            <div className={ui.cardHeader}>
               <h2>Export synced records</h2>
             </div>
             <form onSubmit={handleExport} className="space-y-5 p-5">
-              <p className="rounded-lg bg-[var(--ph-blue-light)]/60 px-4 py-3 text-sm text-[var(--ph-blue-dark)]">
+              <p className="rounded-lg bg-ph-blue-light/60 px-4 py-3 text-sm text-ph-blue-dark">
                 Choose a <strong>municipality</strong> and <strong>barangay</strong> first.
                 Only synced online records for that area will be included in the Excel file.
               </p>
@@ -739,7 +788,7 @@ export default function VerifyPage() {
               </div>
 
               {exportFilter.city_municipality && exportFilter.barangay ? (
-                <div className="ph-alert-success">
+                <div className={ui.alertSuccess}>
                   Ready to export records for{" "}
                   <strong>
                     {exportFilter.barangay}, {exportFilter.city_municipality}
@@ -748,13 +797,13 @@ export default function VerifyPage() {
                 </div>
               ) : null}
 
-              {exportError ? <div className="ph-alert-error">{exportError}</div> : null}
+              {exportError ? <div className={ui.alertError}>{exportError}</div> : null}
               {exportMessage ? (
                 <div
                   className={
                     exportMessage.startsWith("Downloaded")
-                      ? "ph-alert-success"
-                      : "ph-alert-warning"
+                      ? ui.alertSuccess
+                      : ui.alertWarning
                   }
                 >
                   {exportMessage}
@@ -769,9 +818,19 @@ export default function VerifyPage() {
                     !exportFilter.city_municipality.trim() ||
                     !exportFilter.barangay.trim()
                   }
-                  className="faced-btn-primary min-w-[10rem]"
+                  className={cn(ui.btnPrimary, "min-w-[10rem]", ui.withIcon)}
                 >
-                  {exporting ? "Preparing Excel..." : "Download Excel"}
+                  {exporting ? (
+                    <>
+                      <Loader2 className={cn(ui.iconSm, "animate-spin")} aria-hidden />
+                      Preparing Excel...
+                    </>
+                  ) : (
+                    <>
+                      <Download className={ui.iconSm} aria-hidden />
+                      Download Excel
+                    </>
+                  )}
                 </button>
                 <button
                   type="button"
@@ -780,7 +839,7 @@ export default function VerifyPage() {
                     setExportMessage("");
                     setExportError("");
                   }}
-                  className="faced-btn-secondary"
+                  className={ui.btnSecondary}
                 >
                   Clear filters
                 </button>
@@ -788,26 +847,26 @@ export default function VerifyPage() {
             </form>
           </section>
         ) : (
-          <section className="ph-card">
-            <div className="ph-card-header">
+          <section className={ui.card}>
+            <div className={ui.cardHeader}>
               <h2>Offline verify data</h2>
             </div>
             <div className="space-y-5 p-5">
-              <p className="rounded-lg bg-[var(--ph-blue-light)]/60 px-4 py-3 text-sm text-[var(--ph-blue-dark)]">
+              <p className="rounded-lg bg-ph-blue-light/60 px-4 py-3 text-sm text-ph-blue-dark">
                 Download the latest synced records from the database to this device. After
                 that, <strong>Duplicate check</strong> works without internet.
               </p>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-lg border border-[var(--faced-blue-border)] bg-white px-4 py-3">
+                <div className="rounded-lg border border-faced-blue-border bg-white px-4 py-3">
                   <p className="text-xs font-bold uppercase tracking-wide text-zinc-500">
                     Records on device
                   </p>
-                  <p className="mt-1 text-2xl font-bold text-[var(--ph-blue-dark)]">
+                  <p className="mt-1 text-2xl font-bold text-ph-blue-dark">
                     {cacheCount}
                   </p>
                 </div>
-                <div className="rounded-lg border border-[var(--faced-blue-border)] bg-white px-4 py-3">
+                <div className="rounded-lg border border-faced-blue-border bg-white px-4 py-3">
                   <p className="text-xs font-bold uppercase tracking-wide text-zinc-500">
                     Last downloaded
                   </p>
@@ -823,9 +882,9 @@ export default function VerifyPage() {
                     Downloading {downloadProgress.downloaded}
                     {downloadProgress.total > 0 ? ` of ${downloadProgress.total}` : ""}…
                   </p>
-                  <div className="verify-progress">
+                  <div className={ui.verifyProgress}>
                     <div
-                      className="verify-progress-bar"
+                      className={ui.verifyProgressBar}
                       style={{
                         width:
                           downloadProgress.total > 0
@@ -837,13 +896,13 @@ export default function VerifyPage() {
                 </div>
               ) : null}
 
-              {downloadError ? <div className="ph-alert-error">{downloadError}</div> : null}
+              {downloadError ? <div className={ui.alertError}>{downloadError}</div> : null}
               {downloadMessage ? (
                 <div
                   className={
                     downloadMessage.startsWith("Downloaded")
-                      ? "ph-alert-success"
-                      : "ph-alert-warning"
+                      ? ui.alertSuccess
+                      : ui.alertWarning
                   }
                 >
                   {downloadMessage}
@@ -855,16 +914,27 @@ export default function VerifyPage() {
                   type="button"
                   onClick={() => void handleDownloadOffline()}
                   disabled={downloading || !isOnline}
-                  className="faced-btn-primary min-w-[10rem]"
+                  className={cn(ui.btnPrimary, "min-w-[10rem]", ui.withIcon)}
                 >
-                  {downloading ? "Downloading…" : "Download latest data"}
+                  {downloading ? (
+                    <>
+                      <Loader2 className={cn(ui.iconSm, "animate-spin")} aria-hidden />
+                      Downloading…
+                    </>
+                  ) : (
+                    <>
+                      <HardDriveDownload className={ui.iconSm} aria-hidden />
+                      Download latest data
+                    </>
+                  )}
                 </button>
                 <button
                   type="button"
                   onClick={() => void handleClearOffline()}
                   disabled={downloading || cacheCount === 0}
-                  className="faced-btn-secondary"
+                  className={cn(ui.btnSecondary, ui.withIcon)}
                 >
+                  <Trash2 className={ui.iconSm} aria-hidden />
                   Clear offline data
                 </button>
               </div>

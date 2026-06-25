@@ -1,7 +1,10 @@
 "use client";
 
+import { AlertTriangle, ArrowLeft, Save } from "lucide-react";
 import { SARANGANI_PROVINCE } from "@/lib/sarangani-locations";
 import { formatDuplicateMatchSummary, type VerifyMatch } from "@/lib/verify-match";
+import * as ui from "@/lib/ui";
+import { cn } from "@/lib/cn";
 
 type DuplicateConfirmDialogProps = {
   open: boolean;
@@ -32,22 +35,19 @@ export default function DuplicateConfirmDialog({
   if (!open) return null;
 
   return (
-    <div
-      className="faced-modal-backdrop"
-      role="presentation"
-      onClick={onCancel}
-    >
+    <div className={ui.modalBackdrop} role="presentation" onClick={onCancel}>
       <div
-        className="faced-modal"
+        className={ui.modal}
         role="dialog"
         aria-modal="true"
         aria-labelledby="duplicate-confirm-title"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="faced-modal-header faced-modal-header--warning">
+        <div className={cn(ui.modalHeader, ui.modalHeaderWarning, ui.withIcon)}>
+          <AlertTriangle className={ui.iconMd} aria-hidden />
           <h3 id="duplicate-confirm-title">Possible duplicate found</h3>
         </div>
-        <div className="faced-modal-body">
+        <div className={ui.modalBody}>
           <p className="text-sm text-zinc-700">
             {matches.length === 1
               ? "A matching beneficiary was found"
@@ -57,12 +57,10 @@ export default function DuplicateConfirmDialog({
               ? " Review the match below before continuing."
               : " Continue only if you have confirmed this is not a duplicate."}
           </p>
-          <ul className="encode-duplicate-list mt-3">
+          <ul className={`${ui.encodeDuplicateList} mt-3`}>
             {matches.slice(0, 3).map((match) => (
-              <li key={match.uuid} className="encode-duplicate-item">
-                <span className="font-semibold text-[var(--ph-blue-dark)]">
-                  {match.headName}
-                </span>
+              <li key={match.uuid} className={ui.encodeDuplicateItem}>
+                <span className="font-semibold text-ph-blue-dark">{match.headName}</span>
                 <span className="text-zinc-600">
                   {" "}
                   — {formatDuplicateMatchSummary(match, SARANGANI_PROVINCE)}
@@ -71,24 +69,16 @@ export default function DuplicateConfirmDialog({
             ))}
           </ul>
           {matches.length > 3 ? (
-            <p className="encode-duplicate-more">+{matches.length - 3} more match(es)</p>
+            <p className={ui.encodeDuplicateMore}>+{matches.length - 3} more match(es)</p>
           ) : null}
         </div>
-        <div className="faced-modal-actions">
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={saving}
-            className="faced-btn-secondary"
-          >
+        <div className={ui.modalActions}>
+          <button type="button" onClick={onCancel} disabled={saving} className={cn(ui.btnSecondary, ui.withIcon)}>
+            <ArrowLeft className={ui.iconSm} aria-hidden />
             Go back
           </button>
-          <button
-            type="button"
-            onClick={onContinue}
-            disabled={saving}
-            className="faced-btn-primary"
-          >
+          <button type="button" onClick={onContinue} disabled={saving} className={cn(ui.btnPrimary, ui.withIcon)}>
+            <Save className={ui.iconSm} aria-hidden />
             {saving
               ? "Saving..."
               : intent === "save"

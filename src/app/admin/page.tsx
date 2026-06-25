@@ -2,12 +2,41 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import {
+  Ban,
+  BarChart3,
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  Download,
+  FolderOpen,
+  KeyRound,
+  LayoutDashboard,
+  Loader2,
+  Lock,
+  Plus,
+  RefreshCw,
+  RotateCcw,
+  Save,
+  Sparkles,
+  Trash2,
+  Users,
+} from "lucide-react";
 import BrandEmblem from "@/components/brand/BrandEmblem";
 import TricolorBar from "@/components/brand/TricolorBar";
 import DailyEncodeTracker, { type DailyEncodeStat } from "@/components/admin/DailyEncodeTracker";
 import { SARANGANI_MUNICIPALITIES } from "@/lib/sarangani-locations";
 import { exportAccessCodesToExcel, exportFacedToExcel } from "@/lib/export-excel";
+import { normalizeEnumeratorName } from "@/lib/enumerator-name";
 import type { FacedRecord } from "@/lib/faced-types";
+import {
+  SkeletonChart,
+  SkeletonScreen,
+  SkeletonStatGrid,
+  SkeletonTable,
+} from "@/components/ui/Skeleton";
+import * as ui from "@/lib/ui";
+import { cn } from "@/lib/cn";
 
 type AccessCodeRow = {
   code: string;
@@ -56,6 +85,14 @@ type RecordsAdminMetrics = {
 
 const ADMIN_STORAGE_KEY = "dms_admin_password";
 const PAGE_SIZE = 20;
+
+type AdminTab = "summary" | "create" | "codes";
+
+const ADMIN_TABS: { id: AdminTab; label: string; icon: typeof BarChart3 }[] = [
+  { id: "summary", label: "Summary", icon: BarChart3 },
+  { id: "create", label: "Create codes", icon: Sparkles },
+  { id: "codes", label: "Manage codes", icon: KeyRound },
+];
 
 type ExportRecordJson = Omit<FacedRecord, "createdAt" | "updatedAt"> & {
   createdAt: string;
@@ -107,7 +144,7 @@ function AdminPagination({
   const end = Math.min(page * pageSize, totalItems);
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--faced-blue-border)] px-4 py-3">
+    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-faced-blue-border px-4 py-3">
       <p className="text-xs text-zinc-600">
         Showing {start}–{end} of {totalItems}
       </p>
@@ -116,8 +153,9 @@ function AdminPagination({
           type="button"
           onClick={() => onPageChange(page - 1)}
           disabled={page <= 1}
-          className="faced-btn-secondary text-xs disabled:cursor-not-allowed disabled:opacity-50"
+          className={cn(ui.btnSecondary, "text-xs disabled:cursor-not-allowed disabled:opacity-50", ui.withIcon)}
         >
+          <ChevronLeft className={ui.iconSm} aria-hidden />
           Previous
         </button>
         <span className="text-xs text-zinc-600">
@@ -127,9 +165,10 @@ function AdminPagination({
           type="button"
           onClick={() => onPageChange(page + 1)}
           disabled={page >= pages}
-          className="faced-btn-secondary text-xs disabled:cursor-not-allowed disabled:opacity-50"
+          className={cn(ui.btnSecondary, "text-xs disabled:cursor-not-allowed disabled:opacity-50", ui.withIcon)}
         >
           Next
+          <ChevronRight className={ui.iconSm} aria-hidden />
         </button>
       </div>
     </div>
@@ -150,7 +189,7 @@ function draftsFromCodes(codes: AccessCodeRow[]): Record<string, AssigneeDraft> 
     codes.map((row) => [
       row.code,
       {
-        enumerator_name: row.enumerator_name ?? "",
+        enumerator_name: normalizeEnumeratorName(row.enumerator_name) ?? "",
         enumerator_email: row.enumerator_email ?? "",
       },
     ]),
@@ -159,7 +198,7 @@ function draftsFromCodes(codes: AccessCodeRow[]): Record<string, AssigneeDraft> 
 
 function draftChanged(row: AccessCodeRow, draft: AssigneeDraft): boolean {
   return (
-    draft.enumerator_name.trim() !== (row.enumerator_name ?? "").trim() ||
+    draft.enumerator_name.trim() !== (normalizeEnumeratorName(row.enumerator_name) ?? "") ||
     draft.enumerator_email.trim() !== (row.enumerator_email ?? "").trim()
   );
 }
@@ -188,6 +227,7 @@ export default function AdminPage() {
   const [summaryPage, setSummaryPage] = useState(1);
   const [codesPage, setCodesPage] = useState(1);
   const [exportingCode, setExportingCode] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<AdminTab>("summary");
 
   useEffect(() => {
     const stored = sessionStorage.getItem(ADMIN_STORAGE_KEY);
@@ -342,7 +382,7 @@ export default function AdminPage() {
       ...prev,
       [code]: {
         ...prev[code],
-        [field]: value,
+        [field]: field === "enumerator_name" ? value.toUpperCase() : value,
       },
     }));
   }
@@ -537,39 +577,49 @@ export default function AdminPage() {
 
   if (!unlocked) {
     return (
-      <div className="ph-page-bg flex min-h-full flex-col">
-        <div className="ph-app-header py-5 text-center">
+      <div className={cn(ui.pageBg, "flex flex-col")}>
+        <div className={cn(ui.appHeader, "py-5 text-center")}>
           <BrandEmblem size={72} className="mx-auto mb-2" />
-          <p className="ph-kicker text-xs font-bold uppercase">Administration</p>
+          <p className={cn(ui.kicker, "text-xs font-bold uppercase")}>Administration</p>
           <h1 className="text-xl font-bold text-white">Access Code Management</h1>
           <TricolorBar thick className="mx-auto mt-4 max-w-xs" />
         </div>
         <div className="flex flex-1 items-center justify-center p-4">
-          <div className="ph-login-card ph-card w-full max-w-md">
-            <div className="faced-section-header justify-center">Admin access</div>
-            <div className="faced-section-body space-y-4 rounded-b-xl border-b border-[var(--faced-blue-border)]">
+          <div className={cn(ui.loginCard, "w-full max-w-md")}>
+            <div className={cn(ui.sectionHeader, "justify-center")}>Admin access</div>
+            <div className={cn(ui.sectionBody, "space-y-4 rounded-b-xl border-b border-faced-blue-border")}>
               <p className="text-sm text-zinc-600">
                 Enter the admin password to generate and manage enumerator access codes.
               </p>
               <form onSubmit={(e) => void handleUnlock(e)} className="space-y-3">
                 <label className="block">
-                  <span className="faced-label">Admin password</span>
+                  <span className={ui.label}>Admin password</span>
                   <input
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="faced-input"
+                    className={ui.input}
                     autoFocus
                     required
                   />
                 </label>
-                {error && <p className="ph-alert-error">{error}</p>}
-                <button type="submit" className="faced-btn-primary w-full" disabled={loading}>
-                  {loading ? "Verifying..." : "Unlock admin"}
+                {error && <p className={ui.alertError}>{error}</p>}
+                <button type="submit" className={cn(ui.btnPrimary, "w-full", ui.withIcon)} disabled={loading}>
+                  {loading ? (
+                    <>
+                      <Loader2 className={cn(ui.iconSm, "animate-spin")} aria-hidden />
+                      Verifying...
+                    </>
+                  ) : (
+                    <>
+                      <Lock className={ui.iconSm} aria-hidden />
+                      Unlock admin
+                    </>
+                  )}
                 </button>
               </form>
               <p className="text-center text-xs text-zinc-500">
-                <Link href="/" className="ph-link">
+                <Link href="/" className={ui.link}>
                   Back to FACED app
                 </Link>
               </p>
@@ -581,24 +631,26 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="ph-page-bg min-h-full">
-      <header className="ph-app-header">
+    <div className={ui.pageBg}>
+      <header className={ui.appHeader}>
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <BrandEmblem size={52} className="hidden shrink-0 sm:block" />
             <div>
-              <p className="ph-kicker text-xs font-bold uppercase">DSWD · Offline DMS</p>
+              <p className={cn(ui.kicker, "text-xs font-bold uppercase")}>DSWD · Offline DMS</p>
               <h1 className="text-xl font-bold text-white">Access code admin</h1>
-              <p className="ph-subtitle text-sm">
+              <p className={cn(ui.subtitle, "text-sm")}>
                 Generate codes and assign each one to an enumerator.
               </p>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link href="/dashboard" className="ph-header-btn">
+            <Link href="/dashboard" className={cn(ui.headerBtn, ui.withIcon)}>
+              <LayoutDashboard className={ui.iconSm} aria-hidden />
               Dashboard
             </Link>
-            <Link href="/records" className="ph-header-btn">
+            <Link href="/records" className={cn(ui.headerBtn, ui.withIcon)}>
+              <FolderOpen className={ui.iconSm} aria-hidden />
               Records
             </Link>
           </div>
@@ -608,39 +660,61 @@ export default function AdminPage() {
 
       <main className="mx-auto max-w-6xl space-y-6 px-4 py-6">
         {(message || error) && (
-          <div className={error ? "ph-alert-error" : "ph-alert-success"}>
+          <div className={error ? ui.alertError : ui.alertSuccess}>
             {error || message}
           </div>
         )}
 
-        <section className="ph-card">
-          <div className="faced-section-header flex flex-wrap items-center justify-between gap-2">
+        <div className={ui.verifyTabs} role="tablist" aria-label="Admin sections">
+          {ADMIN_TABS.map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === tab.id}
+                className={cn(ui.verifyTabClass(activeTab === tab.id), ui.withIcon)}
+                onClick={() => setActiveTab(tab.id)}
+              >
+                <Icon className={ui.iconSm} aria-hidden />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {activeTab === "summary" ? (
+        <section className={ui.card}>
+          <div className={cn(ui.sectionHeader, "flex flex-wrap items-center justify-between gap-2")}>
             <span>Enumerator summary</span>
             <div className="flex flex-wrap items-center gap-3">
               <button
                 type="button"
                 onClick={() => void handleExportEnumerator()}
                 disabled={exportingCode !== null || statsLoading}
-                className="text-xs font-normal normal-case tracking-normal underline"
+                className={cn("text-xs font-normal normal-case tracking-normal underline", ui.withIcon)}
               >
+                <Download className={ui.iconSm} aria-hidden />
                 {exportingCode === "all" ? "Exporting..." : "Export all to Excel"}
               </button>
               <button
                 type="button"
                 onClick={() => void refreshAdminData()}
                 disabled={loading || statsLoading}
-                className="text-xs font-normal normal-case tracking-normal underline"
+                className={cn("text-xs font-normal normal-case tracking-normal underline", ui.withIcon)}
               >
+                <RefreshCw className={cn(ui.iconSm, (loading || statsLoading) && "animate-spin")} aria-hidden />
                 Refresh
               </button>
             </div>
           </div>
-          <div className="faced-section-body space-y-4">
-            <div className="border-b border-[var(--faced-blue-border)] bg-[var(--ph-blue-light)]/50 px-4 py-3">
+          <div className={cn(ui.sectionBody, "space-y-4")}>
+            <div className="border-b border-faced-blue-border bg-ph-blue-light/50 px-4 py-3">
               <label className="block max-w-xs">
-                <span className="faced-label">Municipality</span>
+                <span className={ui.label}>Municipality</span>
                 <select
-                  className="faced-input mt-1"
+                  className={cn(ui.input, "mt-1")}
                   value={statsMunicipality}
                   onChange={(e) => setStatsMunicipality(e.target.value)}
                   disabled={statsLoading}
@@ -660,20 +734,28 @@ export default function AdminPage() {
               ) : null}
             </div>
             {statsLoading && summaries.length === 0 ? (
-              <p className="text-sm text-zinc-500">Loading summary...</p>
+              <SkeletonScreen label="Loading enumerator summary">
+                <div className="space-y-4">
+                  <SkeletonStatGrid count={6} />
+                  <SkeletonChart />
+                  <SkeletonTable rows={5} columns={10} />
+                </div>
+              </SkeletonScreen>
             ) : summaryTotals ? (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                <div className="rounded-lg border border-[var(--faced-blue-border)] bg-[var(--ph-blue-light)]/40 px-4 py-3">
-                  <p className="text-xs font-bold uppercase tracking-wide text-[var(--ph-blue-dark)]">
+                <div className="rounded-lg border border-faced-blue-border bg-ph-blue-light/40 px-4 py-3">
+                  <p className={cn("text-xs font-bold uppercase tracking-wide text-ph-blue-dark", ui.withIcon)}>
+                    <BarChart3 className={ui.iconSm} aria-hidden />
                     Total encoded
                   </p>
-                  <p className="mt-1 text-2xl font-bold text-[var(--ph-blue-dark)]">
+                  <p className="mt-1 text-2xl font-bold text-ph-blue-dark">
                     {summaryTotals.total_encoded}
                   </p>
                   <p className="text-xs text-zinc-600">Synced FACED records online</p>
                 </div>
-                <div className="rounded-lg border border-[var(--faced-blue-border)] bg-white px-4 py-3">
-                  <p className="text-xs font-bold uppercase tracking-wide text-zinc-600">
+                <div className="rounded-lg border border-faced-blue-border bg-white px-4 py-3">
+                  <p className={cn("text-xs font-bold uppercase tracking-wide text-zinc-600", ui.withIcon)}>
+                    <Users className={ui.iconSm} aria-hidden />
                     Enumerators
                   </p>
                   <p className="mt-1 text-2xl font-bold text-zinc-900">
@@ -681,8 +763,9 @@ export default function AdminPage() {
                   </p>
                   <p className="text-xs text-zinc-600">One access code per enumerator</p>
                 </div>
-                <div className="rounded-lg border border-[var(--faced-blue-border)] bg-white px-4 py-3">
-                  <p className="text-xs font-bold uppercase tracking-wide text-zinc-600">
+                <div className="rounded-lg border border-faced-blue-border bg-white px-4 py-3">
+                  <p className={cn("text-xs font-bold uppercase tracking-wide text-zinc-600", ui.withIcon)}>
+                    <KeyRound className={ui.iconSm} aria-hidden />
                     Access codes
                   </p>
                   <p className="mt-1 text-2xl font-bold text-zinc-900">
@@ -692,8 +775,9 @@ export default function AdminPage() {
                     {summaryTotals.active_codes} active · {summaryTotals.used_codes} used
                   </p>
                 </div>
-                <div className="rounded-lg border border-[var(--faced-blue-border)] bg-white px-4 py-3">
-                  <p className="text-xs font-bold uppercase tracking-wide text-zinc-600">
+                <div className="rounded-lg border border-faced-blue-border bg-white px-4 py-3">
+                  <p className={cn("text-xs font-bold uppercase tracking-wide text-zinc-600", ui.withIcon)}>
+                    <Ban className={ui.iconSm} aria-hidden />
                     Rejected codes
                   </p>
                   <p className="mt-1 text-2xl font-bold text-zinc-900">
@@ -703,12 +787,13 @@ export default function AdminPage() {
                 </div>
                 <Link
                   href="/records"
-                  className="rounded-lg border border-amber-300/70 bg-[var(--ph-yellow-light)]/50 px-4 py-3 transition-colors hover:bg-[var(--ph-yellow-light)]/80"
+                  className="rounded-lg border border-amber-300/70 bg-ph-yellow-light/50 px-4 py-3 transition-colors hover:bg-ph-yellow-light/80"
                 >
-                  <p className="text-xs font-bold uppercase tracking-wide text-amber-900">
+                  <p className={cn("text-xs font-bold uppercase tracking-wide text-amber-900", ui.withIcon)}>
+                    <Copy className={ui.iconSm} aria-hidden />
                     Duplicates
                   </p>
-                  <p className="mt-1 text-2xl font-bold text-[var(--ph-blue-dark)]">
+                  <p className="mt-1 text-2xl font-bold text-ph-blue-dark">
                     {recordsMetrics?.duplicate_group_count ?? 0}
                   </p>
                   <p className="text-xs text-amber-900/80">
@@ -719,7 +804,8 @@ export default function AdminPage() {
                   href="/records"
                   className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 transition-colors hover:bg-red-100/80"
                 >
-                  <p className="text-xs font-bold uppercase tracking-wide text-red-800">
+                  <p className={cn("text-xs font-bold uppercase tracking-wide text-red-800", ui.withIcon)}>
+                    <Trash2 className={ui.iconSm} aria-hidden />
                     Deleted
                   </p>
                   <p className="mt-1 text-2xl font-bold text-red-900">
@@ -733,7 +819,7 @@ export default function AdminPage() {
             <DailyEncodeTracker data={dailyEncode} loading={statsLoading} />
 
             <div className="hidden overflow-x-auto lg:block">
-              <table className="faced-table w-full min-w-[880px] text-sm">
+              <table className={cn(ui.table, "w-full min-w-[880px] text-sm")}>
                 <thead>
                   <tr>
                     <th>Enumerator</th>
@@ -759,13 +845,13 @@ export default function AdminPage() {
                     paginatedSummaries.map((row) => (
                       <tr key={row.access_code}>
                         <td className="font-medium">
-                          <div>{row.enumerator_name}</div>
+                          <div>{normalizeEnumeratorName(row.enumerator_name) ?? "—"}</div>
                           <div className="text-xs font-normal text-zinc-500">
                             {row.access_code}
                           </div>
                         </td>
                         <td className="text-zinc-600">{row.enumerator_email || "—"}</td>
-                        <td className="font-semibold text-[var(--ph-blue-dark)]">
+                        <td className="font-semibold text-ph-blue-dark">
                           {row.total_encoded}
                         </td>
                         <td>{row.total_codes}</td>
@@ -790,7 +876,7 @@ export default function AdminPage() {
                             disabled={
                               exportingCode !== null || row.total_encoded === 0
                             }
-                            className="ph-link text-xs disabled:cursor-not-allowed disabled:opacity-50"
+                            className={cn(ui.link, "text-xs disabled:cursor-not-allowed disabled:opacity-50")}
                           >
                             {exportingCode === row.access_code
                               ? "Exporting..."
@@ -816,35 +902,35 @@ export default function AdminPage() {
                     className="admin-code-card"
                   >
                     <div className="admin-code-card-header">
-                      <span className="text-sm font-bold text-[var(--ph-blue-dark)]">
-                        {row.enumerator_name}
+                      <span className="text-sm font-bold text-ph-blue-dark">
+                        {normalizeEnumeratorName(row.enumerator_name) ?? "Unassigned"}
                       </span>
-                      <span className="rounded-full bg-[var(--ph-blue-light)] px-2.5 py-0.5 text-xs font-bold text-[var(--ph-blue-dark)]">
+                      <span className="rounded-full bg-ph-blue-light px-2.5 py-0.5 text-xs font-bold text-ph-blue-dark">
                         {row.total_encoded} encoded
                       </span>
                     </div>
                     <div className="grid gap-2 p-3 text-sm sm:grid-cols-2">
                       <p>
-                        <span className="faced-label">Email</span>
+                        <span className={ui.label}>Email</span>
                         <span className="block text-zinc-700">
                           {row.enumerator_email || "—"}
                         </span>
                       </p>
                       <p>
-                        <span className="faced-label">Codes</span>
+                        <span className={ui.label}>Codes</span>
                         <span className="block text-zinc-700">
                           {row.total_codes} total ({row.active_codes} active, {row.used_codes}{" "}
                           used, {row.rejected_codes} rejected)
                         </span>
                       </p>
                       <p>
-                        <span className="faced-label">Last encoded</span>
+                        <span className={ui.label}>Last encoded</span>
                         <span className="block text-zinc-700">
                           {formatDate(row.last_encoded_at)}
                         </span>
                       </p>
                       <p>
-                        <span className="faced-label">Last used</span>
+                        <span className={ui.label}>Last used</span>
                         <span className="block text-zinc-700">
                           {formatDate(row.last_used_at)}
                         </span>
@@ -859,7 +945,7 @@ export default function AdminPage() {
                             )
                           }
                           disabled={exportingCode !== null || row.total_encoded === 0}
-                          className="faced-btn-secondary text-xs disabled:cursor-not-allowed disabled:opacity-50"
+                          className={cn(ui.btnSecondary, "text-xs disabled:cursor-not-allowed disabled:opacity-50")}
                         >
                           {exportingCode === row.access_code
                             ? "Exporting..."
@@ -880,37 +966,42 @@ export default function AdminPage() {
             />
           </div>
         </section>
+        ) : null}
 
-        <section className="ph-card">
-          <div className="faced-section-header">Generate codes</div>
-          <div className="faced-section-body">
+        {activeTab === "create" ? (
+        <>
+        <section className={ui.card}>
+          <div className={ui.sectionHeader}>Generate codes</div>
+          <div className={ui.sectionBody}>
             <form onSubmit={handleGenerate} className="flex flex-wrap items-end gap-3">
               <label className="block">
-                <span className="faced-label">How many codes?</span>
+                <span className={ui.label}>How many codes?</span>
                 <input
                   type="number"
                   min={1}
                   max={100}
                   value={generateCount}
                   onChange={(e) => setGenerateCount(Number(e.target.value))}
-                  className="faced-input w-28"
+                  className={cn(ui.input, "w-28")}
                 />
               </label>
-              <button type="submit" disabled={loading} className="faced-btn-primary">
+              <button type="submit" disabled={loading} className={cn(ui.btnPrimary, ui.withIcon)}>
+                <Sparkles className={ui.iconSm} aria-hidden />
                 Generate
               </button>
             </form>
             {generatedCodes.length > 0 && (
-              <div className="mt-4 rounded-lg border border-[var(--ph-yellow)] bg-[var(--ph-yellow-light)] p-3">
+              <div className="mt-4 rounded-lg border border-ph-yellow bg-ph-yellow-light p-3">
                 <div className="mb-2 flex items-center justify-between">
-                  <p className="text-xs font-bold uppercase tracking-wide text-[var(--ph-blue-dark)]">
+                  <p className="text-xs font-bold uppercase tracking-wide text-ph-blue-dark">
                     New codes — assign enumerators below
                   </p>
                   <button
                     type="button"
                     onClick={() => copyCodes(generatedCodes)}
-                    className="ph-link text-xs"
+                    className={cn(ui.link, "text-xs", ui.withIcon)}
                   >
+                    <Copy className={ui.iconSm} aria-hidden />
                     Copy all
                   </button>
                 </div>
@@ -924,85 +1015,94 @@ export default function AdminPage() {
           </div>
         </section>
 
-        <section className="ph-card">
-          <div className="faced-section-header">Add custom code</div>
-          <div className="faced-section-body">
+        <section className={ui.card}>
+          <div className={ui.sectionHeader}>Add custom code</div>
+          <div className={ui.sectionBody}>
             <form onSubmit={handleAddCode} className="grid gap-3 sm:grid-cols-2">
               <label className="block sm:col-span-2">
-                <span className="faced-label">Code</span>
+                <span className={ui.label}>Code</span>
                 <input
                   type="text"
                   value={customCode}
                   onChange={(e) => setCustomCode(e.target.value.toUpperCase())}
                   placeholder="FACED-XXXX-XXXX"
-                  className="faced-input font-mono"
+                  className={cn(ui.input, "font-mono")}
                   required
                 />
               </label>
               <label className="block">
-                <span className="faced-label">Enumerator name</span>
+                <span className={ui.label}>Enumerator name</span>
                 <input
                   type="text"
                   value={addName}
-                  onChange={(e) => setAddName(e.target.value)}
+                  onChange={(e) => setAddName(e.target.value.toUpperCase())}
                   placeholder="Full name"
-                  className="faced-input"
+                  className={ui.input}
                 />
               </label>
               <label className="block">
-                <span className="faced-label">Enumerator email</span>
+                <span className={ui.label}>Enumerator email</span>
                 <input
                   type="email"
                   value={addEmail}
                   onChange={(e) => setAddEmail(e.target.value)}
                   placeholder="email@example.com"
-                  className="faced-input"
+                  className={ui.input}
                 />
               </label>
               <div className="sm:col-span-2">
-                <button type="submit" disabled={loading} className="faced-btn-primary">
+                <button type="submit" disabled={loading} className={cn(ui.btnPrimary, ui.withIcon)}>
+                  <Plus className={ui.iconSm} aria-hidden />
                   Add code
                 </button>
               </div>
             </form>
           </div>
         </section>
+        </>
+        ) : null}
 
-        <section className="ph-card">
-          <div className="faced-section-header flex flex-wrap items-center justify-between gap-2">
+        {activeTab === "codes" ? (
+        <section className={ui.card}>
+          <div className={cn(ui.sectionHeader, "flex flex-wrap items-center justify-between gap-2")}>
             <span>All codes ({filteredCodes.length}{search ? ` of ${codes.length}` : ""})</span>
             <div className="flex flex-wrap items-center gap-3">
               <button
                 type="button"
                 onClick={handleExportUsedCodes}
                 disabled={loading || usedCodesCount === 0}
-                className="text-xs font-normal normal-case tracking-normal underline disabled:cursor-not-allowed disabled:opacity-50"
+                className={cn(
+                  "text-xs font-normal normal-case tracking-normal underline disabled:cursor-not-allowed disabled:opacity-50",
+                  ui.withIcon,
+                )}
               >
+                <Download className={ui.iconSm} aria-hidden />
                 Export used codes ({usedCodesCount})
               </button>
               <button
                 type="button"
                 onClick={() => void refreshAdminData()}
                 disabled={loading || statsLoading}
-                className="text-xs font-normal normal-case tracking-normal underline"
+                className={cn("text-xs font-normal normal-case tracking-normal underline", ui.withIcon)}
               >
+                <RefreshCw className={cn(ui.iconSm, (loading || statsLoading) && "animate-spin")} aria-hidden />
                 Refresh
               </button>
             </div>
           </div>
-          <div className="border-b border-[var(--faced-blue-border)] bg-[var(--ph-blue-light)]/50 px-4 py-3">
+          <div className="border-b border-faced-blue-border bg-ph-blue-light/50 px-4 py-3">
             <input
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by code, name, email, or status..."
-              className="faced-input"
+              className={ui.input}
             />
           </div>
 
           {/* Desktop table */}
-          <div className="faced-section-body hidden overflow-x-auto p-0 lg:block">
-            <table className="faced-table w-full min-w-[960px] text-sm">
+          <div className={cn(ui.sectionBody, "hidden overflow-x-auto p-0 lg:block")}>
+            <table className={cn(ui.table, "w-full min-w-[960px] text-sm")}>
               <thead>
                 <tr>
                   <th>Code</th>
@@ -1014,7 +1114,15 @@ export default function AdminPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredCodes.length === 0 ? (
+                {loading && codes.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="p-0">
+                      <SkeletonScreen label="Loading access codes">
+                        <SkeletonTable rows={6} columns={6} />
+                      </SkeletonScreen>
+                    </td>
+                  </tr>
+                ) : filteredCodes.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="p-4 text-center text-zinc-500">
                       {codes.length === 0
@@ -1040,7 +1148,7 @@ export default function AdminPage() {
                               updateDraft(row.code, "enumerator_name", e.target.value)
                             }
                             placeholder="Assign name"
-                            className="faced-input min-w-[140px] text-xs"
+                            className={cn(ui.input, "min-w-[140px] text-xs")}
                           />
                         </td>
                         <td>
@@ -1051,18 +1159,19 @@ export default function AdminPage() {
                               updateDraft(row.code, "enumerator_email", e.target.value)
                             }
                             placeholder="Assign email"
-                            className="faced-input min-w-[160px] text-xs"
+                            className={cn(ui.input, "min-w-[160px] text-xs")}
                           />
                         </td>
                         <td>
                           <span
-                            className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-bold uppercase ${
+                            className={cn(
+                              "inline-block rounded-full px-2.5 py-0.5 text-xs font-bold uppercase",
                               row.status === "active"
-                                ? "ph-badge-synced"
+                                ? ui.badgeSynced
                                 : row.status === "used"
-                                  ? "ph-badge-pending"
-                                  : "ph-badge-failed"
-                            }`}
+                                  ? ui.badgePending
+                                  : ui.badgeFailed,
+                            )}
                           >
                             {row.status}
                           </span>
@@ -1074,25 +1183,37 @@ export default function AdminPage() {
                               type="button"
                               onClick={() => void handleSaveAssignment(row)}
                               disabled={savingCode === row.code}
-                              className="ph-link mr-2 text-xs"
+                              className={cn(ui.link, "mr-2 text-xs", ui.withIcon)}
                             >
-                              {savingCode === row.code ? "Saving..." : "Save"}
+                              {savingCode === row.code ? (
+                                <>
+                                  <Loader2 className={cn(ui.iconSm, "animate-spin")} aria-hidden />
+                                  Saving...
+                                </>
+                              ) : (
+                                <>
+                                  <Save className={ui.iconSm} aria-hidden />
+                                  Save
+                                </>
+                              )}
                             </button>
                           )}
                           {row.status !== "rejected" ? (
                             <button
                               type="button"
                               onClick={() => void handleReject(row.code)}
-                              className="text-xs font-bold text-[var(--ph-red)] hover:underline"
+                              className={cn("text-xs font-bold text-ph-red hover:underline", ui.withIcon)}
                             >
+                              <Ban className={ui.iconSm} aria-hidden />
                               Reject
                             </button>
                           ) : (
                             <button
                               type="button"
                               onClick={() => void handleReactivate(row.code)}
-                              className="ph-link text-xs"
+                              className={cn(ui.link, "text-xs", ui.withIcon)}
                             >
+                              <RotateCcw className={ui.iconSm} aria-hidden />
                               Reactivate
                             </button>
                           )}
@@ -1100,8 +1221,9 @@ export default function AdminPage() {
                             <button
                               type="button"
                               onClick={() => void handleReactivate(row.code)}
-                              className="ph-link ml-2 text-xs"
+                              className={cn(ui.link, "ml-2 text-xs", ui.withIcon)}
                             >
+                              <RotateCcw className={ui.iconSm} aria-hidden />
                               Reset
                             </button>
                           )}
@@ -1122,7 +1244,11 @@ export default function AdminPage() {
 
           {/* Mobile cards */}
           <div className="space-y-3 p-4 lg:hidden">
-            {filteredCodes.length === 0 ? (
+            {loading && codes.length === 0 ? (
+              <SkeletonScreen label="Loading access codes">
+                <SkeletonTable rows={5} columns={4} />
+              </SkeletonScreen>
+            ) : filteredCodes.length === 0 ? (
               <p className="text-center text-sm text-zinc-500">
                 {codes.length === 0
                   ? "No access codes yet."
@@ -1136,26 +1262,27 @@ export default function AdminPage() {
                 };
                 const changed = draftChanged(row, draft);
                 return (
-                  <article key={row.code} className="admin-code-card">
-                    <div className="admin-code-card-header">
-                      <span className="font-mono text-sm font-bold text-[var(--ph-blue-dark)]">
+                  <article key={row.code} className={ui.adminCodeCard}>
+                    <div className={ui.adminCodeCardHeader}>
+                      <span className="font-mono text-sm font-bold text-ph-blue-dark">
                         {row.code}
                       </span>
                       <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-bold uppercase ${
+                        className={cn(
+                          "rounded-full px-2 py-0.5 text-xs font-bold uppercase",
                           row.status === "active"
-                            ? "ph-badge-synced"
+                            ? ui.badgeSynced
                             : row.status === "used"
-                              ? "ph-badge-pending"
-                              : "ph-badge-failed"
-                        }`}
+                              ? ui.badgePending
+                              : ui.badgeFailed,
+                        )}
                       >
                         {row.status}
                       </span>
                     </div>
                     <div className="space-y-2 p-3">
                       <label className="block">
-                        <span className="faced-label">Enumerator name</span>
+                        <span className={ui.label}>Enumerator name</span>
                         <input
                           type="text"
                           value={draft.enumerator_name}
@@ -1163,11 +1290,11 @@ export default function AdminPage() {
                             updateDraft(row.code, "enumerator_name", e.target.value)
                           }
                           placeholder="Full name"
-                          className="faced-input text-sm"
+                          className={cn(ui.input, "text-sm")}
                         />
                       </label>
                       <label className="block">
-                        <span className="faced-label">Email</span>
+                        <span className={ui.label}>Email</span>
                         <input
                           type="email"
                           value={draft.enumerator_email}
@@ -1175,7 +1302,7 @@ export default function AdminPage() {
                             updateDraft(row.code, "enumerator_email", e.target.value)
                           }
                           placeholder="email@example.com"
-                          className="faced-input text-sm"
+                          className={cn(ui.input, "text-sm")}
                         />
                       </label>
                       <p className="text-xs text-zinc-500">Used: {formatDate(row.used_at)}</p>
@@ -1185,25 +1312,37 @@ export default function AdminPage() {
                             type="button"
                             onClick={() => void handleSaveAssignment(row)}
                             disabled={savingCode === row.code}
-                            className="faced-btn-primary text-xs"
+                            className={cn(ui.btnPrimary, "text-xs", ui.withIcon)}
                           >
-                            {savingCode === row.code ? "Saving..." : "Save assignee"}
+                            {savingCode === row.code ? (
+                              <>
+                                <Loader2 className={cn(ui.iconSm, "animate-spin")} aria-hidden />
+                                Saving...
+                              </>
+                            ) : (
+                              <>
+                                <Save className={ui.iconSm} aria-hidden />
+                                Save assignee
+                              </>
+                            )}
                           </button>
                         )}
                         {row.status !== "rejected" ? (
                           <button
                             type="button"
                             onClick={() => void handleReject(row.code)}
-                            className="faced-btn-danger text-xs"
+                            className={cn(ui.btnDanger, "text-xs", ui.withIcon)}
                           >
+                            <Ban className={ui.iconSm} aria-hidden />
                             Reject
                           </button>
                         ) : (
                           <button
                             type="button"
                             onClick={() => void handleReactivate(row.code)}
-                            className="faced-btn-secondary text-xs"
+                            className={cn(ui.btnSecondary, "text-xs", ui.withIcon)}
                           >
+                            <RotateCcw className={ui.iconSm} aria-hidden />
                             Reactivate
                           </button>
                         )}
@@ -1211,8 +1350,9 @@ export default function AdminPage() {
                           <button
                             type="button"
                             onClick={() => void handleReactivate(row.code)}
-                            className="faced-btn-secondary text-xs"
+                            className={cn(ui.btnSecondary, "text-xs", ui.withIcon)}
                           >
+                            <RotateCcw className={ui.iconSm} aria-hidden />
                             Reset
                           </button>
                         )}
@@ -1230,6 +1370,7 @@ export default function AdminPage() {
             />
           </div>
         </section>
+        ) : null}
       </main>
     </div>
   );

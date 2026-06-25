@@ -9,6 +9,16 @@ import {
 } from "@/lib/auth-client";
 import BrandEmblem from "@/components/brand/BrandEmblem";
 import TricolorBar from "@/components/brand/TricolorBar";
+import {
+  ArrowRight,
+  KeyRound,
+  Loader2,
+  ShieldCheck,
+  WifiOff,
+} from "lucide-react";
+import * as ui from "@/lib/ui";
+import { cn } from "@/lib/cn";
+import { SkeletonEmblemLoader, SkeletonScreen } from "@/components/ui/Skeleton";
 
 type LoginGateProps = {
   children: React.ReactNode;
@@ -81,43 +91,45 @@ export default function LoginGate({ children }: LoginGateProps) {
 
   if (!ready) {
     return (
-      <div className="ph-page-bg flex min-h-full items-center justify-center p-6">
-        <div className="flex flex-col items-center gap-3">
-          <BrandEmblem size={48} className="animate-pulse opacity-80" />
-          <p className="text-sm font-medium text-[var(--ph-blue)]">Loading...</p>
-        </div>
+      <div className={cn(ui.pageBg, "flex items-center justify-center p-6")}>
+        <SkeletonScreen label="Loading session">
+          <SkeletonEmblemLoader />
+        </SkeletonScreen>
       </div>
     );
   }
 
   if (!authenticated) {
     return (
-      <div className="ph-page-bg flex min-h-full flex-col">
-        <div className="ph-app-header py-5 text-center">
+      <div className={cn(ui.pageBg, "flex flex-col")}>
+        <div className={cn(ui.appHeader, "py-5 text-center")}>
           <BrandEmblem size={80} className="mx-auto mb-3" />
-          <p className="ph-kicker text-xs font-bold uppercase">DSWD · Offline DMS</p>
+          <p className={cn(ui.kicker, "text-xs font-bold uppercase")}>DSWD · Offline DMS</p>
           <h1 className="mt-1 text-xl font-bold text-white">Family Assistance Card (FACED)</h1>
           <TricolorBar thick className="mx-auto mt-4 max-w-xs" />
         </div>
 
         <div className="flex flex-1 items-center justify-center p-4">
-          <div className="ph-login-card ph-card w-full max-w-md">
-            <div className="faced-section-header justify-center">Access required</div>
-            <div className="faced-section-body space-y-4 rounded-b-xl border-b border-[var(--faced-blue-border)]">
+          <div className={cn(ui.loginCard, "w-full max-w-md")}>
+            <div className={cn(ui.sectionHeader, "justify-center")}>Access required</div>
+            <div className={cn(ui.sectionBody, "space-y-4 rounded-b-xl border-b border-faced-blue-border")}>
               <p className="text-center text-sm text-zinc-600">
                 Enter the access code from your administrator. Each code works on{" "}
-                <strong className="text-[var(--ph-blue)]">one device only</strong>.
+                <strong className="text-ph-blue">one device only</strong>.
               </p>
 
               <form onSubmit={handleSubmit} className="space-y-3">
                 <label className="block">
-                  <span className="faced-label">Access code</span>
+                  <span className={cn(ui.label, ui.withIcon)}>
+                    <KeyRound className={ui.iconSm} aria-hidden />
+                    Access code
+                  </span>
                   <input
                     type="text"
                     value={code}
                     onChange={(e) => setCode(e.target.value.toUpperCase())}
                     placeholder="FACED-XXXX-XXXX"
-                    className="faced-input font-mono tracking-widest"
+                    className={cn(ui.input, "font-mono tracking-widest")}
                     autoComplete="off"
                     autoFocus
                     required
@@ -125,26 +137,37 @@ export default function LoginGate({ children }: LoginGateProps) {
                 </label>
 
                 {!isOnline && (
-                  <p className="ph-alert-warning">
+                  <p className={cn(ui.alertWarning, ui.withIcon)}>
+                    <WifiOff className={ui.iconMd} aria-hidden />
                     You are offline. Connect to the internet to sign in with a new access
                     code.
                   </p>
                 )}
 
-                {error && <p className="ph-alert-error">{error}</p>}
+                {error && <p className={ui.alertError}>{error}</p>}
 
                 <button
                   type="submit"
                   disabled={loading || !isOnline}
-                  className="faced-btn-primary w-full disabled:opacity-50"
+                  className={cn(ui.btnPrimary, ui.withIcon, "w-full disabled:opacity-50")}
                 >
-                  {loading ? "Verifying..." : "Continue to FACED form"}
+                  {loading ? (
+                    <>
+                      <Loader2 className={cn(ui.iconMd, "animate-spin")} aria-hidden />
+                      Verifying...
+                    </>
+                  ) : (
+                    <>
+                      Continue to FACED form
+                      <ArrowRight className={ui.iconMd} aria-hidden />
+                    </>
+                  )}
                 </button>
               </form>
 
               <p className="text-center text-xs text-zinc-500">
                 Administrator?{" "}
-                <Link href="/admin" className="ph-link">
+                <Link href="/admin" className={ui.link}>
                   Manage access codes
                 </Link>
               </p>
@@ -157,11 +180,12 @@ export default function LoginGate({ children }: LoginGateProps) {
 
   return (
     <>
-      <div className="ph-session-bar">
+      <div className={ui.sessionBar}>
         <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-4 py-2 text-xs">
-          <span className="text-zinc-700">
+          <span className={cn(ui.withIcon, "text-zinc-700")}>
+            <ShieldCheck className={ui.iconSm} aria-hidden />
             Signed in ·{" "}
-            <span className="font-mono font-bold text-[var(--ph-blue)]">{sessionCode}</span>
+            <span className="font-mono font-bold text-ph-blue">{sessionCode}</span>
           </span>
         </div>
       </div>

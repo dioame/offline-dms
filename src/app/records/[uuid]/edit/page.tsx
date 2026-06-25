@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { Loader2, Lock } from "lucide-react";
 import BrandEmblem from "@/components/brand/BrandEmblem";
 import TricolorBar from "@/components/brand/TricolorBar";
 import FacedForm from "@/components/faced/FacedForm";
@@ -10,6 +11,9 @@ import {
   adminRecordToFormData,
   type FacedRecordAdminClient,
 } from "@/lib/records-client";
+import * as ui from "@/lib/ui";
+import { cn } from "@/lib/cn";
+import { SkeletonFormCard, SkeletonScreen } from "@/components/ui/Skeleton";
 
 const ADMIN_STORAGE_KEY = "dms_admin_password";
 
@@ -112,43 +116,53 @@ export default function RecordEditPage() {
 
   if (!uuid) {
     return (
-      <div className="ph-page-bg flex min-h-full items-center justify-center p-4">
-        <p className="ph-alert-error">Invalid record link.</p>
+      <div className={cn(ui.pageBg, "flex items-center justify-center p-4")}>
+        <p className={ui.alertError}>Invalid record link.</p>
       </div>
     );
   }
 
   if (!unlocked) {
     return (
-      <div className="ph-page-bg flex min-h-full flex-col">
-        <div className="ph-app-header py-5 text-center">
+      <div className={cn(ui.pageBg, "flex flex-col")}>
+        <div className={cn(ui.appHeader, "py-5 text-center")}>
           <BrandEmblem size={72} className="mx-auto mb-2" />
-          <p className="ph-kicker text-xs font-bold uppercase">Administration</p>
+          <p className={cn(ui.kicker, "text-xs font-bold uppercase")}>Administration</p>
           <h1 className="text-xl font-bold text-white">Edit FACED record</h1>
           <TricolorBar thick className="mx-auto mt-4 max-w-xs" />
         </div>
         <div className="flex flex-1 items-center justify-center p-4">
-          <div className="ph-login-card ph-card w-full max-w-md">
-            <div className="faced-section-header justify-center">Admin access</div>
-            <div className="faced-section-body space-y-4 rounded-b-xl border-b border-[var(--faced-blue-border)]">
+          <div className={cn(ui.loginCard, "w-full max-w-md")}>
+            <div className={cn(ui.sectionHeader, "justify-center")}>Admin access</div>
+            <div className={cn(ui.sectionBody, "space-y-4 rounded-b-xl border-b border-faced-blue-border")}>
               <p className="text-sm text-zinc-600">
                 Enter the admin password to edit this synced FACED record.
               </p>
               <form onSubmit={(e) => void handleUnlock(e)} className="space-y-3">
                 <label className="block">
-                  <span className="faced-label">Admin password</span>
+                  <span className={ui.label}>Admin password</span>
                   <input
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="faced-input"
+                    className={ui.input}
                     autoFocus
                     required
                   />
                 </label>
-                {error && <p className="ph-alert-error">{error}</p>}
-                <button type="submit" className="faced-btn-primary w-full" disabled={loading}>
-                  {loading ? "Verifying..." : "Unlock editor"}
+                {error && <p className={ui.alertError}>{error}</p>}
+                <button type="submit" className={cn(ui.btnPrimary, "w-full", ui.withIcon)} disabled={loading}>
+                  {loading ? (
+                    <>
+                      <Loader2 className={cn(ui.iconSm, "animate-spin")} aria-hidden />
+                      Verifying...
+                    </>
+                  ) : (
+                    <>
+                      <Lock className={ui.iconSm} aria-hidden />
+                      Unlock editor
+                    </>
+                  )}
                 </button>
               </form>
             </div>
@@ -159,15 +173,15 @@ export default function RecordEditPage() {
   }
 
   return (
-    <div className="ph-page-bg min-h-full">
-      <header className="ph-app-header">
+    <div className={ui.pageBg}>
+      <header className={ui.appHeader}>
         <div className="mx-auto max-w-4xl px-4 py-5">
           <div className="flex items-center gap-4">
             <BrandEmblem size={52} className="hidden shrink-0 sm:block" />
             <div>
-              <p className="ph-kicker text-xs font-bold uppercase">DSWD · Offline DMS</p>
+              <p className={cn(ui.kicker, "text-xs font-bold uppercase")}>DSWD · Offline DMS</p>
               <h1 className="text-xl font-bold text-white">Edit FACED record</h1>
-              <p className="ph-subtitle text-sm">
+              <p className={cn(ui.subtitle, "text-sm")}>
                 Update synced form details. Changes are saved directly to the server.
               </p>
             </div>
@@ -177,13 +191,15 @@ export default function RecordEditPage() {
       </header>
 
       <main className="mx-auto max-w-4xl space-y-6 px-4 py-6">
-        {error && <div className="ph-alert-error">{error}</div>}
+        {error && <div className={ui.alertError}>{error}</div>}
 
         {loading ? (
-          <p className="text-sm text-zinc-600">Loading record...</p>
+          <SkeletonScreen label="Loading FACED record">
+            <SkeletonFormCard fields={8} />
+          </SkeletonScreen>
         ) : record && formData ? (
-          <section className="ph-card">
-            <div className="ph-card-header">
+          <section className={ui.card}>
+            <div className={ui.cardHeader}>
               <h2>Edit FACED record</h2>
               <p className="mt-1 text-xs font-normal text-white/85">
                 UUID: <span className="font-mono">{record.uuid}</span>

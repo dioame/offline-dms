@@ -5,6 +5,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import FacedAnnexPrintDocument from "@/components/print/FacedAnnexPrintDocument";
+import { SkeletonFormCard, SkeletonScreen } from "@/components/ui/Skeleton";
 import {
   clearFacedAnnexPrintPayload,
   loadFacedAnnexPrintPayload,
@@ -79,8 +80,13 @@ function FacedAnnexPrintContent() {
 
   if (!payload) {
     return (
-      <div className="faced-annex-print-shell">
-        <p className="faced-annex-print-loading">Preparing Annex A FACED forms…</p>
+      <div className="faced-annex-print-shell no-print">
+        <SkeletonScreen label="Preparing Annex A FACED forms">
+          <div className="mx-auto max-w-4xl space-y-6 p-6">
+            <SkeletonFormCard fields={4} />
+            <SkeletonFormCard fields={4} />
+          </div>
+        </SkeletonScreen>
       </div>
     );
   }
@@ -114,8 +120,13 @@ export default function FacedAnnexPrintPage() {
   return (
     <Suspense
       fallback={
-        <div className="faced-annex-print-shell">
-          <p className="faced-annex-print-loading">Preparing Annex A FACED forms…</p>
+        <div className="faced-annex-print-shell no-print">
+          <SkeletonScreen label="Preparing Annex A FACED forms">
+            <div className="mx-auto max-w-4xl space-y-6 p-6">
+              <SkeletonFormCard fields={4} />
+              <SkeletonFormCard fields={4} />
+            </div>
+          </SkeletonScreen>
         </div>
       }
     >

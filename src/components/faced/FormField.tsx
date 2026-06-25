@@ -1,4 +1,6 @@
 import { type InputHTMLAttributes, type ReactNode } from "react";
+import { cn } from "@/lib/cn";
+import * as ui from "@/lib/ui";
 
 type FormFieldProps = {
   label: string;
@@ -16,11 +18,11 @@ export function FormField({
   className = "",
 }: FormFieldProps) {
   return (
-    <div className={`faced-field ${className}`}>
-      <label className="faced-label">
-        {number && <span className="faced-field-num">{number}</span>}
+    <div className={cn(ui.field, className)}>
+      <label className={ui.label}>
+        {number && <span className={ui.fieldNum}>{number}</span>}
         {label}
-        {required && <span className="faced-required">*</span>}
+        {required && <span className={ui.required}>*</span>}
       </label>
       {children}
     </div>
@@ -30,13 +32,13 @@ export function FormField({
 type TextInputProps = InputHTMLAttributes<HTMLInputElement>;
 
 export function TextInput({ className = "", ...props }: TextInputProps) {
-  return <input className={`faced-input ${className}`} {...props} />;
+  return <input className={cn(ui.input, className)} {...props} />;
 }
 
 type TextAreaProps = React.TextareaHTMLAttributes<HTMLTextAreaElement>;
 
 export function TextArea({ className = "", ...props }: TextAreaProps) {
-  return <textarea className={`faced-input faced-textarea ${className}`} {...props} />;
+  return <textarea className={cn(ui.textarea, className)} {...props} />;
 }
 
 type CheckboxGroupProps = {
@@ -67,7 +69,7 @@ export function CheckboxGroup({
               }
               onChange(key, e.target.checked);
             }}
-            className="h-4 w-4 accent-[var(--faced-blue)]"
+            className="h-4 w-4 accent-ph-blue"
           />
           {label}
         </label>
@@ -88,7 +90,7 @@ export function SelectInput({
   ...props
 }: SelectInputProps) {
   return (
-    <select className={`faced-input ${className}`} {...props}>
+    <select className={cn(ui.input, className)} {...props}>
       <option value="">{placeholder}</option>
       {options.map((o) => (
         <option key={o.value} value={o.value}>
@@ -123,7 +125,7 @@ export function SuggestionChips({ suggestions, onSelect }: SuggestionChipsProps)
           key={suggestion}
           type="button"
           onClick={() => onSelect(suggestion)}
-          className="faced-chip"
+          className={ui.chip}
         >
           {suggestion}
         </button>
@@ -141,9 +143,9 @@ export function RadioGroup({
 }: RadioGroupProps) {
   const groupClass =
     spread === "start"
-      ? "faced-radio-group--start"
+      ? ui.radioGroupStart
       : spread
-        ? "faced-radio-group--even"
+        ? ui.radioGroupEven
         : "flex flex-wrap gap-4";
 
   return (
@@ -156,7 +158,7 @@ export function RadioGroup({
             value={o.value}
             checked={value === o.value}
             onChange={() => onChange(o.value)}
-            className="h-4 w-4 shrink-0 accent-[var(--faced-blue)]"
+            className="h-4 w-4 shrink-0 accent-ph-blue"
           />
           {o.label}
         </label>

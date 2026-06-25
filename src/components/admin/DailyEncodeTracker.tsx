@@ -1,6 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import * as ui from "@/lib/ui";
+import { cn } from "@/lib/cn";
+import { SkeletonChart, SkeletonScreen } from "@/components/ui/Skeleton";
 
 export type DailyEncodeStat = {
   date: string;
@@ -74,15 +77,15 @@ export default function DailyEncodeTracker({ data, loading }: DailyEncodeTracker
 
   if (loading && data.length === 0) {
     return (
-      <div className="rounded-lg border border-[var(--faced-blue-border)] bg-white px-4 py-6">
-        <p className="text-sm text-zinc-500">Loading daily encode stats...</p>
-      </div>
+      <SkeletonScreen label="Loading daily encode stats">
+        <SkeletonChart />
+      </SkeletonScreen>
     );
   }
 
   if (data.length === 0) {
     return (
-      <div className="rounded-lg border border-[var(--faced-blue-border)] bg-white px-4 py-6">
+      <div className="rounded-lg border border-faced-blue-border bg-white px-4 py-6">
         <p className="text-sm text-zinc-500">No encode activity recorded yet.</p>
       </div>
     );
@@ -92,27 +95,28 @@ export default function DailyEncodeTracker({ data, loading }: DailyEncodeTracker
   const activeRow = slice[activeIndex];
 
   return (
-    <div className="space-y-4 rounded-lg border border-[var(--faced-blue-border)] bg-white p-4">
+    <div className="space-y-4 rounded-lg border border-faced-blue-border bg-white p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-sm font-bold uppercase tracking-wide text-[var(--ph-blue-dark)]">
+          <h3 className="text-sm font-bold uppercase tracking-wide text-ph-blue-dark">
             Daily encoding
           </h3>
           <p className="text-xs text-zinc-600">
             Records synced per day (by created date)
           </p>
         </div>
-        <div className="flex rounded-lg border border-[var(--faced-blue-border)] p-0.5">
+        <div className="flex rounded-lg border border-faced-blue-border p-0.5">
           {PERIOD_OPTIONS.map((option) => (
             <button
               key={option}
               type="button"
               onClick={() => setDays(option)}
-              className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors ${
+              className={cn(
+                "rounded-md px-3 py-1 text-xs font-semibold transition-colors",
                 days === option
-                  ? "bg-[var(--ph-blue)] text-white"
-                  : "text-zinc-600 hover:bg-[var(--ph-blue-light)]"
-              }`}
+                  ? "bg-ph-blue text-white"
+                  : "text-zinc-600 hover:bg-ph-blue-light",
+              )}
             >
               {option}d
             </button>
@@ -121,30 +125,30 @@ export default function DailyEncodeTracker({ data, loading }: DailyEncodeTracker
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <div className="rounded-md border border-[var(--faced-blue-border)] bg-[var(--ph-blue-light)]/40 px-3 py-2">
-          <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--ph-blue-dark)]">
+        <div className="rounded-md border border-faced-blue-border bg-ph-blue-light/40 px-3 py-2">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-ph-blue-dark">
             Period total
           </p>
-          <p className="text-xl font-bold text-[var(--ph-blue-dark)]">{stats.total}</p>
+          <p className="text-xl font-bold text-ph-blue-dark">{stats.total}</p>
         </div>
-        <div className="rounded-md border border-[var(--faced-blue-border)] px-3 py-2">
+        <div className="rounded-md border border-faced-blue-border px-3 py-2">
           <p className="text-[10px] font-bold uppercase tracking-wide text-zinc-600">
             Daily average
           </p>
           <p className="text-xl font-bold text-zinc-900">{stats.avg.toFixed(1)}</p>
         </div>
-        <div className="rounded-md border border-[var(--faced-blue-border)] px-3 py-2">
+        <div className="rounded-md border border-faced-blue-border px-3 py-2">
           <p className="text-[10px] font-bold uppercase tracking-wide text-zinc-600">
             Peak day
           </p>
           <p className="text-xl font-bold text-zinc-900">{stats.peak.count}</p>
           <p className="text-[10px] text-zinc-500">{formatDayLabel(stats.peak.date)}</p>
         </div>
-        <div className="rounded-md border border-[var(--faced-blue-border)] px-3 py-2">
+        <div className="rounded-md border border-faced-blue-border px-3 py-2">
           <p className="text-[10px] font-bold uppercase tracking-wide text-zinc-600">Today</p>
           <p className="text-xl font-bold text-zinc-900">{stats.today}</p>
         </div>
-        <div className="rounded-md border border-[var(--faced-blue-border)] px-3 py-2">
+        <div className="rounded-md border border-faced-blue-border px-3 py-2">
           <p className="text-[10px] font-bold uppercase tracking-wide text-zinc-600">
             Yesterday
           </p>
@@ -154,7 +158,7 @@ export default function DailyEncodeTracker({ data, loading }: DailyEncodeTracker
 
       {activeRow && (
         <p className="text-xs text-zinc-600">
-          <span className="font-semibold text-[var(--ph-blue-dark)]">
+          <span className="font-semibold text-ph-blue-dark">
             {activeRow.count}
           </span>{" "}
           encoded on {formatDayLong(activeRow.date)}
@@ -253,17 +257,17 @@ export default function DailyEncodeTracker({ data, loading }: DailyEncodeTracker
 
       <div className="flex flex-wrap items-center gap-4 text-[10px] text-zinc-600">
         <span className="inline-flex items-center gap-1.5">
-          <span className="inline-block h-2.5 w-2.5 rounded-sm bg-[var(--ph-blue)]" />
+          <span className="inline-block h-2.5 w-2.5 rounded-sm bg-ph-blue" />
           Daily count
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="inline-block h-0.5 w-4 bg-[var(--ph-yellow-dark)]" />
+          <span className="inline-block h-0.5 w-4 bg-ph-yellow-dark" />
           Cumulative trend
         </span>
       </div>
 
       <div className="overflow-x-auto lg:hidden">
-        <table className="faced-table w-full min-w-[280px] text-xs">
+        <table className={cn(ui.table, "w-full min-w-[280px] text-xs")}>
           <thead>
             <tr>
               <th>Date</th>
@@ -278,7 +282,7 @@ export default function DailyEncodeTracker({ data, loading }: DailyEncodeTracker
               return (
                 <tr key={row.date}>
                   <td>{formatDayLong(row.date)}</td>
-                  <td className="font-semibold text-[var(--ph-blue-dark)]">{row.count}</td>
+                  <td className="font-semibold text-ph-blue-dark">{row.count}</td>
                   <td>{cumulative}</td>
                 </tr>
               );

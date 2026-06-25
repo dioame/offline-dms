@@ -2,6 +2,9 @@
 
 import { SARANGANI_PROVINCE } from "@/lib/sarangani-locations";
 import { formatDuplicateMatchSummary, type VerifyMatch } from "@/lib/verify-match";
+import { AlertTriangle, Loader2 } from "lucide-react";
+import { cn } from "@/lib/cn";
+import * as ui from "@/lib/ui";
 
 type DuplicateCheckAlertProps = {
   matches: VerifyMatch[];
@@ -29,7 +32,8 @@ export default function DuplicateCheckAlert({
 
   if (checking) {
     return (
-      <div className="encode-duplicate-flag encode-duplicate-flag--checking sm:col-span-2">
+      <div className={cn(ui.encodeDuplicateChecking, ui.withIcon, "sm:col-span-2")}>
+        <Loader2 className={cn(ui.iconSm, "animate-spin")} aria-hidden />
         Checking duplicates…
       </div>
     );
@@ -42,10 +46,10 @@ export default function DuplicateCheckAlert({
   const visible = matches.slice(0, 2);
 
   return (
-    <div className="encode-duplicate-panel sm:col-span-2">
-      <div className="encode-duplicate-flag encode-duplicate-flag--warning">
-        <span className="encode-duplicate-flag-icon" aria-hidden>
-          !
+    <div className={cn(ui.encodeDuplicatePanel, "sm:col-span-2")}>
+      <div className={ui.encodeDuplicateWarning}>
+        <span className={ui.encodeDuplicateFlagIcon} aria-hidden>
+          <AlertTriangle className={ui.iconSm} />
         </span>
         <p className="min-w-0 text-sm leading-snug">
           <strong>
@@ -57,10 +61,10 @@ export default function DuplicateCheckAlert({
         </p>
       </div>
 
-      <ul className="encode-duplicate-list">
+      <ul className={ui.encodeDuplicateList}>
         {visible.map((match) => (
-          <li key={match.uuid} className="encode-duplicate-item">
-            <span className="font-semibold text-[var(--ph-blue-dark)]">{match.headName}</span>
+          <li key={match.uuid} className={ui.encodeDuplicateItem}>
+            <span className="font-semibold text-ph-blue-dark">{match.headName}</span>
             <span className="text-zinc-600">
               {" "}
               — {formatDuplicateMatchSummary(match, SARANGANI_PROVINCE)}
@@ -70,7 +74,7 @@ export default function DuplicateCheckAlert({
       </ul>
 
       {matches.length > 2 ? (
-        <p className="encode-duplicate-more">+{matches.length - 2} more match(es)</p>
+        <p className={ui.encodeDuplicateMore}>+{matches.length - 2} more match(es)</p>
       ) : null}
     </div>
   );

@@ -1,6 +1,9 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { Wifi, WifiOff } from "lucide-react";
+import * as ui from "@/lib/ui";
+import { cn } from "@/lib/cn";
 
 function subscribe(onStoreChange: () => void) {
   window.addEventListener("online", onStoreChange);
@@ -28,17 +31,18 @@ export default function OfflineIndicator() {
 
   return (
     <div
-      className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-wide ${
-        online ? "ph-badge-online" : "ph-badge-offline"
-      }`}
+      className={cn(
+        ui.withIcon,
+        "rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-wide",
+        online ? ui.badgeOnline : ui.badgeOffline,
+      )}
       suppressHydrationWarning
     >
-      <span
-        className={`h-2 w-2 rounded-full ${
-          online ? "bg-[var(--ph-blue)]" : "bg-[var(--ph-yellow)]"
-        }`}
-        aria-hidden
-      />
+      {online ? (
+        <Wifi className={ui.iconSm} aria-hidden />
+      ) : (
+        <WifiOff className={ui.iconSm} aria-hidden />
+      )}
       {online ? "Online" : "Offline"}
     </div>
   );

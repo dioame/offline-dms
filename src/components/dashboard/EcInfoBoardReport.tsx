@@ -2,6 +2,8 @@
 
 import type { AgeRow, InfoBoardGroup, SectoralRow } from "@/lib/dashboard-types";
 import { SARANGANI_REGION } from "@/lib/sarangani-locations";
+import * as ui from "@/lib/ui";
+import { cn } from "@/lib/cn";
 
 type CountTotals = {
   male_cum: number;
@@ -53,13 +55,15 @@ function MetricCells({
   nowOnly?: boolean;
   bold?: boolean;
 }) {
-  const cellClass = bold ? "ec-board-td ec-board-td--metric ec-board-td--bold" : "ec-board-td ec-board-td--metric";
+  const cellClass = bold
+    ? cn(ui.ecBoardTd, ui.ecBoardTdMetric, ui.ecBoardTdBold)
+    : cn(ui.ecBoardTd, ui.ecBoardTdMetric);
   if (nowOnly) {
     return (
       <>
         <td className={cellClass}>{row.male_now}</td>
         <td className={cellClass}>{row.female_now}</td>
-        <td className={`${cellClass} ec-board-td--total`}>{row.total_now}</td>
+        <td className={cn(cellClass, ui.ecBoardTdTotal)}>{row.total_now}</td>
       </>
     );
   }
@@ -69,8 +73,8 @@ function MetricCells({
       <td className={cellClass}>{row.male_now}</td>
       <td className={cellClass}>{row.female_cum}</td>
       <td className={cellClass}>{row.female_now}</td>
-      <td className={`${cellClass} ec-board-td--total`}>{row.total_cum}</td>
-      <td className={`${cellClass} ec-board-td--total`}>{row.total_now}</td>
+      <td className={cn(cellClass, ui.ecBoardTdTotal)}>{row.total_cum}</td>
+      <td className={cn(cellClass, ui.ecBoardTdTotal)}>{row.total_now}</td>
     </>
   );
 }
@@ -88,47 +92,47 @@ function DisaggregationTable({
   const totals = isAge ? sumAgeRows(rows as AgeRow[]) : sumSectoralRows(rows as SectoralRow[]);
 
   return (
-    <div className="ec-board-table-wrap">
-      <table className="ec-board-table">
+    <div className={ui.ecBoardTableWrap}>
+      <table className={ui.ecBoardTable}>
         <thead>
           <tr className="ec-board-thead-title">
-            <th className="ec-board-th ec-board-th--label" rowSpan={nowOnly ? 1 : 2}>
+            <th className={cn(ui.ecBoardTh, ui.ecBoardThLabel)} rowSpan={nowOnly ? 1 : 2}>
               {labelHeader}
             </th>
             {nowOnly ? (
               <>
-                <th className="ec-board-th">Male</th>
-                <th className="ec-board-th">Female</th>
-                <th className="ec-board-th">Total</th>
+                <th className={ui.ecBoardTh}>Male</th>
+                <th className={ui.ecBoardTh}>Female</th>
+                <th className={ui.ecBoardTh}>Total</th>
               </>
             ) : (
               <>
-                <th className="ec-board-th" colSpan={2}>Male</th>
-                <th className="ec-board-th" colSpan={2}>Female</th>
-                <th className="ec-board-th" colSpan={2}>Total</th>
+                <th className={ui.ecBoardTh} colSpan={2}>Male</th>
+                <th className={ui.ecBoardTh} colSpan={2}>Female</th>
+                <th className={ui.ecBoardTh} colSpan={2}>Total</th>
               </>
             )}
           </tr>
           {!nowOnly && (
             <tr className="ec-board-thead-sub">
-              <th className="ec-board-th ec-board-th--sub">CUM</th>
-              <th className="ec-board-th ec-board-th--sub">NOW</th>
-              <th className="ec-board-th ec-board-th--sub">CUM</th>
-              <th className="ec-board-th ec-board-th--sub">NOW</th>
-              <th className="ec-board-th ec-board-th--sub">CUM</th>
-              <th className="ec-board-th ec-board-th--sub">NOW</th>
+              <th className={cn(ui.ecBoardTh, ui.ecBoardThSub)}>CUM</th>
+              <th className={cn(ui.ecBoardTh, ui.ecBoardThSub)}>NOW</th>
+              <th className={cn(ui.ecBoardTh, ui.ecBoardThSub)}>CUM</th>
+              <th className={cn(ui.ecBoardTh, ui.ecBoardThSub)}>NOW</th>
+              <th className={cn(ui.ecBoardTh, ui.ecBoardThSub)}>CUM</th>
+              <th className={cn(ui.ecBoardTh, ui.ecBoardThSub)}>NOW</th>
             </tr>
           )}
         </thead>
         <tbody>
           {rows.map((row, index) => (
-            <tr key={index} className={index % 2 === 0 ? "ec-board-row ec-board-row--alt" : "ec-board-row"}>
-              <td className="ec-board-td ec-board-td--label">
+            <tr key={index} className={index % 2 === 0 ? ui.ecBoardRowAlt : undefined}>
+              <td className={cn(ui.ecBoardTd, ui.ecBoardTdLabel)}>
                 {isAge ? (
                   <>
-                    <span className="ec-board-age-name">{(row as AgeRow).label || (row as AgeRow).group}</span>
+                    <span className={ui.ecBoardAgeName}>{(row as AgeRow).label || (row as AgeRow).group}</span>
                     {(row as AgeRow).range && (
-                      <span className="ec-board-age-range">{(row as AgeRow).range}</span>
+                      <span className={ui.ecBoardAgeRange}>{(row as AgeRow).range}</span>
                     )}
                   </>
                 ) : (
@@ -138,8 +142,8 @@ function DisaggregationTable({
               <MetricCells row={row} nowOnly={nowOnly} />
             </tr>
           ))}
-          <tr className="ec-board-row ec-board-row--total">
-            <td className="ec-board-td ec-board-td--label">TOTAL &gt;&gt;&gt;</td>
+          <tr className={ui.ecBoardRowTotal}>
+            <td className={cn(ui.ecBoardTd, ui.ecBoardTdLabel)}>TOTAL &gt;&gt;&gt;</td>
             <MetricCells row={totals} nowOnly={nowOnly} bold />
           </tr>
         </tbody>
@@ -155,43 +159,43 @@ type EcInfoBoardReportProps = {
 
 export default function EcInfoBoardReport({ data, nowOnly = true }: EcInfoBoardReportProps) {
   return (
-    <article className="ec-info-board-report" aria-label="Evacuation Center Information Board">
-      <header className="ec-board-header">
-        <h2 className="ec-board-title">EVACUATION CENTER INFORMATION BOARD</h2>
-        <div className="ec-board-as-of">As of {formatAsOfDate()}</div>
+    <article className={ui.ecInfoBoardReport} aria-label="Evacuation Center Information Board">
+      <header className={ui.ecBoardHeader}>
+        <h2 className={ui.ecBoardTitle}>EVACUATION CENTER INFORMATION BOARD</h2>
+        <div className={ui.ecBoardAsOf}>As of {formatAsOfDate()}</div>
       </header>
 
-      <section className="ec-board-meta">
-        <table className="ec-board-meta-table">
+      <section>
+        <table className={ui.ecBoardMetaTable}>
           <tbody>
             <tr>
-              <td className="ec-board-meta-cell">
-                <span className="ec-board-meta-label">Region:</span>{" "}
-                <span className="ec-board-meta-value">{data.region || SARANGANI_REGION}</span>
+              <td className={ui.ecBoardMetaCell}>
+                <span className={ui.ecBoardMetaLabel}>Region:</span>{" "}
+                <span className={ui.ecBoardMetaValue}>{data.region || SARANGANI_REGION}</span>
               </td>
-              <td className="ec-board-meta-cell ec-board-meta-cell--wide">
-                <span className="ec-board-meta-label">Province/City/Municipality/Barangay:</span>{" "}
-                <span className="ec-board-meta-value">{data.address || "—"}</span>
-              </td>
-            </tr>
-            <tr>
-              <td className="ec-board-meta-cell ec-board-meta-cell--center" colSpan={2}>
-                <span className="ec-board-meta-label">Evacuation Center/Site:</span>{" "}
-                <span className="ec-board-ec-name">{data.ec_name || "—"}</span>
+              <td className={cn(ui.ecBoardMetaCell, ui.ecBoardMetaCellWide)}>
+                <span className={ui.ecBoardMetaLabel}>Province/City/Municipality/Barangay:</span>{" "}
+                <span className={ui.ecBoardMetaValue}>{data.address || "—"}</span>
               </td>
             </tr>
             <tr>
-              <td className="ec-board-meta-cell" colSpan={2}>
-                <div className="ec-board-summary">
+              <td className={cn(ui.ecBoardMetaCell, ui.ecBoardMetaCellCenter)} colSpan={2}>
+                <span className={ui.ecBoardMetaLabel}>Evacuation Center/Site:</span>{" "}
+                <span className="font-bold text-ph-blue">{data.ec_name || "—"}</span>
+              </td>
+            </tr>
+            <tr>
+              <td className={ui.ecBoardMetaCell} colSpan={2}>
+                <div className={ui.ecBoardSummary}>
                   <span>
-                    <span className="ec-board-meta-label">No. of Families:</span>{" "}
-                    <span className="ec-board-metric">
+                    <span className={ui.ecBoardMetaLabel}>No. of Families:</span>{" "}
+                    <span className={ui.ecBoardMetric}>
                       {nowOnly ? data.families_now : `${data.families_cum} / ${data.families_now}`}
                     </span>
                   </span>
                   <span>
-                    <span className="ec-board-meta-label">No. of Persons:</span>{" "}
-                    <span className="ec-board-metric">
+                    <span className={ui.ecBoardMetaLabel}>No. of Persons:</span>{" "}
+                    <span className={ui.ecBoardMetric}>
                       {nowOnly ? data.persons_now : `${data.persons_cum} / ${data.persons_now}`}
                     </span>
                   </span>
@@ -202,13 +206,13 @@ export default function EcInfoBoardReport({ data, nowOnly = true }: EcInfoBoardR
         </table>
       </section>
 
-      <section className="ec-board-section">
-        <h3 className="ec-board-section-title">Age and Sex Disaggregation</h3>
+      <section className={ui.ecBoardSection}>
+        <h3 className={ui.ecBoardSectionTitle}>Age and Sex Disaggregation</h3>
         <DisaggregationTable rows={data.age_distribution} nowOnly={nowOnly} labelHeader="Age Group" />
       </section>
 
-      <section className="ec-board-section ec-board-section--sectoral">
-        <h3 className="ec-board-section-title">Sectoral Group</h3>
+      <section className={ui.ecBoardSection}>
+        <h3 className={ui.ecBoardSectionTitle}>Sectoral Group</h3>
         <DisaggregationTable rows={data.sectoral} nowOnly={nowOnly} labelHeader="Sectoral Group" />
       </section>
     </article>
@@ -224,19 +228,19 @@ export function EcInfoBoardGroups({
 }) {
   if (groups.length === 0) {
     return (
-      <div className="dashboard-empty">
+      <div className={ui.dashboardEmpty}>
         No families currently listed inside evacuation centers for this filter.
       </div>
     );
   }
 
   return (
-    <div className="ec-info-board-screen space-y-8">
+    <div className="space-y-8">
       {groups.map((group) => (
-        <div key={group.ec_name} className="ec-info-board-group">
+        <div key={group.ec_name}>
           {groups.length > 1 && (
-            <div className="ec-info-board-group-label">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--ph-blue-dark)]">
+            <div className={ui.ecInfoBoardGroupLabel}>
+              <p className="text-xs font-semibold uppercase tracking-wide text-ph-blue-dark">
                 Evacuation Center
               </p>
               <p className="font-semibold text-slate-900">{group.ec_name}</p>

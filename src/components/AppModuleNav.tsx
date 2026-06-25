@@ -2,15 +2,26 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  ClipboardPen,
+  FolderOpen,
+  LayoutDashboard,
+  LogOut,
+  SearchCheck,
+  Settings,
+  type LucideIcon,
+} from "lucide-react";
 import { logoutApp } from "@/lib/app-logout";
+import * as ui from "@/lib/ui";
+import { cn } from "@/lib/cn";
 
-const modules = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/", label: "Encoding" },
-  { href: "/verify", label: "Verifying" },
-  { href: "/admin", label: "Admin" },
-  { href: "/records", label: "Records" },
-] as const;
+const modules: { href: string; label: string; icon: LucideIcon }[] = [
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/", label: "Encoding", icon: ClipboardPen },
+  { href: "/verify", label: "Verifying", icon: SearchCheck },
+  { href: "/admin", label: "Admin", icon: Settings },
+  { href: "/records", label: "Records", icon: FolderOpen },
+];
 
 function isActive(pathname: string, href: string): boolean {
   if (href === "/") return pathname === "/";
@@ -26,19 +37,21 @@ export default function AppModuleNav() {
   }
 
   return (
-    <nav className="app-module-topbar" aria-label="Application modules">
-      <div className="app-module-topbar-inner">
-        <p className="app-module-topbar-kicker">DSWD · Offline DMS</p>
-        <ul className="app-module-topbar-links" role="list">
+    <nav className={ui.topbar} aria-label="Application modules">
+      <div className={ui.topbarInner}>
+        <p className={ui.topbarKicker}>DSWD · Offline DMS</p>
+        <ul className={ui.topbarLinks} role="list">
           {modules.map((module) => {
             const active = isActive(pathname, module.href);
+            const Icon = module.icon;
             return (
               <li key={module.href}>
                 <Link
                   href={module.href}
-                  className={`app-module-topbar-link ${active ? "app-module-topbar-link--active" : ""}`}
+                  className={cn(ui.topbarLinkClass(active), ui.withIcon)}
                   aria-current={active ? "page" : undefined}
                 >
+                  <Icon className={ui.iconSm} aria-hidden />
                   {module.label}
                 </Link>
               </li>
@@ -48,8 +61,9 @@ export default function AppModuleNav() {
             <button
               type="button"
               onClick={() => void handleLogout()}
-              className="app-module-topbar-link app-module-topbar-link--logout"
+              className={cn(ui.topbarLinkLogout, ui.withIcon)}
             >
+              <LogOut className={ui.iconSm} aria-hidden />
               Logout
             </button>
           </li>

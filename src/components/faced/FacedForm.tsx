@@ -46,6 +46,7 @@ import DuplicateCheckAlert from "./DuplicateCheckAlert";
 import DuplicateConfirmDialog from "./DuplicateConfirmDialog";
 import FamilyMemberCard from "./FamilyMemberCard";
 import BrandEmblem from "@/components/brand/BrandEmblem";
+import { SkeletonFormCard, SkeletonScreen } from "@/components/ui/Skeleton";
 import {
   FormField,
   RadioGroup,
@@ -53,6 +54,9 @@ import {
   SuggestionChips,
   TextInput,
 } from "./FormField";
+import * as ui from "@/lib/ui";
+import { cn } from "@/lib/cn";
+import { Loader2, Save, UserPlus, X } from "lucide-react";
 
 const HOUSE_OWNERSHIP_OPTIONS = [
   { value: "owner", label: "Owner" },
@@ -201,6 +205,7 @@ export default function FacedForm({
   );
   const [duplicateAcknowledged, setDuplicateAcknowledged] = useState(false);
   const [duplicateDismissedQuery, setDuplicateDismissedQuery] = useState("");
+  const [recordLoading, setRecordLoading] = useState(Boolean(editId));
   const duplicateQueryRef = useRef("");
 
   function buildDuplicateQuery(): string {
@@ -218,12 +223,14 @@ export default function FacedForm({
 
   useEffect(() => {
     if (isSyncedEdit && syncedInitialRecord && syncedEditUuid) {
+      setRecordLoading(false);
       setEditUuid(syncedEditUuid);
       setForm(normalizeLoadedRecord(syncedInitialRecord));
       return;
     }
 
     if (!editId) {
+      setRecordLoading(false);
       setEditUuid(undefined);
       void getAuthSession().then((session) => {
         setForm(
@@ -235,14 +242,17 @@ export default function FacedForm({
       });
       return;
     }
-    void getFacedRecord(editId).then((record) => {
-      if (record) {
-        setEditUuid(record.uuid);
-        const { id: _id, uuid: _uuid, sync_status: _s, createdAt: _c, updatedAt: _u, ...data } =
-          record;
-        setForm(normalizeLoadedRecord(data));
-      }
-    });
+    setRecordLoading(true);
+    void getFacedRecord(editId)
+      .then((record) => {
+        if (record) {
+          setEditUuid(record.uuid);
+          const { id: _id, uuid: _uuid, sync_status: _s, createdAt: _c, updatedAt: _u, ...data } =
+            record;
+          setForm(normalizeLoadedRecord(data));
+        }
+      })
+      .finally(() => setRecordLoading(false));
   }, [editId, isSyncedEdit, syncedEditUuid, syncedInitialRecord]);
 
   useEffect(() => {
@@ -602,28 +612,36 @@ export default function FacedForm({
     return suggestion ? [suggestion] : [];
   })();
 
+  if (recordLoading) {
+    return (
+      <SkeletonScreen label="Loading FACED record">
+        <SkeletonFormCard fields={8} />
+      </SkeletonScreen>
+    );
+  }
+
   return (
     <>
-      <form onSubmit={handleSubmit} className="faced-form space-y-0">
+      <form onSubmit={handleSubmit} className="space-y-0">
       {/* Form header */}
-      <div className="faced-form-banner mb-4">
+      <div className={cn(ui.formBanner, "mb-4")}>
         <BrandEmblem size={56} className="mx-auto mb-2" />
         <p className="text-xs font-bold uppercase tracking-widest text-zinc-500">
           Republic of the Philippines
         </p>
-        <p className="mt-1 text-sm font-bold text-[var(--ph-blue)]">
+        <p className="mt-1 text-sm font-bold text-ph-blue">
           Department of Social Welfare and Development
         </p>
-        <h2 className="mt-2 text-base font-extrabold uppercase leading-snug text-[var(--ph-blue-dark)]">
+        <h2 className="mt-2 text-base font-extrabold uppercase leading-snug text-ph-blue-dark">
           Family Assistance Card in Emergencies and Disasters
         </h2>
-        <p className="mt-1 inline-block rounded-full bg-[var(--ph-yellow)] px-3 py-0.5 text-xs font-extrabold tracking-wide text-[var(--ph-blue-dark)]">
+        <p className="mt-1 inline-block rounded-full bg-ph-yellow px-3 py-0.5 text-xs font-extrabold tracking-wide text-ph-blue-dark">
           FACED
         </p>
       </div>
 
       <SectionHeader title="Enumerator" />
-      <div className="faced-section-body">
+      <div className={ui.sectionBody}>
         <FormField label="Enumerator Name">
           <TextInput
             value={form.enumerator_name}
@@ -636,7 +654,7 @@ export default function FacedForm({
 
       {/* Location */}
       <SectionHeader title="Location of the Affected Family" />
-      <div className="faced-section-body grid gap-3 sm:grid-cols-2">
+      <div className={cn(ui.sectionBody, "grid gap-3 sm:grid-cols-2")}>
         <FormField label="Region" number="1">
           <TextInput
             value={form.region || SARANGANI_REGION}
@@ -705,7 +723,7 @@ export default function FacedForm({
 
       {/* Head of Family */}
       <SectionHeader title="Head of the Family" />
-      <div className="faced-section-body grid gap-3 sm:grid-cols-2">
+      <div className={cn(ui.sectionBody, "grid gap-3 sm:grid-cols-2")}>
         <FormField label="Last Name" number="7">
           <TextInput
             value={form.head_of_family.last_name}
@@ -859,7 +877,7 @@ export default function FacedForm({
 
       {/* Permanent Address */}
       <SectionHeader title="Permanent Address" number="22" />
-      <div className="faced-section-body grid gap-3 sm:grid-cols-2">
+      <div className={cn(ui.sectionBody, "grid gap-3 sm:grid-cols-2")}>
         <FormField
           label="House/Block/Lot, Street, Subdivision/Village"
           className="sm:col-span-2"
@@ -909,7 +927,7 @@ export default function FacedForm({
 
       {/* Others */}
       <SectionHeader title="Others" />
-      <div className="faced-section-body space-y-3">
+      <div className={cn(ui.sectionBody, "space-y-3")}>
         <label className="flex cursor-pointer items-center gap-2 text-sm">
           <input
             type="checkbox"
@@ -920,7 +938,7 @@ export default function FacedForm({
                 "4ps_beneficiary": e.target.checked,
               })
             }
-            className="h-4 w-4 accent-[var(--faced-blue)]"
+            className="h-4 w-4 accent-ph-blue"
           />
           4Ps Beneficiary
         </label>
@@ -970,11 +988,11 @@ export default function FacedForm({
 
       {/* Family Members */}
       <SectionHeader title="Family Information (Required)" number="25" />
-      <div className="faced-section-body space-y-4">
+      <div className={cn(ui.sectionBody, "space-y-4")}>
         <p className="text-xs text-zinc-600">
           Add each household member below. Name and relationship are required.
         </p>
-        <div className="family-member-list">
+        <div className={ui.familyList}>
           {form.family_members.map((member, index) => (
             <FamilyMemberCard
               key={index}
@@ -986,15 +1004,15 @@ export default function FacedForm({
             />
           ))}
         </div>
-        <button type="button" onClick={addMember} className="family-member-add-btn">
-          <span aria-hidden>+</span>
+        <button type="button" onClick={addMember} className={cn(ui.familyAddBtn, ui.withIcon)}>
+          <UserPlus className={ui.iconMd} aria-hidden />
           Add family member
         </button>
       </div>
 
       {/* Account Information */}
       <SectionHeader title="Account Information" />
-      <div className="faced-section-body grid gap-3 sm:grid-cols-2">
+      <div className={cn(ui.sectionBody, "grid gap-3 sm:grid-cols-2")}>
         <FormField label="Bank/E-Wallet Name" number="26">
           <TextInput
             value={form.account_information.bank_e_wallet_name}
@@ -1043,7 +1061,7 @@ export default function FacedForm({
 
       {/* House Ownership */}
       <SectionHeader title="House Ownership (Required)" number="30" />
-      <div className="faced-section-body">
+      <div className={ui.sectionBody}>
         <RadioGroup
           name="house_ownership"
           options={HOUSE_OWNERSHIP_OPTIONS}
@@ -1057,7 +1075,7 @@ export default function FacedForm({
 
       {/* Shelter Damage */}
       <SectionHeader title="Shelter Damage Classification (Required)" number="31" />
-      <div className="faced-section-body">
+      <div className={ui.sectionBody}>
         <RadioGroup
           name="shelter_damage_classification"
           options={SHELTER_DAMAGE_OPTIONS}
@@ -1073,7 +1091,7 @@ export default function FacedForm({
       </div>
 
       <SectionHeader title="Date Registered" />
-      <div className="faced-section-body">
+      <div className={ui.sectionBody}>
         <FormField label="Date Registered">
           <TextInput
             type="date"
@@ -1084,7 +1102,7 @@ export default function FacedForm({
       </div>
 
       {/* Privacy Declaration */}
-      <div className="faced-section-body border-t border-[var(--faced-blue-border)] bg-[var(--ph-blue-light)]/50 p-4">
+      <div className={cn(ui.sectionBody, "border-t border-faced-blue-border bg-ph-blue-light/50 p-4")}>
         <p className="mb-3 text-xs leading-relaxed text-zinc-700">
           <strong>Data Privacy Declaration:</strong> I hereby declare that the
           information provided is true and correct. I understand that any false
@@ -1099,7 +1117,7 @@ export default function FacedForm({
             onChange={(e) =>
               updateField("privacy_declaration_acknowledged", e.target.checked)
             }
-            className="mt-0.5 h-4 w-4 accent-[var(--faced-blue)]"
+            className="mt-0.5 h-4 w-4 accent-ph-blue"
             required
           />
           I acknowledge and agree to the Data Privacy Declaration
@@ -1107,16 +1125,23 @@ export default function FacedForm({
       </div>
 
       {/* Actions */}
-      <div className="faced-section-body flex flex-wrap gap-3 border-t border-[var(--faced-blue-border)] pt-4">
-        <button type="submit" disabled={saving} className="faced-btn-primary">
-          {saving
-            ? "Saving..."
-            : editId || isSyncedEdit
-              ? "Update record"
-              : "Save FACED record"}
+      <div className={cn(ui.sectionBody, "flex flex-wrap gap-3 border-t border-faced-blue-border pt-4")}>
+        <button type="submit" disabled={saving} className={cn(ui.btnPrimary, ui.withIcon)}>
+          {saving ? (
+            <>
+              <Loader2 className={cn(ui.iconSm, "animate-spin")} aria-hidden />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className={ui.iconSm} aria-hidden />
+              {editId || isSyncedEdit ? "Update record" : "Save FACED record"}
+            </>
+          )}
         </button>
         {(editId || isSyncedEdit) && onCancelEdit && (
-          <button type="button" onClick={onCancelEdit} className="faced-btn-secondary">
+          <button type="button" onClick={onCancelEdit} className={cn(ui.btnSecondary, ui.withIcon)}>
+            <X className={ui.iconSm} aria-hidden />
             Cancel edit
           </button>
         )}

@@ -2,6 +2,18 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  Download,
+  List,
+  Loader2,
+  Lock,
+  RefreshCw,
+  Search,
+  Trash2,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import BrandEmblem from "@/components/brand/BrandEmblem";
 import TricolorBar from "@/components/brand/TricolorBar";
@@ -21,6 +33,13 @@ import {
 } from "@/lib/print/offlineDmsFacedPrint";
 import { openFacedFormPrint } from "@/lib/print/openFacedFormPrint";
 import { exportFacedToExcel, exportRecordsJsonToFacedRecords, type ExportRecordJson } from "@/lib/export-excel";
+import {
+  SkeletonDuplicateList,
+  SkeletonScreen,
+  SkeletonTable,
+} from "@/components/ui/Skeleton";
+import * as ui from "@/lib/ui";
+import { cn } from "@/lib/cn";
 
 const ADMIN_STORAGE_KEY = "dms_admin_password";
 const PAGE_SIZE = 25;
@@ -112,6 +131,8 @@ export default function RecordsPage() {
   const [trashSearch, setTrashSearch] = useState("");
   const [trashSearchInput, setTrashSearchInput] = useState("");
 
+  const [viewOpen, setViewOpen] = useState(false);
+  const [viewLoading, setViewLoading] = useState(false);
   const [viewRecord, setViewRecord] = useState<FacedRecordAdminDetail | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ uuid: string; headName: string } | null>(
     null,
@@ -331,6 +352,9 @@ export default function RecordsPage() {
   async function openView(uuid: string, scope: "active" | "trash" = "active") {
     setMessage("");
     setError("");
+    setViewOpen(true);
+    setViewLoading(true);
+    setViewRecord(null);
     try {
       const query = scope === "trash" ? "?scope=trash" : "";
       const res = await adminFetch(`/api/admin/records/${uuid}${query}`);
@@ -338,8 +362,17 @@ export default function RecordsPage() {
       if (!res.ok) throw new Error(data.error || "Failed to load record.");
       setViewRecord(data.record);
     } catch (err) {
+      setViewOpen(false);
       setError(err instanceof Error ? err.message : "Failed to load record.");
+    } finally {
+      setViewLoading(false);
     }
+  }
+
+  function closeView() {
+    setViewOpen(false);
+    setViewLoading(false);
+    setViewRecord(null);
   }
 
   function requestRestore(uuid: string, headName: string) {
@@ -361,7 +394,7 @@ export default function RecordsPage() {
       if (!res.ok) throw new Error(data.error || "Failed to restore record.");
       setMessage("Record restored.");
       setRestoreTarget(null);
-      if (viewRecord?.uuid === uuid) setViewRecord(null);
+      if (viewRecord?.uuid === uuid) closeView();
       await Promise.all([loadRecords(), loadDuplicates(), loadTrash()]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Restore failed.");
@@ -414,7 +447,7 @@ export default function RecordsPage() {
       if (!res.ok) throw new Error(data.error || "Failed to delete record.");
       setMessage("Record deleted.");
       setDeleteTarget(null);
-      if (viewRecord?.uuid === uuid) setViewRecord(null);
+      if (viewRecord?.uuid === uuid) closeView();
       await Promise.all([loadRecords(), loadDuplicates(), loadTrashCount()]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Delete failed.");
@@ -425,39 +458,49 @@ export default function RecordsPage() {
 
   if (!unlocked) {
     return (
-      <div className="ph-page-bg flex min-h-full flex-col">
-        <div className="ph-app-header py-5 text-center">
+      <div className={cn(ui.pageBg, "flex flex-col")}>
+        <div className={cn(ui.appHeader, "py-5 text-center")}>
           <BrandEmblem size={72} className="mx-auto mb-2" />
-          <p className="ph-kicker text-xs font-bold uppercase">Administration</p>
+          <p className={cn(ui.kicker, "text-xs font-bold uppercase")}>Administration</p>
           <h1 className="text-xl font-bold text-white">FACED Records</h1>
           <TricolorBar thick className="mx-auto mt-4 max-w-xs" />
         </div>
         <div className="flex flex-1 items-center justify-center p-4">
-          <div className="ph-login-card ph-card w-full max-w-md">
-            <div className="faced-section-header justify-center">Admin access</div>
-            <div className="faced-section-body space-y-4 rounded-b-xl border-b border-[var(--faced-blue-border)]">
+          <div className={cn(ui.loginCard, "w-full max-w-md")}>
+            <div className={cn(ui.sectionHeader, "justify-center")}>Admin access</div>
+            <div className={cn(ui.sectionBody, "space-y-4 rounded-b-xl border-b border-faced-blue-border")}>
               <p className="text-sm text-zinc-600">
                 Enter the admin password to view, update, or delete synced FACED records.
               </p>
               <form onSubmit={(e) => void handleUnlock(e)} className="space-y-3">
                 <label className="block">
-                  <span className="faced-label">Admin password</span>
+                  <span className={ui.label}>Admin password</span>
                   <input
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="faced-input"
+                    className={ui.input}
                     autoFocus
                     required
                   />
                 </label>
-                {error && <p className="ph-alert-error">{error}</p>}
-                <button type="submit" className="faced-btn-primary w-full" disabled={loading}>
-                  {loading ? "Verifying..." : "Unlock records"}
+                {error && <p className={ui.alertError}>{error}</p>}
+                <button type="submit" className={cn(ui.btnPrimary, "w-full", ui.withIcon)} disabled={loading}>
+                  {loading ? (
+                    <>
+                      <Loader2 className={cn(ui.iconSm, "animate-spin")} aria-hidden />
+                      Verifying...
+                    </>
+                  ) : (
+                    <>
+                      <Lock className={ui.iconSm} aria-hidden />
+                      Unlock records
+                    </>
+                  )}
                 </button>
               </form>
               <p className="text-center text-xs text-zinc-500">
-                <Link href="/admin" className="ph-link">
+                <Link href="/admin" className={ui.link}>
                   Back to admin
                 </Link>
               </p>
@@ -469,15 +512,15 @@ export default function RecordsPage() {
   }
 
   return (
-    <div className="ph-page-bg min-h-full">
-      <header className="ph-app-header">
+    <div className={ui.pageBg}>
+      <header className={ui.appHeader}>
         <div className="mx-auto max-w-6xl px-4 py-5">
           <div className="flex items-center gap-4">
             <BrandEmblem size={52} className="hidden shrink-0 sm:block" />
             <div>
-              <p className="ph-kicker text-xs font-bold uppercase">DSWD · Offline DMS</p>
+              <p className={cn(ui.kicker, "text-xs font-bold uppercase")}>DSWD · Offline DMS</p>
               <h1 className="text-xl font-bold text-white">FACED records (RUD)</h1>
-              <p className="ph-subtitle text-sm">
+              <p className={cn(ui.subtitle, "text-sm")}>
                 Read, update, and delete synced FACED forms. Export, review duplicates, or restore from trash.
               </p>
             </div>
@@ -488,63 +531,68 @@ export default function RecordsPage() {
 
       <main className="mx-auto max-w-6xl space-y-6 px-4 py-6">
         {(message || error) && (
-          <div className={error ? "ph-alert-error" : "ph-alert-success"}>{error || message}</div>
+          <div className={error ? ui.alertError : ui.alertSuccess}>{error || message}</div>
         )}
 
-        <div className="verify-tabs" role="tablist" aria-label="Records views">
+        <div className={ui.verifyTabs} role="tablist" aria-label="Records views">
           <button
             type="button"
             role="tab"
             aria-selected={activeTab === "records"}
-            className={`verify-tab ${activeTab === "records" ? "verify-tab--active" : ""}`}
+            className={cn(ui.verifyTabClass(activeTab === "records"), ui.withIcon)}
             onClick={() => setActiveTab("records")}
           >
+            <List className={ui.iconSm} aria-hidden />
             All records ({totalRecords})
           </button>
           <button
             type="button"
             role="tab"
             aria-selected={activeTab === "duplicates"}
-            className={`verify-tab ${activeTab === "duplicates" ? "verify-tab--active" : ""}`}
+            className={cn(ui.verifyTabClass(activeTab === "duplicates"), ui.withIcon)}
             onClick={() => setActiveTab("duplicates")}
           >
+            <Copy className={ui.iconSm} aria-hidden />
             Duplicates ({duplicateStats.groupCount || duplicateGroups.length})
           </button>
           <button
             type="button"
             role="tab"
             aria-selected={activeTab === "trash"}
-            className={`verify-tab ${activeTab === "trash" ? "verify-tab--active" : ""}`}
+            className={cn(ui.verifyTabClass(activeTab === "trash"), ui.withIcon)}
             onClick={() => setActiveTab("trash")}
           >
+            <Trash2 className={ui.iconSm} aria-hidden />
             Trash ({totalTrash})
           </button>
         </div>
 
         {activeTab === "records" ? (
-          <section className="ph-card">
-            <div className="faced-section-header flex flex-wrap items-center justify-between gap-2">
+        <section className={ui.card}>
+          <div className={cn(ui.sectionHeader, "flex flex-wrap items-center justify-between gap-2")}>
               <span>Synced FACED records</span>
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={() => void handleExportExcel()}
                   disabled={exporting || loading}
-                  className="record-action-btn record-action-btn--print normal-case tracking-normal"
+                  className={cn(ui.recordActionPrint, "normal-case tracking-normal", ui.withIcon)}
                 >
+                  <Download className={ui.iconSm} aria-hidden />
                   {exporting ? "Exporting…" : "Export Excel"}
                 </button>
                 <button
                   type="button"
                   onClick={() => void loadRecords()}
                   disabled={loading}
-                  className="text-xs font-normal normal-case tracking-normal underline"
+                  className={cn("text-xs font-normal normal-case tracking-normal underline", ui.withIcon)}
                 >
+                  <RefreshCw className={cn(ui.iconSm, loading && "animate-spin")} aria-hidden />
                   Refresh
                 </button>
               </div>
             </div>
-            <div className="border-b border-[var(--faced-blue-border)] bg-[var(--ph-blue-light)]/50 px-4 py-3">
+            <div className="border-b border-faced-blue-border bg-ph-blue-light/50 px-4 py-3">
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -557,15 +605,16 @@ export default function RecordsPage() {
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   placeholder="Search name, barangay, encoder, UUID..."
-                  className="faced-input min-w-[16rem] flex-1"
+                  className={cn(ui.input, "min-w-[16rem] flex-1")}
                 />
-                <button type="submit" className="faced-btn-secondary text-sm">
+                <button type="submit" className={cn(ui.btnSecondary, "text-sm", ui.withIcon)}>
+                  <Search className={ui.iconSm} aria-hidden />
                   Search
                 </button>
               </form>
             </div>
-            <div className="faced-section-body overflow-x-auto p-0">
-              <table className="faced-table w-full min-w-[980px] text-sm">
+            <div className={cn(ui.sectionBody, "overflow-x-auto p-0")}>
+              <table className={cn(ui.table, "w-full min-w-[980px] text-sm")}>
                 <thead>
                   <tr>
                     <th>Head of family</th>
@@ -579,8 +628,10 @@ export default function RecordsPage() {
                 <tbody>
                   {loading && records.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="p-4 text-center text-zinc-500">
-                        Loading records...
+                      <td colSpan={6} className="p-0">
+                        <SkeletonScreen label="Loading records">
+                          <SkeletonTable rows={6} columns={6} />
+                        </SkeletonScreen>
                       </td>
                     </tr>
                   ) : records.length === 0 ? (
@@ -618,7 +669,7 @@ export default function RecordsPage() {
               </table>
             </div>
             {totalRecords > PAGE_SIZE && (
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--faced-blue-border)] px-4 py-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-faced-blue-border px-4 py-3">
                 <p className="text-xs text-zinc-600">
                   Page {page} of {pages} · {totalRecords} total
                 </p>
@@ -627,25 +678,27 @@ export default function RecordsPage() {
                     type="button"
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={page <= 1 || loading}
-                    className="faced-btn-secondary text-xs disabled:opacity-50"
+                    className={cn(ui.btnSecondary, "text-xs disabled:opacity-50", ui.withIcon)}
                   >
+                    <ChevronLeft className={ui.iconSm} aria-hidden />
                     Previous
                   </button>
                   <button
                     type="button"
                     onClick={() => setPage((p) => Math.min(pages, p + 1))}
                     disabled={page >= pages || loading}
-                    className="faced-btn-secondary text-xs disabled:opacity-50"
+                    className={cn(ui.btnSecondary, "text-xs disabled:opacity-50", ui.withIcon)}
                   >
                     Next
+                    <ChevronRight className={ui.iconSm} aria-hidden />
                   </button>
                 </div>
               </div>
             )}
           </section>
         ) : activeTab === "duplicates" ? (
-          <section className="ph-card">
-            <div className="faced-section-header flex flex-wrap items-center justify-between gap-2">
+        <section className={ui.card}>
+          <div className={cn(ui.sectionHeader, "flex flex-wrap items-center justify-between gap-2")}>
               <span>
                 Possible duplicates ({filteredDuplicateStats.groupCount} groups ·{" "}
                 {filteredDuplicateStats.totalDuplicates} records
@@ -660,12 +713,13 @@ export default function RecordsPage() {
                 type="button"
                 onClick={() => void loadDuplicates()}
                 disabled={duplicatesLoading}
-                className="text-xs font-normal normal-case tracking-normal underline"
+                className={cn("text-xs font-normal normal-case tracking-normal underline", ui.withIcon)}
               >
+                <RefreshCw className={cn(ui.iconSm, duplicatesLoading && "animate-spin")} aria-hidden />
                 Refresh
               </button>
             </div>
-            <div className="border-b border-[var(--faced-blue-border)] bg-[var(--ph-blue-light)]/50 px-4 py-3">
+            <div className="border-b border-faced-blue-border bg-ph-blue-light/50 px-4 py-3">
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -678,9 +732,10 @@ export default function RecordsPage() {
                   value={duplicateSearchInput}
                   onChange={(e) => setDuplicateSearchInput(e.target.value)}
                   placeholder="Search name, barangay, encoder, birthdate..."
-                  className="faced-input min-w-[16rem] flex-1"
+                  className={cn(ui.input, "min-w-[16rem] flex-1")}
                 />
-                <button type="submit" className="faced-btn-secondary text-sm">
+                <button type="submit" className={cn(ui.btnSecondary, "text-sm", ui.withIcon)}>
+                  <Search className={ui.iconSm} aria-hidden />
                   Search
                 </button>
                 {duplicateSearch ? (
@@ -690,16 +745,18 @@ export default function RecordsPage() {
                       setDuplicateSearch("");
                       setDuplicateSearchInput("");
                     }}
-                    className="faced-btn-secondary text-sm"
+                    className={cn(ui.btnSecondary, "text-sm")}
                   >
                     Clear
                   </button>
                 ) : null}
               </form>
             </div>
-            <div className="faced-section-body space-y-4">
+            <div className={cn(ui.sectionBody, "space-y-4")}>
               {duplicatesLoading && duplicateGroups.length === 0 ? (
-                <p className="text-sm text-zinc-500">Loading duplicates...</p>
+                <SkeletonScreen label="Loading duplicates">
+                  <SkeletonDuplicateList groups={3} />
+                </SkeletonScreen>
               ) : duplicateGroups.length === 0 ? (
                 <p className="text-sm text-zinc-500">No duplicate names found in synced records.</p>
               ) : filteredDuplicateGroups.length === 0 ? (
@@ -708,10 +765,10 @@ export default function RecordsPage() {
                 filteredDuplicateGroups.map((group) => (
                   <article
                     key={group.key}
-                    className="overflow-hidden rounded-lg border border-amber-300/60 bg-[var(--ph-yellow-light)]/40"
+                    className="overflow-hidden rounded-lg border border-amber-300/60 bg-ph-yellow-light/40"
                   >
                     <div className="border-b border-amber-300/40 bg-amber-100/50 px-4 py-2">
-                      <p className="font-bold text-[var(--ph-blue-dark)]">
+                      <p className="font-bold text-ph-blue-dark">
                         {group.last_name}, {group.first_name}
                       </p>
                       <p className="text-xs text-amber-900/80">
@@ -749,19 +806,20 @@ export default function RecordsPage() {
             </div>
           </section>
         ) : (
-          <section className="ph-card">
-            <div className="faced-section-header flex flex-wrap items-center justify-between gap-2">
+        <section className={ui.card}>
+          <div className={cn(ui.sectionHeader, "flex flex-wrap items-center justify-between gap-2")}>
               <span>Deleted records ({totalTrash})</span>
               <button
                 type="button"
                 onClick={() => void loadTrash()}
                 disabled={trashLoading}
-                className="text-xs font-normal normal-case tracking-normal underline"
+                className={cn("text-xs font-normal normal-case tracking-normal underline", ui.withIcon)}
               >
+                <RefreshCw className={cn(ui.iconSm, trashLoading && "animate-spin")} aria-hidden />
                 Refresh
               </button>
             </div>
-            <div className="border-b border-[var(--faced-blue-border)] bg-[var(--ph-blue-light)]/50 px-4 py-3">
+            <div className="border-b border-faced-blue-border bg-ph-blue-light/50 px-4 py-3">
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -774,9 +832,10 @@ export default function RecordsPage() {
                   value={trashSearchInput}
                   onChange={(e) => setTrashSearchInput(e.target.value)}
                   placeholder="Search deleted records..."
-                  className="faced-input min-w-[16rem] flex-1"
+                  className={cn(ui.input, "min-w-[16rem] flex-1")}
                 />
-                <button type="submit" className="faced-btn-secondary text-sm">
+                <button type="submit" className={cn(ui.btnSecondary, "text-sm", ui.withIcon)}>
+                  <Search className={ui.iconSm} aria-hidden />
                   Search
                 </button>
                 {trashSearch ? (
@@ -786,15 +845,15 @@ export default function RecordsPage() {
                       setTrashSearch("");
                       setTrashSearchInput("");
                     }}
-                    className="faced-btn-secondary text-sm"
+                    className={cn(ui.btnSecondary, "text-sm")}
                   >
                     Clear
                   </button>
                 ) : null}
               </form>
             </div>
-            <div className="faced-section-body overflow-x-auto p-0">
-              <table className="faced-table w-full min-w-[900px] text-sm">
+            <div className={cn(ui.sectionBody, "overflow-x-auto p-0")}>
+              <table className={cn(ui.table, "w-full min-w-[900px] text-sm")}>
                 <thead>
                   <tr>
                     <th>Head of family</th>
@@ -807,8 +866,10 @@ export default function RecordsPage() {
                 <tbody>
                   {trashLoading && trashRecords.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="p-4 text-center text-zinc-500">
-                        Loading trash...
+                      <td colSpan={5} className="p-0">
+                        <SkeletonScreen label="Loading deleted records">
+                          <SkeletonTable rows={5} columns={5} />
+                        </SkeletonScreen>
                       </td>
                     </tr>
                   ) : trashRecords.length === 0 ? (
@@ -844,7 +905,7 @@ export default function RecordsPage() {
               </table>
             </div>
             {totalTrash > PAGE_SIZE && (
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--faced-blue-border)] px-4 py-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-faced-blue-border px-4 py-3">
                 <p className="text-xs text-zinc-600">
                   Page {trashPage} of {trashPages} · {totalTrash} total
                 </p>
@@ -853,17 +914,19 @@ export default function RecordsPage() {
                     type="button"
                     onClick={() => setTrashPage((p) => Math.max(1, p - 1))}
                     disabled={trashPage <= 1 || trashLoading}
-                    className="faced-btn-secondary text-xs disabled:opacity-50"
+                    className={cn(ui.btnSecondary, "text-xs disabled:opacity-50", ui.withIcon)}
                   >
+                    <ChevronLeft className={ui.iconSm} aria-hidden />
                     Previous
                   </button>
                   <button
                     type="button"
                     onClick={() => setTrashPage((p) => Math.min(trashPages, p + 1))}
                     disabled={trashPage >= trashPages || trashLoading}
-                    className="faced-btn-secondary text-xs disabled:opacity-50"
+                    className={cn(ui.btnSecondary, "text-xs disabled:opacity-50", ui.withIcon)}
                   >
                     Next
+                    <ChevronRight className={ui.iconSm} aria-hidden />
                   </button>
                 </div>
               </div>
@@ -872,13 +935,15 @@ export default function RecordsPage() {
         )}
       </main>
 
-      {viewRecord && (
+      {viewOpen && (
         <FacedRecordViewModal
+          loading={viewLoading}
           record={viewRecord}
-          onClose={() => setViewRecord(null)}
+          onClose={closeView}
           onEdit={() => {
+            if (!viewRecord) return;
             const uuid = viewRecord.uuid;
-            setViewRecord(null);
+            closeView();
             goToEdit(uuid);
           }}
         />
