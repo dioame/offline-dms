@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   getStoredSession,
   loginWithCode,
-  logout,
   validateStoredSessionOnline,
 } from "@/lib/auth-client";
 import BrandEmblem from "@/components/brand/BrandEmblem";
@@ -78,14 +77,6 @@ export default function LoginGate({ children }: LoginGateProps) {
     } finally {
       setLoading(false);
     }
-  }
-
-  async function handleLogout() {
-    await logout();
-    setAuthenticated(false);
-    setSessionCode(null);
-    setCode("");
-    setError("");
   }
 
   if (!ready) {
@@ -172,13 +163,6 @@ export default function LoginGate({ children }: LoginGateProps) {
             Signed in ·{" "}
             <span className="font-mono font-bold text-[var(--ph-blue)]">{sessionCode}</span>
           </span>
-          <button
-            type="button"
-            onClick={() => void handleLogout()}
-            className="font-semibold text-[var(--ph-red)] hover:underline"
-          >
-            Sign out
-          </button>
         </div>
       </div>
       {children}

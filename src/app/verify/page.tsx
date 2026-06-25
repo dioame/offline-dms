@@ -2,7 +2,6 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import AppNavTabs from "@/components/AppNavTabs";
 import BrandEmblem from "@/components/brand/BrandEmblem";
 import TricolorBar from "@/components/brand/TricolorBar";
 import {
@@ -400,9 +399,6 @@ export default function VerifyPage() {
             <p className="ph-subtitle mx-auto mt-2 max-w-md text-sm">
               Check for duplicate beneficiaries or export synced FACED records by area.
             </p>
-            <div className="mt-4 flex justify-center">
-              <AppNavTabs />
-            </div>
           </div>
           <TricolorBar thick />
         </header>
@@ -458,7 +454,6 @@ export default function VerifyPage() {
                 Check duplicates before encoding, or download synced records by
                 municipality and barangay.
               </p>
-              <AppNavTabs />
             </div>
           </div>
         </div>

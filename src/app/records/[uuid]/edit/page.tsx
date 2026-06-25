@@ -182,9 +182,6 @@ export default function RecordEditPage() {
             <Link href="/records" className="ph-header-btn">
               Back to records
             </Link>
-            <Link href="/admin" className="ph-header-btn">
-              Admin
-            </Link>
           </div>
         </div>
         <TricolorBar thick />

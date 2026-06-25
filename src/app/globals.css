@@ -938,6 +938,86 @@ body {
   color: var(--ph-blue-dark);
 }
 
+.app-module-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 45;
+  border-bottom: 2px solid var(--ph-yellow);
+  background: #0a2d6e;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.app-module-topbar-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin: 0 auto;
+  max-width: 72rem;
+  padding: 0.5rem 1rem;
+}
+
+.app-module-topbar-kicker {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.app-module-topbar-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.app-module-topbar-link {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 0.375rem;
+  border: 1px solid transparent;
+  padding: 0.4rem 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.88);
+  text-decoration: none;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+
+.app-module-topbar-link:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: white;
+}
+
+.app-module-topbar-link--active {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(253, 185, 19, 0.65);
+  color: white;
+  font-weight: 700;
+}
+
+.app-module-topbar-link--logout {
+  border-color: rgba(252, 165, 165, 0.45);
+  color: #fecaca;
+  cursor: pointer;
+  font: inherit;
+}
+
+.app-module-topbar-link--logout:hover {
+  background: rgba(220, 38, 38, 0.22);
+  border-color: rgba(252, 165, 165, 0.65);
+  color: white;
+}
+
 .app-nav-tabs {
   display: flex;
   flex-wrap: wrap;

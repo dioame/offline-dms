@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import FacedForm from "@/components/faced/FacedForm";
 import FacedRecordList from "@/components/FacedRecordList";
 import LoginGate from "@/components/LoginGate";
-import AppNavTabs from "@/components/AppNavTabs";
 import OfflineIndicator from "@/components/OfflineIndicator";
 import BrandEmblem from "@/components/brand/BrandEmblem";
 import TricolorBar from "@/components/brand/TricolorBar";
@@ -36,7 +35,6 @@ export default function HomePage() {
                     Collect FACED survey records offline on this device. Data is stored
                     locally, exported to Excel, and synced online when connected.
                   </p>
-                  <AppNavTabs />
                 </div>
               </div>
               <OfflineIndicator />
