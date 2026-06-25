@@ -296,15 +296,6 @@ export default function RecordsPage() {
     }
   }
 
-  function handleLock() {
-    sessionStorage.removeItem(ADMIN_STORAGE_KEY);
-    setUnlocked(false);
-    setRecords([]);
-    setDuplicateGroups([]);
-    setTrashRecords([]);
-    setViewRecord(null);
-  }
-
   async function handleExportExcel() {
     setMessage("");
     setError("");
@@ -480,7 +471,7 @@ export default function RecordsPage() {
   return (
     <div className="ph-page-bg min-h-full">
       <header className="ph-app-header">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mx-auto max-w-6xl px-4 py-5">
           <div className="flex items-center gap-4">
             <BrandEmblem size={52} className="hidden shrink-0 sm:block" />
             <div>
@@ -490,11 +481,6 @@ export default function RecordsPage() {
                 Read, update, and delete synced FACED forms. Export, review duplicates, or restore from trash.
               </p>
             </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={handleLock} className="ph-header-btn ph-header-btn--danger">
-              Lock
-            </button>
           </div>
         </div>
         <TricolorBar thick />

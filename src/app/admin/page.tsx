@@ -326,18 +326,6 @@ export default function AdminPage() {
     }
   }
 
-  function handleLock() {
-    sessionStorage.removeItem(ADMIN_STORAGE_KEY);
-    setUnlocked(false);
-    setCodes([]);
-    setDrafts({});
-    setGeneratedCodes([]);
-    setSummaries([]);
-    setSummaryTotals(null);
-    setRecordsMetrics(null);
-    setDailyEncode([]);
-  }
-
   function updateDraft(code: string, field: keyof AssigneeDraft, value: string) {
     setDrafts((prev) => ({
       ...prev,
@@ -584,7 +572,7 @@ export default function AdminPage() {
   return (
     <div className="ph-page-bg min-h-full">
       <header className="ph-app-header">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mx-auto max-w-6xl px-4 py-5">
           <div className="flex items-center gap-4">
             <BrandEmblem size={52} className="hidden shrink-0 sm:block" />
             <div>
@@ -594,11 +582,6 @@ export default function AdminPage() {
                 Generate codes and assign each one to an enumerator.
               </p>
             </div>
-          </div>
-          <div className="flex gap-2">
-            <button type="button" onClick={handleLock} className="ph-header-btn ph-header-btn--danger">
-              Lock admin
-            </button>
           </div>
         </div>
         <TricolorBar thick />

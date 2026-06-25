@@ -41,6 +41,7 @@ export const EDUCATIONAL_ATTAINMENT_LEVELS = [
   "High School Graduate",
   "Senior High Level",
   "Senior High Graduate",
+  "Vocational",
   "College Level",
   "College Graduate",
   "Post Graduate",

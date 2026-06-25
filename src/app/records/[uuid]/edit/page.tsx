@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import BrandEmblem from "@/components/brand/BrandEmblem";
 import TricolorBar from "@/components/brand/TricolorBar";
@@ -152,11 +151,6 @@ export default function RecordEditPage() {
                   {loading ? "Verifying..." : "Unlock editor"}
                 </button>
               </form>
-              <p className="text-center text-xs text-zinc-500">
-                <Link href="/records" className="ph-link">
-                  Back to records
-                </Link>
-              </p>
             </div>
           </div>
         </div>
@@ -167,7 +161,7 @@ export default function RecordEditPage() {
   return (
     <div className="ph-page-bg min-h-full">
       <header className="ph-app-header">
-        <div className="mx-auto flex max-w-4xl flex-col gap-3 px-4 py-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mx-auto max-w-4xl px-4 py-5">
           <div className="flex items-center gap-4">
             <BrandEmblem size={52} className="hidden shrink-0 sm:block" />
             <div>
@@ -177,11 +171,6 @@ export default function RecordEditPage() {
                 Update synced form details. Changes are saved directly to the server.
               </p>
             </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Link href="/records" className="ph-header-btn">
-              Back to records
-            </Link>
           </div>
         </div>
         <TricolorBar thick />

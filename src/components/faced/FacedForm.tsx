@@ -27,6 +27,7 @@ import { checkEncodingDuplicates } from "@/lib/encode-duplicate-check";
 import {
   barangayOptions,
   birthplaceSuggestion,
+  evacuationSiteSuggestions,
   municipalityOptions,
   SARANGANI_PROVINCE,
   SARANGANI_REGION,
@@ -693,6 +694,10 @@ export default function FacedForm({
               value={form.evacuation_center_site}
               onChange={(e) => updateField("evacuation_center_site", e.target.value)}
               placeholder="Name of evacuation center or site"
+            />
+            <SuggestionChips
+              suggestions={evacuationSiteSuggestions(form.city_municipality)}
+              onSelect={(value) => updateField("evacuation_center_site", value)}
             />
           </FormField>
         )}

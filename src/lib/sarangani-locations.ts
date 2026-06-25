@@ -173,6 +173,41 @@ export const SARANGANI_BARANGAYS: Record<SaranganiMunicipality, readonly string[
   ],
 };
 
+export const GLAN_EVACUATION_SITE_SUGGESTIONS = [
+  "Big Margus Gym",
+  "Tonga Lim Siao Jr. Integrated School Evacuation Site",
+  "Miasong Integrated School",
+  "Pangyan Plaza Evacuation Center",
+  "Purok Lapuville Evacuation Center",
+  "Glan Municipal Plaza (Tent City)",
+  "Glan Central Integrated School",
+  "Severino Ibon Sr. Elementary School",
+] as const;
+
+export const MALAPATAN_EVACUATION_SITE_SUGGESTIONS = [
+  "Poblacion Municipal Gym",
+  "Purok 4&5 Poblacion",
+  "Akbungkod",
+  "Libi Integrated School",
+  "Calay IP School",
+  "Mamanawa Elementary School",
+  "Barangay Covered Court",
+  "Datu Pangolima Integrated School",
+  "Gufaya",
+  "Malapatan Central Elem. School",
+] as const;
+
+export function evacuationSiteSuggestions(cityMunicipality: string): readonly string[] {
+  const municipality = cityMunicipality.trim().toLowerCase();
+  if (municipality === "glan") {
+    return GLAN_EVACUATION_SITE_SUGGESTIONS;
+  }
+  if (municipality === "malapatan") {
+    return MALAPATAN_EVACUATION_SITE_SUGGESTIONS;
+  }
+  return [];
+}
+
 export function municipalityOptions() {
   return SARANGANI_MUNICIPALITIES.map((m) => ({ value: m, label: m }));
 }
