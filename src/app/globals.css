@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import "../styles/print-faced.css";
 
 :root {
   /* Philippines flag palette */
@@ -141,6 +140,12 @@ body {
 .faced-form .faced-section-body:last-of-type {
   border-bottom: 1px solid var(--faced-blue-border);
   border-radius: 0 0 0.5rem 0.5rem;
+}
+
+.faced-form .faced-field {
+  display: block;
+  min-height: unset;
+  text-align: inherit;
 }
 
 .faced-label {
