@@ -583,7 +583,7 @@ export default function AdminPage() {
   return (
     <div className="ph-page-bg min-h-full">
       <header className="ph-app-header">
-        <div className="mx-auto max-w-6xl px-4 py-5">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <BrandEmblem size={52} className="hidden shrink-0 sm:block" />
             <div>
@@ -593,6 +593,14 @@ export default function AdminPage() {
                 Generate codes and assign each one to an enumerator.
               </p>
             </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/dashboard" className="ph-header-btn">
+              Dashboard
+            </Link>
+            <Link href="/records" className="ph-header-btn">
+              Records
+            </Link>
           </div>
         </div>
         <TricolorBar thick />

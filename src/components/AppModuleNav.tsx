@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { logoutApp } from "@/lib/app-logout";
 
 const modules = [
+  { href: "/dashboard", label: "Dashboard" },
   { href: "/", label: "Encoding" },
   { href: "/verify", label: "Verifying" },
   { href: "/admin", label: "Admin" },
