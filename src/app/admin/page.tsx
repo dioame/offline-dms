@@ -5,6 +5,7 @@ import Link from "next/link";
 import BrandEmblem from "@/components/brand/BrandEmblem";
 import TricolorBar from "@/components/brand/TricolorBar";
 import DailyEncodeTracker, { type DailyEncodeStat } from "@/components/admin/DailyEncodeTracker";
+import { SARANGANI_MUNICIPALITIES } from "@/lib/sarangani-locations";
 import { exportAccessCodesToExcel, exportFacedToExcel } from "@/lib/export-excel";
 import type { FacedRecord } from "@/lib/faced-types";
 
@@ -182,6 +183,7 @@ export default function AdminPage() {
   const [summaryTotals, setSummaryTotals] = useState<EnumeratorSummaryTotals | null>(null);
   const [recordsMetrics, setRecordsMetrics] = useState<RecordsAdminMetrics | null>(null);
   const [dailyEncode, setDailyEncode] = useState<DailyEncodeStat[]>([]);
+  const [statsMunicipality, setStatsMunicipality] = useState("");
   const [statsLoading, setStatsLoading] = useState(false);
   const [summaryPage, setSummaryPage] = useState(1);
   const [codesPage, setCodesPage] = useState(1);
@@ -236,7 +238,12 @@ export default function AdminPage() {
   const loadStats = useCallback(async () => {
     setStatsLoading(true);
     try {
-      const res = await adminFetch("/api/admin/stats");
+      const params = new URLSearchParams();
+      if (statsMunicipality.trim()) {
+        params.set("municipality", statsMunicipality.trim());
+      }
+      const query = params.toString();
+      const res = await adminFetch(`/api/admin/stats${query ? `?${query}` : ""}`);
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || "Failed to load stats.");
@@ -254,17 +261,21 @@ export default function AdminPage() {
     } finally {
       setStatsLoading(false);
     }
-  }, [adminFetch]);
+  }, [adminFetch, statsMunicipality]);
 
   const refreshAdminData = useCallback(async () => {
     await Promise.all([loadCodes(), loadStats()]);
   }, [loadCodes, loadStats]);
 
   useEffect(() => {
-    if (unlocked) {
-      void refreshAdminData();
-    }
-  }, [unlocked, refreshAdminData]);
+    if (!unlocked) return;
+    void loadCodes();
+  }, [unlocked, loadCodes]);
+
+  useEffect(() => {
+    if (!unlocked) return;
+    void loadStats();
+  }, [unlocked, statsMunicipality, loadStats]);
 
   const filteredCodes = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -617,6 +628,29 @@ export default function AdminPage() {
             </div>
           </div>
           <div className="faced-section-body space-y-4">
+            <div className="border-b border-[var(--faced-blue-border)] bg-[var(--ph-blue-light)]/50 px-4 py-3">
+              <label className="block max-w-xs">
+                <span className="faced-label">Municipality</span>
+                <select
+                  className="faced-input mt-1"
+                  value={statsMunicipality}
+                  onChange={(e) => setStatsMunicipality(e.target.value)}
+                  disabled={statsLoading}
+                >
+                  <option value="">All municipalities</option>
+                  {SARANGANI_MUNICIPALITIES.map((municipality) => (
+                    <option key={municipality} value={municipality}>
+                      {municipality}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {statsMunicipality ? (
+                <p className="mt-2 text-xs text-zinc-600">
+                  Showing statistics for <span className="font-semibold">{statsMunicipality}</span>
+                </p>
+              ) : null}
+            </div>
             {statsLoading && summaries.length === 0 ? (
               <p className="text-sm text-zinc-500">Loading summary...</p>
             ) : summaryTotals ? (

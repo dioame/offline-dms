@@ -1,5 +1,33 @@
 import { ensureTursoSchema, getTursoClient } from "./turso";
 import { backfillFacedRecordAccessCodes } from "./backfill-access-codes";
+import { isSaranganiMunicipality } from "./sarangani-locations";
+
+export type AdminStatsFilter = {
+  municipality?: string;
+};
+
+function normMunicipality(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function resolveMunicipalityFilter(filter: AdminStatsFilter = {}): string | undefined {
+  const municipality = filter.municipality?.trim();
+  if (!municipality || !isSaranganiMunicipality(municipality)) {
+    return undefined;
+  }
+  return municipality;
+}
+
+function municipalitySql(filter: AdminStatsFilter = {}): { clause: string; args: string[] } {
+  const municipality = resolveMunicipalityFilter(filter);
+  if (!municipality) {
+    return { clause: "", args: [] };
+  }
+  return {
+    clause: " AND LOWER(TRIM(city_municipality)) = ?",
+    args: [normMunicipality(municipality)],
+  };
+}
 
 export type EnumeratorSummary = {
   access_code: string;
@@ -50,10 +78,14 @@ function buildDailyRange(days: number): string[] {
   return result;
 }
 
-export async function getDailyEncodeStats(days = 30): Promise<DailyEncodeStat[]> {
+export async function getDailyEncodeStats(
+  days = 30,
+  filter: AdminStatsFilter = {},
+): Promise<DailyEncodeStat[]> {
   const safeDays = Math.min(90, Math.max(7, days));
   await ensureTursoSchema();
   const db = getTursoClient();
+  const { clause, args } = municipalitySql(filter);
 
   const range = buildDailyRange(safeDays);
   const startDate = range[0];
@@ -64,9 +96,10 @@ export async function getDailyEncodeStats(days = 30): Promise<DailyEncodeStat[]>
       FROM faced_records
       WHERE deleted_at IS NULL
         AND substr(created_at, 1, 10) >= ?
+        ${clause}
       GROUP BY day
     `,
-    args: [startDate],
+    args: [startDate, ...args],
   });
 
   const counts = new Map<string, number>();
@@ -82,9 +115,13 @@ export async function getDailyEncodeStats(days = 30): Promise<DailyEncodeStat[]>
   }));
 }
 
-export async function getRecordsAdminMetrics(): Promise<RecordsAdminMetrics> {
+export async function getRecordsAdminMetrics(
+  filter: AdminStatsFilter = {},
+): Promise<RecordsAdminMetrics> {
   await ensureTursoSchema();
   const db = getTursoClient();
+  const { clause, args } = municipalitySql(filter);
+  const deletedClause = clause.replace(/city_municipality/g, "fr.city_municipality");
 
   const [groupsResult, recordsResult, softDeletedResult] = await Promise.all([
     db.execute({
@@ -96,12 +133,14 @@ export async function getRecordsAdminMetrics(): Promise<RecordsAdminMetrics> {
           WHERE deleted_at IS NULL
             AND TRIM(json_extract(payload, '$.head_of_family.first_name')) != ''
             AND TRIM(json_extract(payload, '$.head_of_family.last_name')) != ''
+            ${clause}
           GROUP BY
             LOWER(TRIM(json_extract(payload, '$.head_of_family.first_name'))),
             LOWER(TRIM(json_extract(payload, '$.head_of_family.last_name')))
           HAVING COUNT(*) > 1
         )
       `,
+      args,
     }),
     db.execute({
       sql: `
@@ -113,6 +152,7 @@ export async function getRecordsAdminMetrics(): Promise<RecordsAdminMetrics> {
           WHERE deleted_at IS NULL
             AND TRIM(json_extract(payload, '$.head_of_family.first_name')) != ''
             AND TRIM(json_extract(payload, '$.head_of_family.last_name')) != ''
+            ${clause}
           GROUP BY first_name, last_name
           HAVING COUNT(*) > 1
         )
@@ -122,10 +162,18 @@ export async function getRecordsAdminMetrics(): Promise<RecordsAdminMetrics> {
           dk.first_name = LOWER(TRIM(json_extract(fr.payload, '$.head_of_family.first_name')))
           AND dk.last_name = LOWER(TRIM(json_extract(fr.payload, '$.head_of_family.last_name')))
         WHERE fr.deleted_at IS NULL
+          ${deletedClause}
       `,
+      args: [...args, ...args],
     }),
     db.execute({
-      sql: `SELECT COUNT(*) AS soft_deleted FROM faced_records WHERE deleted_at IS NOT NULL`,
+      sql: `
+        SELECT COUNT(*) AS soft_deleted
+        FROM faced_records
+        WHERE deleted_at IS NOT NULL
+        ${clause}
+      `,
+      args,
     }),
   ]);
 
@@ -136,12 +184,16 @@ export async function getRecordsAdminMetrics(): Promise<RecordsAdminMetrics> {
   };
 }
 
-export async function getEnumeratorSummaries(): Promise<{
+export async function getEnumeratorSummaries(
+  filter: AdminStatsFilter = {},
+): Promise<{
   summaries: EnumeratorSummary[];
   totals: EnumeratorSummaryTotals;
 }> {
   await ensureTursoSchema();
   const db = getTursoClient();
+  const { clause, args } = municipalitySql(filter);
+  const municipality = resolveMunicipalityFilter(filter);
 
   await backfillFacedRecordAccessCodes(db);
 
@@ -165,34 +217,44 @@ export async function getEnumeratorSummaries(): Promise<{
           FROM faced_records
           WHERE TRIM(access_code) != ''
             AND deleted_at IS NULL
+            ${clause}
           GROUP BY access_code
         ) fr ON fr.access_code = ac.code
         ORDER BY total_encoded DESC, ac.code ASC
       `,
+      args,
     }),
     db.execute({
-      sql: `SELECT COUNT(*) AS total_encoded FROM faced_records WHERE deleted_at IS NULL`,
+      sql: `
+        SELECT COUNT(*) AS total_encoded
+        FROM faced_records
+        WHERE deleted_at IS NULL
+        ${clause}
+      `,
+      args,
     }),
   ]);
 
-  const summaries: EnumeratorSummary[] = codeResult.rows.map((row) => {
-    const name = row.enumerator_name ? String(row.enumerator_name).trim() : "";
-    const email = row.enumerator_email ? String(row.enumerator_email).trim() : null;
-    const status = String(row.status);
+  const summaries: EnumeratorSummary[] = codeResult.rows
+    .map((row) => {
+      const name = row.enumerator_name ? String(row.enumerator_name).trim() : "";
+      const email = row.enumerator_email ? String(row.enumerator_email).trim() : null;
+      const status = String(row.status);
 
-    return {
-      access_code: String(row.access_code),
-      enumerator_name: name || email || "Unassigned",
-      enumerator_email: email,
-      total_encoded: Number(row.total_encoded),
-      total_codes: 1,
-      active_codes: status === "active" ? 1 : 0,
-      used_codes: status === "used" ? 1 : 0,
-      rejected_codes: status === "rejected" ? 1 : 0,
-      last_encoded_at: row.last_encoded_at ? String(row.last_encoded_at) : null,
-      last_used_at: row.last_used_at ? String(row.last_used_at) : null,
-    };
-  });
+      return {
+        access_code: String(row.access_code),
+        enumerator_name: name || email || "Unassigned",
+        enumerator_email: email,
+        total_encoded: Number(row.total_encoded),
+        total_codes: 1,
+        active_codes: status === "active" ? 1 : 0,
+        used_codes: status === "used" ? 1 : 0,
+        rejected_codes: status === "rejected" ? 1 : 0,
+        last_encoded_at: row.last_encoded_at ? String(row.last_encoded_at) : null,
+        last_used_at: row.last_used_at ? String(row.last_used_at) : null,
+      };
+    })
+    .filter((row) => !municipality || row.total_encoded > 0);
 
   const totals = summaries.reduce<EnumeratorSummaryTotals>(
     (acc, row) => ({

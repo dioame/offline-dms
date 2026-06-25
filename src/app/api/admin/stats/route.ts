@@ -28,12 +28,16 @@ export async function GET(request: Request) {
   if (denied) return denied;
 
   try {
+    const url = new URL(request.url);
+    const municipality = url.searchParams.get("municipality")?.trim() || undefined;
+    const filter = municipality ? { municipality } : {};
+
     const [data, records, dailyEncode] = await Promise.all([
-      getEnumeratorSummaries(),
-      getRecordsAdminMetrics(),
-      getDailyEncodeStats(30),
+      getEnumeratorSummaries(filter),
+      getRecordsAdminMetrics(filter),
+      getDailyEncodeStats(30, filter),
     ]);
-    return NextResponse.json({ ...data, records, daily_encode: dailyEncode });
+    return NextResponse.json({ ...data, records, daily_encode: dailyEncode, municipality: municipality ?? null });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to load stats.";
     return NextResponse.json({ error: message }, { status: 500 });
