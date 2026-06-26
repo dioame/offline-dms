@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ClipboardList,
   Home,
@@ -11,9 +11,10 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
-import type { ReportsBundle } from "@/lib/dashboard-types";
+import type { InsideEcGroup, ReportsBundle } from "@/lib/dashboard-types";
 import { loadCityMunFilter, saveCityMunFilter } from "@/lib/dashboard-city-filter";
-import { EcInfoBoardGroups } from "@/components/dashboard/EcInfoBoardReport";
+import EcInfoBoardReport, { EcInfoBoardGroups } from "@/components/dashboard/EcInfoBoardReport";
+import type { ReportNavItem } from "@/components/dashboard/DashboardReportNavigator";
 import { SkeletonDashboard, SkeletonScreen } from "@/components/ui/Skeleton";
 import * as ui from "@/lib/ui";
 import { cn } from "@/lib/cn";
@@ -303,11 +304,10 @@ export default function DashboardReports() {
                         </tr>
                       </tbody>
                     </table>
-                    </div>
                   </div>
-                ))}
-              </div>
-            </>
+                </div>
+              ))}
+            </div>
           )}
         </section>
       )}
@@ -591,7 +591,6 @@ export default function DashboardReports() {
           </div>
         </section>
       )}
-      </div>
     </div>
   );
 }

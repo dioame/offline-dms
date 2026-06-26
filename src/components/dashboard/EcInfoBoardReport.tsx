@@ -3,6 +3,9 @@
 import { useMemo } from "react";
 import type { AgeRow, InfoBoardGroup, SectoralRow } from "@/lib/dashboard-types";
 import { SARANGANI_REGION } from "@/lib/sarangani-locations";
+import type { ReportNavItem } from "@/components/dashboard/DashboardReportNavigator";
+import { cn } from "@/lib/cn";
+import * as ui from "@/lib/ui";
 
 type CountTotals = {
   male_cum: number;
