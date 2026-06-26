@@ -15,6 +15,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { InsideEcGroup, ReportsBundle } from "@/lib/dashboard-types";
+import { formatDisplayBarangay } from "@/lib/sarangani-locations";
 import { loadCityMunFilter, saveCityMunFilter } from "@/lib/dashboard-city-filter";
 import EcInfoBoardReport, { EcInfoBoardGroups } from "@/components/dashboard/EcInfoBoardReport";
 import DashboardReportNavigator from "@/components/dashboard/DashboardReportNavigator";
@@ -350,7 +351,9 @@ export default function DashboardReports() {
                             key={row.barangay}
                             className={index % 2 === 0 ? ui.ecBoardRowAlt : undefined}
                           >
-                            <td className={cn(ui.ecBoardTd, ui.ecBoardTdLabel)}>{row.barangay}</td>
+                            <td className={cn(ui.ecBoardTd, ui.ecBoardTdLabel)}>
+                              {formatDisplayBarangay(row.barangay)}
+                            </td>
                             <CumNowCells cum={row.families_cum} now={row.families_now} nowOnly={nowOnly} />
                             <CumNowCells cum={row.persons_cum} now={row.persons_now} nowOnly={nowOnly} />
                           </tr>
@@ -460,7 +463,9 @@ export default function DashboardReports() {
                           key={row.barangay}
                           className={index % 2 === 0 ? ui.ecBoardRowAlt : undefined}
                         >
-                          <td className={cn(ui.ecBoardTd, ui.ecBoardTdLabel)}>{row.barangay}</td>
+                          <td className={cn(ui.ecBoardTd, ui.ecBoardTdLabel)}>
+                            {formatDisplayBarangay(row.barangay)}
+                          </td>
                           <td className={cn(ui.ecBoardTd, ui.ecBoardTdMetric)}>{row.families_cum}</td>
                           <td className={cn(ui.ecBoardTd, ui.ecBoardTdMetric)}>{row.persons_cum}</td>
                           <td className={cn(ui.ecBoardTd, ui.ecBoardTdMetric)}>{row.shelter?.totally ?? 0}</td>

@@ -19,12 +19,14 @@ import {
   RotateCcw,
   Save,
   Sparkles,
+  Tent,
   Trash2,
   Users,
 } from "lucide-react";
 import BrandEmblem from "@/components/brand/BrandEmblem";
 import TricolorBar from "@/components/brand/TricolorBar";
 import DailyEncodeTracker, { type DailyEncodeStat } from "@/components/admin/DailyEncodeTracker";
+import EcLibraryPanel from "@/components/admin/EcLibraryPanel";
 import { SARANGANI_MUNICIPALITIES } from "@/lib/sarangani-locations";
 import { exportAccessCodesToExcel, exportFacedToExcel } from "@/lib/export-excel";
 import { normalizeEnumeratorName } from "@/lib/enumerator-name";
@@ -86,12 +88,13 @@ type RecordsAdminMetrics = {
 const ADMIN_STORAGE_KEY = "dms_admin_password";
 const PAGE_SIZE = 20;
 
-type AdminTab = "summary" | "create" | "codes";
+type AdminTab = "summary" | "create" | "codes" | "ec-library";
 
 const ADMIN_TABS: { id: AdminTab; label: string; icon: typeof BarChart3 }[] = [
   { id: "summary", label: "Summary", icon: BarChart3 },
   { id: "create", label: "Create codes", icon: Sparkles },
   { id: "codes", label: "Manage codes", icon: KeyRound },
+  { id: "ec-library", label: "EC Library", icon: Tent },
 ];
 
 type ExportRecordJson = Omit<FacedRecord, "createdAt" | "updatedAt"> & {
@@ -1370,6 +1373,14 @@ export default function AdminPage() {
             />
           </div>
         </section>
+        ) : null}
+
+        {activeTab === "ec-library" ? (
+          <EcLibraryPanel
+            adminFetch={adminFetch}
+            onMessage={setMessage}
+            onError={setError}
+          />
         ) : null}
       </main>
     </div>

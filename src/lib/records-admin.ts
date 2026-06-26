@@ -1,4 +1,5 @@
 import type { FacedRecordData } from "./faced-types";
+import { ensureFacedSerialNumber } from "./faced-serial";
 import {
   FACED_EXPORT_SELECT,
   facedRecordsWhere,
@@ -335,16 +336,24 @@ export async function replaceFacedRecordAdmin(
 
   const updatedAt = new Date().toISOString();
   const accessCode = data.access_code?.trim() || existing.access_code;
+  const payload: FacedRecordData = {
+    ...data,
+    access_code: accessCode,
+    serial_number: ensureFacedSerialNumber(
+      data.serial_number || existing.serial_number,
+      uuid,
+    ),
+  };
 
   await upsertFacedRecord({
     uuid: uuid.trim(),
     access_code: accessCode,
-    enumerator_name: data.enumerator_name.trim(),
-    barangay: data.barangay.trim(),
-    city_municipality: data.city_municipality.trim(),
-    province: data.province.trim(),
-    date_registered: data.date_registered.trim(),
-    payload: JSON.stringify(data),
+    enumerator_name: payload.enumerator_name.trim(),
+    barangay: payload.barangay.trim(),
+    city_municipality: payload.city_municipality.trim(),
+    province: payload.province.trim(),
+    date_registered: payload.date_registered.trim(),
+    payload: JSON.stringify(payload),
     created_at: existing.createdAt,
     updated_at: updatedAt,
   });

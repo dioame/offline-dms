@@ -174,11 +174,30 @@
   grid-template-columns: auto minmax(0, 1fr) 0.68in;
 }
 
+.faced-gov-header-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.02in;
+  flex-shrink: 0;
+  align-self: start;
+}
+
 .faced-gov-header-logos {
   display: flex;
   align-items: center;
   gap: 0.03in;
   flex-shrink: 0;
+}
+
+.faced-gov-header-qr {
+  display: flex;
+  justify-content: center;
+}
+
+.faced-gov-header-qr-code {
+  width: 0.42in !important;
+  height: 0.42in !important;
 }
 
 .faced-gov-logo {

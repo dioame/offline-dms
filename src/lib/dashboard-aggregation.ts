@@ -15,7 +15,7 @@ import type {
   SectoralRow,
   ShelterPayload,
 } from "./dashboard-types";
-import { SARANGANI_MUNICIPALITIES, SARANGANI_PROVINCE, SARANGANI_REGION } from "./sarangani-locations";
+import { SARANGANI_MUNICIPALITIES, SARANGANI_PROVINCE, SARANGANI_REGION, formatDisplayBarangay } from "./sarangani-locations";
 import {
   isRecordInsideEc,
   evacuationSiteLabel,
@@ -329,8 +329,9 @@ function insideEcGroups(records: TursoExportRecord[]): InsideEcGroup[] {
       });
     }
     const group = buckets.get(key)!;
-    const barangay = record.barangay?.trim() || "Unknown";
-    let row = group.by_barangay.find((b) => b.barangay.toUpperCase() === barangay.toUpperCase());
+    const rawBarangay = record.barangay?.trim() || "Unknown";
+    const barangay = formatDisplayBarangay(rawBarangay, record.city_municipality);
+    let row = group.by_barangay.find((b) => b.barangay.toUpperCase() === rawBarangay.toUpperCase());
     if (!row) {
       row = {
         barangay,
@@ -371,6 +372,7 @@ function buildInfoBoardFromRecords(
   groupRecords: TursoExportRecord[],
   ecName: string,
   address: string,
+  barangay?: string,
 ): InfoBoardGroup {
   const persons = groupRecords.flatMap(personsFromRecord);
   const ageRows = ageDistributionRows(countAgeSex(persons), true);
@@ -381,6 +383,7 @@ function buildInfoBoardFromRecords(
     ec_address: [first?.city_municipality, first?.province || SARANGANI_PROVINCE].filter(Boolean).join(", "),
     region: first?.region?.trim() || SARANGANI_REGION,
     address,
+    barangay: barangay?.trim() || undefined,
     families_cum: groupRecords.length,
     families_now: 0,
     persons_cum: persons.length,
@@ -414,7 +417,7 @@ function outsideEcBundle(records: TursoExportRecord[], cityMunFilter = ""): Repo
     if (recordInEc(record)) continue;
     outsideRecords.push(record);
 
-    const barangay = record.barangay?.trim() || "Unknown";
+    const barangay = formatDisplayBarangay(record.barangay?.trim() || "Unknown", record.city_municipality);
     const key = barangay.toUpperCase();
     let row = barangays.get(key);
     if (!row) {
@@ -480,7 +483,10 @@ function outsideEcBundle(records: TursoExportRecord[], cityMunFilter = ""): Repo
       return buildInfoBoardFromRecords(
         groupRecords,
         OUTSIDE_EC_LABEL,
-        [first?.city_municipality, first?.barangay].filter(Boolean).join(", "),
+        [first?.city_municipality, formatDisplayBarangay(first?.barangay ?? "", first?.city_municipality)]
+          .filter(Boolean)
+          .join(", "),
+        formatDisplayBarangay(first?.barangay ?? "", first?.city_municipality) || "Unknown",
       );
     })
     .sort((a, b) => b.persons_cum - a.persons_cum || a.address.localeCompare(b.address));

@@ -3,6 +3,7 @@ import { getSyncApiSecret, isTursoConfigured } from "@/lib/env";
 import type { FacedRecord } from "@/lib/faced-types";
 import { ensureTursoSchema, upsertFacedRecord } from "@/lib/turso";
 import { normalizeRecordAccessCode } from "@/lib/backfill-access-codes";
+import { ensureFacedSerialNumber } from "@/lib/faced-serial";
 
 type SyncPayload = {
   records: (Omit<FacedRecord, "createdAt" | "updatedAt"> & {
@@ -67,6 +68,10 @@ export async function POST(request: Request) {
       }
 
       const { id: _id, sync_status: _sync, ...data } = record;
+      const payload = {
+        ...data,
+        serial_number: ensureFacedSerialNumber(data.serial_number, record.uuid),
+      };
 
       await upsertFacedRecord({
         uuid: record.uuid,
@@ -76,7 +81,7 @@ export async function POST(request: Request) {
         city_municipality: record.city_municipality || "",
         province: record.province || "",
         date_registered: record.date_registered || "",
-        payload: JSON.stringify(data),
+        payload: JSON.stringify(payload),
         created_at: record.createdAt,
         updated_at: record.updatedAt,
       });

@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import type { AgeRow, InfoBoardGroup, SectoralRow } from "@/lib/dashboard-types";
-import { SARANGANI_REGION } from "@/lib/sarangani-locations";
+import { SARANGANI_REGION, formatDisplayBarangay } from "@/lib/sarangani-locations";
 import type { ReportNavItem } from "@/components/dashboard/DashboardReportNavigator";
 import DashboardReportNavigator from "@/components/dashboard/DashboardReportNavigator";
 import { cn } from "@/lib/cn";
@@ -230,12 +230,16 @@ export default function EcInfoBoardReport({
 }
 
 export function infoBoardNavItems(groups: InfoBoardGroup[]): ReportNavItem[] {
-  return groups.map((group, index) => ({
-    id: `${group.ec_name}-${group.address}-${index}`,
-    label: group.ec_name,
-    detail: group.address || group.ec_address,
-    meta: `${group.families_cum} fam · ${group.persons_cum} persons`,
-  }));
+  return groups.map((group, index) => {
+    const barangay = group.barangay ? formatDisplayBarangay(group.barangay) : "";
+    const label = barangay ? `${group.ec_name} — ${barangay}` : group.ec_name;
+    return {
+      id: `${group.ec_name}-${group.address}-${index}`,
+      label,
+      detail: group.address || group.ec_address,
+      meta: `${group.families_cum} fam · ${group.persons_cum} persons`,
+    };
+  });
 }
 
 export function EcInfoBoardGroups({
@@ -290,7 +294,9 @@ export function EcInfoBoardGroups({
                 <p className="text-xs font-semibold uppercase tracking-wide text-ph-blue-dark">
                   {groupLabelPrefix}
                 </p>
-                <p className="font-semibold text-slate-900">{group.ec_name}</p>
+                <p className="font-semibold text-slate-900">
+                  {group.barangay ? formatDisplayBarangay(group.barangay) : group.ec_name}
+                </p>
                 {group.ec_address && <p className="text-sm text-slate-600">{group.ec_address}</p>}
               </div>
             )}

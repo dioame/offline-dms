@@ -60,6 +60,7 @@ export type InfoBoardGroup = {
   ec_address: string;
   region: string;
   address: string;
+  barangay?: string;
   families_cum: number;
   families_now: number;
   persons_cum: number;

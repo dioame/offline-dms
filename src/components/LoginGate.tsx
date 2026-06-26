@@ -7,6 +7,8 @@ import {
   loginWithCode,
   validateStoredSessionOnline,
 } from "@/lib/auth-client";
+import { needsEncodeOfflineDownload } from "@/lib/ec-library-cache";
+import EncodeOfflineDownloadModal from "@/components/encode/EncodeOfflineDownloadModal";
 import BrandEmblem from "@/components/brand/BrandEmblem";
 import TricolorBar from "@/components/brand/TricolorBar";
 import {
@@ -48,6 +50,9 @@ export default function LoginGate({ children }: LoginGateProps) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [sessionCode, setSessionCode] = useState<string | null>(null);
+  const [bundleChecked, setBundleChecked] = useState(false);
+  const [needsBundle, setNeedsBundle] = useState(false);
+  const [bundleReady, setBundleReady] = useState(false);
   const isOnline = useSyncExternalStore(
     subscribeOnline,
     getOnlineSnapshot,
@@ -73,6 +78,29 @@ export default function LoginGate({ children }: LoginGateProps) {
     void checkSession();
   }, [checkSession]);
 
+  useEffect(() => {
+    if (!authenticated) {
+      setBundleChecked(false);
+      setNeedsBundle(false);
+      setBundleReady(false);
+      return;
+    }
+
+    let cancelled = false;
+    void needsEncodeOfflineDownload().then((needs) => {
+      if (cancelled) return;
+      setNeedsBundle(needs);
+      if (!needs) {
+        setBundleReady(true);
+      }
+      setBundleChecked(true);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authenticated]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
@@ -93,6 +121,16 @@ export default function LoginGate({ children }: LoginGateProps) {
     return (
       <div className={cn(ui.pageBg, "flex items-center justify-center p-6")}>
         <SkeletonScreen label="Loading session">
+          <SkeletonEmblemLoader />
+        </SkeletonScreen>
+      </div>
+    );
+  }
+
+  if (authenticated && !bundleChecked) {
+    return (
+      <div className={cn(ui.pageBg, "flex items-center justify-center p-6")}>
+        <SkeletonScreen label="Preparing offline data">
           <SkeletonEmblemLoader />
         </SkeletonScreen>
       </div>
@@ -175,6 +213,24 @@ export default function LoginGate({ children }: LoginGateProps) {
           </div>
         </div>
       </div>
+    );
+  }
+
+  if (authenticated && needsBundle && isOnline && !bundleReady) {
+    return (
+      <>
+        <div className={ui.sessionBar}>
+          <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-4 py-2 text-xs">
+            <span className={cn(ui.withIcon, "text-zinc-700")}>
+              <ShieldCheck className={ui.iconSm} aria-hidden />
+              Signed in ·{" "}
+              <span className="font-mono font-bold text-ph-blue">{sessionCode}</span>
+            </span>
+          </div>
+        </div>
+        {children}
+        <EncodeOfflineDownloadModal onComplete={() => setBundleReady(true)} />
+      </>
     );
   }
 

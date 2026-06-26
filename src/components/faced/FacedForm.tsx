@@ -23,7 +23,10 @@ import {
   type FamilyMember,
 } from "@/lib/faced-types";
 import { normalizeAccessCode } from "@/lib/code-generator";
+import { ensureFacedSerialNumber } from "@/lib/faced-serial";
+import { listCachedEcSuggestions } from "@/lib/ec-library-cache";
 import { checkEncodingDuplicates } from "@/lib/encode-duplicate-check";
+import { formatOutsideEcSite } from "@/lib/evacuation-site";
 import {
   barangayOptions,
   birthplaceSuggestion,
@@ -44,6 +47,7 @@ import type { VerifyMatch } from "@/lib/verify-match";
 import SectionHeader from "./SectionHeader";
 import DuplicateCheckAlert from "./DuplicateCheckAlert";
 import DuplicateConfirmDialog from "./DuplicateConfirmDialog";
+import SavedSerialDialog from "./SavedSerialDialog";
 import FamilyMemberCard from "./FamilyMemberCard";
 import BrandEmblem from "@/components/brand/BrandEmblem";
 import { SkeletonFormCard, SkeletonScreen } from "@/components/ui/Skeleton";
@@ -143,15 +147,23 @@ function normalizeLoadedRecord(
   },
 ): FacedRecordData {
   const perm = data.permanent_address ?? createEmptyFacedRecord().permanent_address;
+  const barangay = data.barangay ?? perm.barangay ?? "";
+  const evacuationStatus =
+    data.evacuation_center_status ??
+    (data.evacuation_center_site?.trim() ? "yes" : "");
+  const evacuationSite =
+    evacuationStatus === "no" && !data.evacuation_center_site?.trim()
+      ? formatOutsideEcSite(barangay)
+      : (data.evacuation_center_site ?? "");
   return {
     ...data,
     access_code: data.access_code ?? "",
+    serial_number: data.serial_number ?? "",
     enumerator_name: data.enumerator_name ?? "",
     region: data.region || SARANGANI_REGION,
     province: data.province || SARANGANI_PROVINCE,
-    evacuation_center_status:
-      data.evacuation_center_status ??
-      (data.evacuation_center_site?.trim() ? "yes" : ""),
+    evacuation_center_status: evacuationStatus,
+    evacuation_center_site: evacuationSite,
     permanent_address: {
       address_line: mergePermanentAddressLine(perm),
       barangay: perm.barangay ?? "",
@@ -205,7 +217,16 @@ export default function FacedForm({
   );
   const [duplicateAcknowledged, setDuplicateAcknowledged] = useState(false);
   const [duplicateDismissedQuery, setDuplicateDismissedQuery] = useState("");
+  const [savedSerialDialog, setSavedSerialDialog] = useState<{
+    serial: string;
+    mode: "created" | "updated";
+  } | null>(null);
   const [recordLoading, setRecordLoading] = useState(Boolean(editId));
+  const [ecSuggestions, setEcSuggestions] = useState<string[]>([]);
+  const [ecSuggestionsLoading, setEcSuggestionsLoading] = useState(false);
+  const [ecSuggestionsSource, setEcSuggestionsSource] = useState<
+    "online" | "local" | "static" | null
+  >(null);
   const duplicateQueryRef = useRef("");
 
   function buildDuplicateQuery(): string {
@@ -254,6 +275,83 @@ export default function FacedForm({
       })
       .finally(() => setRecordLoading(false));
   }, [editId, isSyncedEdit, syncedEditUuid, syncedInitialRecord]);
+
+  useEffect(() => {
+    const municipality = form.city_municipality.trim();
+    const barangay = form.barangay.trim();
+
+    if (form.evacuation_center_status !== "yes" || !municipality) {
+      setEcSuggestions([]);
+      setEcSuggestionsLoading(false);
+      setEcSuggestionsSource(null);
+      return;
+    }
+
+    const staticSuggestions = barangay ? [] : [...evacuationSiteSuggestions(municipality)];
+    let cancelled = false;
+
+    async function applyLocalFallback() {
+      const cached = await listCachedEcSuggestions(municipality, barangay || undefined);
+      if (cancelled) return;
+
+      if (cached.length > 0) {
+        setEcSuggestions(cached);
+        setEcSuggestionsSource("local");
+        return;
+      }
+
+      setEcSuggestions(staticSuggestions);
+      setEcSuggestionsSource(staticSuggestions.length > 0 ? "static" : null);
+    }
+
+    async function loadEcSuggestions() {
+      setEcSuggestionsLoading(true);
+      setEcSuggestionsSource(null);
+
+      try {
+        if (!navigator.onLine) {
+          await applyLocalFallback();
+          return;
+        }
+
+        const params = new URLSearchParams({ city_municipality: municipality });
+        if (barangay) {
+          params.set("barangay", barangay);
+        }
+
+        const res = await fetch(`/api/evacuation-sites?${params.toString()}`);
+        const data = (await res.json()) as { suggestions?: string[]; error?: string };
+        if (!res.ok) {
+          throw new Error(data.error || "Failed to load evacuation site suggestions.");
+        }
+
+        const onlineSuggestions = data.suggestions ?? [];
+        if (cancelled) return;
+
+        if (onlineSuggestions.length > 0) {
+          setEcSuggestions(onlineSuggestions);
+          setEcSuggestionsSource("online");
+          return;
+        }
+
+        await applyLocalFallback();
+      } catch {
+        if (!cancelled) {
+          await applyLocalFallback();
+        }
+      } finally {
+        if (!cancelled) {
+          setEcSuggestionsLoading(false);
+        }
+      }
+    }
+
+    void loadEcSuggestions();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [form.barangay, form.city_municipality, form.evacuation_center_status]);
 
   useEffect(() => {
     const lastName = form.head_of_family.last_name.trim();
@@ -429,6 +527,8 @@ export default function FacedForm({
       ...prev,
       city_municipality: municipality,
       barangay: "",
+      evacuation_center_site:
+        prev.evacuation_center_status === "no" ? formatOutsideEcSite("") : prev.evacuation_center_site,
       permanent_address: {
         ...prev.permanent_address,
         city_municipality: municipality,
@@ -442,6 +542,10 @@ export default function FacedForm({
     setForm((prev) => ({
       ...prev,
       barangay,
+      evacuation_center_site:
+        prev.evacuation_center_status === "no"
+          ? formatOutsideEcSite(barangay)
+          : prev.evacuation_center_site,
       permanent_address: {
         ...prev.permanent_address,
         barangay,
@@ -465,7 +569,14 @@ export default function FacedForm({
     setForm((prev) => ({
       ...prev,
       evacuation_center_status: status,
-      evacuation_center_site: status === "yes" ? prev.evacuation_center_site : "",
+      evacuation_center_site:
+        status === "yes"
+          ? prev.evacuation_center_site.startsWith("OUTSIDE EC")
+            ? ""
+            : prev.evacuation_center_site
+          : status === "no"
+            ? formatOutsideEcSite(prev.barangay)
+            : "",
     }));
   }
 
@@ -478,6 +589,11 @@ export default function FacedForm({
         access_code: normalizeAccessCode(
           form.access_code.trim() || (isSyncedEdit ? "" : session?.code || ""),
         ),
+        serial_number: ensureFacedSerialNumber(form.serial_number, editUuid),
+        evacuation_center_site:
+          form.evacuation_center_status === "no"
+            ? formatOutsideEcSite(form.barangay)
+            : form.evacuation_center_site.trim(),
         enumerator_name: isSyncedEdit
           ? form.enumerator_name.trim()
           : session?.enumeratorName?.trim() || form.enumerator_name.trim(),
@@ -485,10 +601,16 @@ export default function FacedForm({
 
       if (isSyncedEdit && onSyncedSave) {
         await onSyncedSave(recordData);
-        setMessage("Record updated on server.");
+        setSavedSerialDialog({
+          serial: recordData.serial_number,
+          mode: "updated",
+        });
       } else if (editId) {
         await updateFacedRecord(editId, recordData);
-        setMessage("Record updated locally.");
+        setSavedSerialDialog({
+          serial: recordData.serial_number,
+          mode: "updated",
+        });
       } else {
         await addFacedRecord(recordData);
         setForm(
@@ -497,15 +619,22 @@ export default function FacedForm({
             enumerator_name: session?.enumeratorName ?? "",
           }),
         );
-        setMessage("FACED record saved locally.");
+        setSavedSerialDialog({
+          serial: recordData.serial_number,
+          mode: "created",
+        });
       }
       setShowDuplicateConfirm(false);
-      onSaved();
     } catch {
       setMessage("Could not save record. Please try again.");
     } finally {
       setSaving(false);
     }
+  }
+
+  function handleSavedSerialClose() {
+    setSavedSerialDialog(null);
+    onSaved();
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -717,10 +846,34 @@ export default function FacedForm({
               onChange={(e) => updateField("evacuation_center_site", e.target.value)}
               placeholder="Name of evacuation center or site"
             />
-            <SuggestionChips
-              suggestions={evacuationSiteSuggestions(form.city_municipality)}
-              onSelect={(value) => updateField("evacuation_center_site", value)}
-            />
+            {ecSuggestionsLoading ? (
+              <p className={cn("mt-2 flex items-center gap-2 text-xs text-slate-500", ui.withIcon)}>
+                <Loader2 className={cn(ui.iconSm, "animate-spin text-ph-blue")} aria-hidden />
+                Loading evacuation sites…
+              </p>
+            ) : (
+              <>
+                {ecSuggestionsSource === "local" ? (
+                  <p className="mt-2 text-xs font-medium text-amber-800">
+                    Showing sites from local copy (offline download).
+                  </p>
+                ) : null}
+                {ecSuggestionsSource === "static" ? (
+                  <p className="mt-2 text-xs text-slate-500">
+                    Using built-in site list — download offline copy for the full EC library.
+                  </p>
+                ) : null}
+                <SuggestionChips
+                  suggestions={ecSuggestions}
+                  onSelect={(value) => updateField("evacuation_center_site", value)}
+                />
+                {ecSuggestions.length === 0 ? (
+                  <p className="mt-2 text-xs text-slate-500">
+                    No saved sites for this location. Enter the evacuation center name manually.
+                  </p>
+                ) : null}
+              </>
+            )}
           </FormField>
         )}
       </div>
@@ -1153,7 +1306,7 @@ export default function FacedForm({
 
       {message && (
         <p
-          className={`px-4 pb-4 text-sm ${message.includes("saved") || message.includes("updated") ? "text-emerald-700" : "text-red-600"}`}
+          className={`px-4 pb-4 text-sm ${message.includes("updated") ? "text-emerald-700" : "text-red-600"}`}
           role="status"
         >
           {message}
@@ -1170,6 +1323,13 @@ export default function FacedForm({
         onDismiss={handleDuplicateConfirmDismiss}
         onGoBack={handleDuplicateConfirmGoBack}
         onContinue={handleDuplicateConfirmContinue}
+      />
+
+      <SavedSerialDialog
+        open={savedSerialDialog !== null}
+        serialNumber={savedSerialDialog?.serial ?? ""}
+        mode={savedSerialDialog?.mode ?? "created"}
+        onClose={handleSavedSerialClose}
       />
     </>
   );
