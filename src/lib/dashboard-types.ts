@@ -102,6 +102,19 @@ export type ReportsBundle = {
     };
     groups: InsideEcGroup[];
   };
+  outside_ec: {
+    ec_name: string;
+    totals: {
+      families_cum: number;
+      families_now: number;
+      persons_cum: number;
+      persons_now: number;
+      shelter?: BarangayRow["shelter"];
+    };
+    by_barangay: BarangayRow[];
+    summary_board: InfoBoardGroup;
+    barangay_groups: InfoBoardGroup[];
+  };
   sex_age_sectoral: {
     age_distribution: AgeRow[];
     sectoral: SectoralRow[];
@@ -120,4 +133,5 @@ export type ReportsBundle = {
   city_mun_filter: string;
   total_records: number;
   inside_ec_records: number;
+  outside_ec_records: number;
 };

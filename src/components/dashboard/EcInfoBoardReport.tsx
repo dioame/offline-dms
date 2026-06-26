@@ -1,9 +1,8 @@
 "use client";
 
+import { useMemo } from "react";
 import type { AgeRow, InfoBoardGroup, SectoralRow } from "@/lib/dashboard-types";
 import { SARANGANI_REGION } from "@/lib/sarangani-locations";
-import * as ui from "@/lib/ui";
-import { cn } from "@/lib/cn";
 
 type CountTotals = {
   male_cum: number;
@@ -155,14 +154,21 @@ function DisaggregationTable({
 type EcInfoBoardReportProps = {
   data: InfoBoardGroup;
   nowOnly?: boolean;
+  title?: string;
+  groupLabel?: string;
 };
 
-export default function EcInfoBoardReport({ data, nowOnly = true }: EcInfoBoardReportProps) {
+export default function EcInfoBoardReport({
+  data,
+  nowOnly = true,
+  title = "EVACUATION CENTER INFORMATION BOARD",
+  groupLabel,
+}: EcInfoBoardReportProps) {
   return (
-    <article className={ui.ecInfoBoardReport} aria-label="Evacuation Center Information Board">
-      <header className={ui.ecBoardHeader}>
-        <h2 className={ui.ecBoardTitle}>EVACUATION CENTER INFORMATION BOARD</h2>
-        <div className={ui.ecBoardAsOf}>As of {formatAsOfDate()}</div>
+    <article className="ec-info-board-report" aria-label="Evacuation Center Information Board">
+      <header className="ec-board-header">
+        <h2 className="ec-board-title">EVACUATION CENTER INFORMATION BOARD</h2>
+        <div className="ec-board-as-of">As of {formatAsOfDate()}</div>
       </header>
 
       <section>
@@ -219,28 +225,58 @@ export default function EcInfoBoardReport({ data, nowOnly = true }: EcInfoBoardR
   );
 }
 
+export function infoBoardNavItems(groups: InfoBoardGroup[]): ReportNavItem[] {
+  return groups.map((group, index) => ({
+    id: `${group.ec_name}-${group.address}-${index}`,
+    label: group.ec_name,
+    detail: group.address || group.ec_address,
+    meta: `${group.families_cum} fam · ${group.persons_cum} persons`,
+  }));
+}
+
 export function EcInfoBoardGroups({
   groups,
   nowOnly = true,
+  title,
+  groupLabelPrefix = "Evacuation Center",
+  emptyMessage = "No families currently listed inside evacuation centers for this filter.",
+  selectedIndex = 0,
+  onSelectIndex,
+  showAll = false,
+  onShowAllChange,
+  itemNoun = "evacuation center",
 }: {
   groups: InfoBoardGroup[];
   nowOnly?: boolean;
+  title?: string;
+  groupLabelPrefix?: string;
+  emptyMessage?: string;
+  selectedIndex?: number;
+  onSelectIndex?: (index: number) => void;
+  showAll?: boolean;
+  onShowAllChange?: (showAll: boolean) => void;
+  itemNoun?: string;
 }) {
+  const navItems = useMemo(() => infoBoardNavItems(groups), [groups]);
+  const safeIndex = Math.min(Math.max(selectedIndex, 0), Math.max(groups.length - 1, 0));
+
   if (groups.length === 0) {
     return (
-      <div className={ui.dashboardEmpty}>
+      <div className="dashboard-empty">
         No families currently listed inside evacuation centers for this filter.
       </div>
     );
   }
 
+  const visibleGroups = showAll ? groups : groups[safeIndex] ? [groups[safeIndex]] : [];
+
   return (
-    <div className="space-y-8">
+    <div className="ec-info-board-screen space-y-8">
       {groups.map((group) => (
-        <div key={group.ec_name}>
+        <div key={group.ec_name} className="ec-info-board-group">
           {groups.length > 1 && (
-            <div className={ui.ecInfoBoardGroupLabel}>
-              <p className="text-xs font-semibold uppercase tracking-wide text-ph-blue-dark">
+            <div className="ec-info-board-group-label">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--ph-blue-dark)]">
                 Evacuation Center
               </p>
               <p className="font-semibold text-slate-900">{group.ec_name}</p>

@@ -18,7 +18,7 @@ import { SkeletonDashboard, SkeletonScreen } from "@/components/ui/Skeleton";
 import * as ui from "@/lib/ui";
 import { cn } from "@/lib/cn";
 
-type DashboardTab = "info-board" | "inside-ec" | "sex-age" | "shelter";
+type DashboardTab = "info-board" | "inside-ec" | "outside-ec" | "sex-age" | "shelter";
 
 const TABS: { id: DashboardTab; label: string; icon: LucideIcon }[] = [
   { id: "info-board", label: "Evacuation Center Info Board", icon: ClipboardList },
@@ -45,13 +45,28 @@ function CumNowCells({
   );
 }
 
+function insideEcNavItems(groups: InsideEcGroup[]): ReportNavItem[] {
+  return groups.map((group, index) => ({
+    id: `${group.ec_name}-${index}`,
+    label: group.ec_name,
+    detail: group.ec_address,
+    meta: `${group.totals.families_cum} fam · ${group.totals.persons_cum} persons`,
+  }));
+}
+
 export default function DashboardReports() {
+  const reportPaneRef = useRef<HTMLDivElement>(null);
   const [cityMun, setCityMun] = useState("");
   const [bundle, setBundle] = useState<ReportsBundle | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<DashboardTab>("info-board");
   const [nowOnly, setNowOnly] = useState(false);
+  const [controlsOpen, setControlsOpen] = useState(true);
+  const [infoBoardIndex, setInfoBoardIndex] = useState(0);
+  const [insideEcIndex, setInsideEcIndex] = useState(0);
+  const [outsideBrgyIndex, setOutsideBrgyIndex] = useState(0);
+  const [showAllBoards, setShowAllBoards] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -79,12 +94,47 @@ export default function DashboardReports() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    setInfoBoardIndex(0);
+    setInsideEcIndex(0);
+    setOutsideBrgyIndex(0);
+    setShowAllBoards(false);
+  }, [cityMun]);
+
+  useEffect(() => {
+    setShowAllBoards(false);
+  }, [activeTab]);
+
+  useEffect(() => {
+    reportPaneRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [infoBoardIndex, insideEcIndex, outsideBrgyIndex, showAllBoards]);
+
   function handleMunicipalityChange(value: string) {
     setCityMun(value);
     saveCityMunFilter(value);
   }
 
   const municipalities = bundle?.municipalities ?? [];
+  const insideEcGroups = bundle?.inside_ec.groups ?? [];
+  const insideEcSafeIndex = Math.min(
+    insideEcIndex,
+    Math.max(insideEcGroups.length - 1, 0),
+  );
+  const infoBoardGroups = bundle?.info_board.groups ?? [];
+  const infoBoardSafeIndex = Math.min(
+    infoBoardIndex,
+    Math.max(infoBoardGroups.length - 1, 0),
+  );
+  const outsideBrgyGroups = bundle?.outside_ec.barangay_groups ?? [];
+  const outsideBrgySafeIndex = Math.min(
+    outsideBrgyIndex,
+    Math.max(outsideBrgyGroups.length - 1, 0),
+  );
+  const visibleInsideEcGroups = showAllBoards
+    ? insideEcGroups
+    : insideEcGroups[insideEcSafeIndex]
+      ? [insideEcGroups[insideEcSafeIndex]]
+      : [];
 
   return (
     <div className="space-y-6">
@@ -253,10 +303,124 @@ export default function DashboardReports() {
                         </tr>
                       </tbody>
                     </table>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+            </>
+          )}
+        </section>
+      )}
+
+      {bundle && activeTab === "outside-ec" && (
+        <section className="space-y-8">
+          <div className="dashboard-summary-grid dashboard-summary-grid--section">
+            <div className="dashboard-stat dashboard-stat--outside">
+              <p className="dashboard-stat-label">Outside EC families</p>
+              <p className="dashboard-stat-value">{bundle.outside_ec.totals.families_cum}</p>
             </div>
+            <div className="dashboard-stat dashboard-stat--outside">
+              <p className="dashboard-stat-label">Outside EC persons</p>
+              <p className="dashboard-stat-value">{bundle.outside_ec.totals.persons_cum}</p>
+            </div>
+            <div className="dashboard-stat dashboard-stat--outside">
+              <p className="dashboard-stat-label">Barangays</p>
+              <p className="dashboard-stat-value">{bundle.outside_ec.by_barangay.length}</p>
+            </div>
+          </div>
+
+          {bundle.outside_ec.totals.families_cum === 0 ? (
+            <div className="dashboard-empty">No outside-EC families for this filter.</div>
+          ) : (
+            <>
+              <div>
+                <h3 className="dashboard-panel-title">Outside EC — Summary</h3>
+                <p className="mb-4 text-sm text-slate-600">
+                  Families not in an evacuation center (blank site, &quot;Outside EC&quot;, Tuyan, or
+                  evacuation status &quot;no&quot;), with age/sex and sectoral disaggregation.
+                </p>
+                <EcInfoBoardReport
+                  data={bundle.outside_ec.summary_board}
+                  nowOnly={nowOnly}
+                  title="OUTSIDE EVACUATION CENTER INFORMATION BOARD"
+                />
+              </div>
+
+              {bundle.outside_ec.barangay_groups.length > 0 && (
+                <div>
+                  <h3 className="dashboard-panel-title">
+                    Outside EC — by Barangay
+                    {bundle.outside_ec.barangay_groups.length > 1 && !showAllBoards && (
+                      <span className="dashboard-panel-meta">
+                        {" "}
+                        — {outsideBrgySafeIndex + 1} of {bundle.outside_ec.barangay_groups.length}
+                      </span>
+                    )}
+                  </h3>
+                  <EcInfoBoardGroups
+                    groups={bundle.outside_ec.barangay_groups}
+                    nowOnly={nowOnly}
+                    title="OUTSIDE EVACUATION CENTER INFORMATION BOARD"
+                    groupLabelPrefix="Barangay"
+                    emptyMessage="No outside-EC families for this filter."
+                    selectedIndex={outsideBrgySafeIndex}
+                    onSelectIndex={setOutsideBrgyIndex}
+                    showAll={showAllBoards}
+                    onShowAllChange={setShowAllBoards}
+                    itemNoun="barangay"
+                  />
+                </div>
+              )}
+
+              <div>
+                <h3 className="dashboard-panel-title">Shelter damage — by Barangay</h3>
+                <div className="ec-board-table-wrap">
+                  <table className="ec-board-table">
+                    <thead>
+                      <tr>
+                        <th className="ec-board-th ec-board-th--label">Barangay</th>
+                        <th className="ec-board-th">Family Heads</th>
+                        <th className="ec-board-th">Total Persons</th>
+                        <th className="ec-board-th">Totally</th>
+                        <th className="ec-board-th">Partially</th>
+                        <th className="ec-board-th">Not Identified</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {bundle.outside_ec.by_barangay.map((row, index) => (
+                        <tr
+                          key={row.barangay}
+                          className={index % 2 === 0 ? "ec-board-row ec-board-row--alt" : "ec-board-row"}
+                        >
+                          <td className="ec-board-td ec-board-td--label">{row.barangay}</td>
+                          <td className="ec-board-td ec-board-td--metric">{row.families_cum}</td>
+                          <td className="ec-board-td ec-board-td--metric">{row.persons_cum}</td>
+                          <td className="ec-board-td ec-board-td--metric">{row.shelter?.totally ?? 0}</td>
+                          <td className="ec-board-td ec-board-td--metric">{row.shelter?.partially ?? 0}</td>
+                          <td className="ec-board-td ec-board-td--metric">
+                            {row.shelter?.not_identified ?? 0}
+                          </td>
+                        </tr>
+                      ))}
+                      <tr className="ec-board-row ec-board-row--total">
+                        <td className="ec-board-td ec-board-td--label">TOTAL</td>
+                        <td className="ec-board-td ec-board-td--metric">{bundle.outside_ec.totals.families_cum}</td>
+                        <td className="ec-board-td ec-board-td--metric">{bundle.outside_ec.totals.persons_cum}</td>
+                        <td className="ec-board-td ec-board-td--metric">
+                          {bundle.outside_ec.totals.shelter?.totally ?? 0}
+                        </td>
+                        <td className="ec-board-td ec-board-td--metric">
+                          {bundle.outside_ec.totals.shelter?.partially ?? 0}
+                        </td>
+                        <td className="ec-board-td ec-board-td--metric">
+                          {bundle.outside_ec.totals.shelter?.not_identified ?? 0}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
           )}
         </section>
       )}
@@ -427,6 +591,7 @@ export default function DashboardReports() {
           </div>
         </section>
       )}
+      </div>
     </div>
   );
 }
