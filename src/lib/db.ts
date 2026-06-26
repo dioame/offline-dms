@@ -13,11 +13,20 @@ export type VerifyCacheMeta = {
   totalRecords: number;
 };
 
+export type EncodeOfflineMeta = {
+  id: "current";
+  syncedAt: string;
+  totalFamilies: number;
+  totalEcSites: number;
+};
+
 const db = new Dexie("OfflineDMS") as Dexie & {
   faced_records: EntityTable<FacedRecord, "id">;
   auth_session: EntityTable<AuthSession, "id">;
   verify_cache: EntityTable<import("./verify-match").VerifyCacheEntry, "uuid">;
   verify_meta: EntityTable<VerifyCacheMeta, "id">;
+  ec_library_cache: EntityTable<import("./encode-offline-types").EcLibraryCacheEntry, "id">;
+  encode_offline_meta: EntityTable<EncodeOfflineMeta, "id">;
 };
 
 export type AuthSession = {
@@ -87,6 +96,16 @@ db.version(6).stores({
   auth_session: "id",
   verify_cache: "uuid, last_name, first_name, barangay, city_municipality",
   verify_meta: "id",
+});
+
+db.version(7).stores({
+  faced_records:
+    "++id, uuid, barangay, access_code, enumerator_name, sync_status, createdAt, date_registered",
+  auth_session: "id",
+  verify_cache: "uuid, last_name, first_name, barangay, city_municipality",
+  verify_meta: "id",
+  ec_library_cache: "id, city_municipality, barangay, site_name",
+  encode_offline_meta: "id",
 });
 
 export async function getAuthSession(): Promise<AuthSession | undefined> {

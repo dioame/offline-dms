@@ -8,6 +8,7 @@ import type {
   ShelterDamageClassification,
 } from "../faced-types";
 import { mergePermanentAddressLine } from "../faced-types";
+import { resolveFacedSerialNumber } from "../faced-serial";
 import { formatBirth, formatAgeDisplay, formatSexDisplay } from "./facedAnnexPrint";
 import type { FamilyHead, FamilyMember } from "./faced-print-types";
 
@@ -100,16 +101,16 @@ function contactFromHead(head: HeadOfFamily): string {
 }
 
 function serialCode(record: TursoExportRecord): string {
-  const access = clean(record.access_code);
-  if (access) return access;
-  return `PWA-${record.uuid.replace(/-/g, "").slice(0, 8).toUpperCase()}`;
+  return resolveFacedSerialNumber(record);
 }
 
 function evacuationCenter(data: FacedRecordData): string {
   if (data.evacuation_center_status === "yes") {
     return clean(data.evacuation_center_site) || "YES";
   }
-  if (data.evacuation_center_status === "no") return "NO";
+  if (data.evacuation_center_status === "no") {
+    return clean(data.evacuation_center_site) || "NO";
+  }
   return clean(data.evacuation_center_site);
 }
 

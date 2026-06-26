@@ -1,0 +1,249 @@
+.faced-id-print-shell {
+  min-height: 100vh;
+  background: #e8eef8;
+  color: #111;
+}
+
+.faced-id-print-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  background: #fff;
+  border-bottom: 1px solid #b8c9e8;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #002878;
+}
+
+.faced-id-print-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.faced-id-print-btn {
+  border: 1px solid #b8c9e8;
+  border-radius: 0.5rem;
+  background: #fff;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #0038a8;
+  cursor: pointer;
+}
+
+.faced-id-print-btn--primary {
+  border-color: #0038a8;
+  background: #0038a8;
+  color: #fff;
+}
+
+.faced-id-print-error {
+  max-width: 36rem;
+  margin: 2rem auto;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid #b8c9e8;
+  background: #fff;
+  text-align: center;
+  font-size: 0.9375rem;
+  color: #334155;
+}
+
+.faced-id-print-stage {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1.5rem 1rem 2rem;
+}
+
+.faced-id-card {
+  width: 3.375in;
+  height: 2.125in;
+  overflow: hidden;
+  border-radius: 0.14in;
+  border: 1px solid #0038a8;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(0, 40, 120, 0.14);
+  display: flex;
+  flex-direction: column;
+  text-transform: uppercase;
+}
+
+.faced-id-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.08in;
+  padding: 0.06in 0.1in;
+  background: linear-gradient(135deg, #002878 0%, #0038a8 55%, #0048c8 100%);
+  color: #fff;
+}
+
+.faced-id-card-emblem {
+  width: 0.34in;
+  height: 0.34in;
+  flex-shrink: 0;
+}
+
+.faced-id-card-header-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.faced-id-card-kicker {
+  font-size: 5pt;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+
+.faced-id-card-title {
+  font-size: 8pt;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.05;
+}
+
+.faced-id-card-tricolor {
+  height: 0.045in;
+  background: linear-gradient(
+    to right,
+    #0038a8 33.33%,
+    #ce1126 33.33% 66.66%,
+    #fdb913 66.66%
+  );
+}
+
+.faced-id-card-body {
+  display: grid;
+  grid-template-columns: 0.78in 1fr;
+  gap: 0.08in;
+  padding: 0.08in 0.1in 0.06in;
+  flex: 1;
+  min-height: 0;
+}
+
+.faced-id-photo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #b8c9e8;
+  border-radius: 0.05in;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 5.5pt;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.2;
+  padding: 0.04in;
+}
+
+.faced-id-details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.faced-id-name {
+  font-size: 8pt;
+  font-weight: 800;
+  line-height: 1.1;
+  color: #002878;
+  text-transform: uppercase;
+  margin-bottom: 0.05in;
+  word-break: break-word;
+}
+
+.faced-id-field {
+  display: grid;
+  grid-template-columns: 0.72in 1fr;
+  gap: 0.04in;
+  align-items: baseline;
+  font-size: 5.5pt;
+  line-height: 1.15;
+  margin-bottom: 0.02in;
+}
+
+.faced-id-label {
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+}
+
+.faced-id-value {
+  font-weight: 700;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.faced-id-value--serial {
+  color: #0038a8;
+  letter-spacing: 0.03em;
+}
+
+.faced-id-field--address {
+  margin-bottom: 0;
+}
+
+.faced-id-field--qr {
+  align-items: start;
+  margin-top: 0.02in;
+  margin-bottom: 0;
+}
+
+.faced-id-qr {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.faced-id-qr-code {
+  width: 0.42in !important;
+  height: 0.42in !important;
+}
+
+.faced-id-card-footer {
+  margin-top: auto;
+  padding: 0.04in 0.1in 0.06in;
+  border-top: 1px dashed #b8c9e8;
+  font-size: 4.5pt;
+  font-weight: 600;
+  color: #64748b;
+  text-align: center;
+  line-height: 1.2;
+}
+
+@media print {
+  @page faced-id {
+    size: auto;
+    margin: 0.35in;
+  }
+
+  body {
+    background: #fff !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .faced-id-print-shell {
+    background: #fff;
+  }
+
+  .faced-id-print-stage {
+    padding: 0;
+    gap: 0.2in;
+    page: faced-id;
+  }
+
+  .faced-id-card {
+    box-shadow: none;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

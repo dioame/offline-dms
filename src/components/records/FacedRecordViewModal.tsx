@@ -6,6 +6,7 @@ import {
   mergePermanentAddressLine,
   shelterDamageRadioValue,
 } from "@/lib/faced-types";
+import { resolveFacedSerialNumber } from "@/lib/faced-serial";
 import type { FacedRecordAdminDetail } from "@/lib/records-admin";
 import { FileText, Pencil, X } from "lucide-react";
 import { SkeletonRecordView, SkeletonScreen } from "@/components/ui/Skeleton";
@@ -134,6 +135,10 @@ export default function FacedRecordViewModal({
                 <SectionTitle>Record information</SectionTitle>
                 <div className={detailGrid}>
                   <DetailItem label="UUID" value={record.uuid} />
+                  <DetailItem
+                    label="Serial number"
+                    value={resolveFacedSerialNumber(record)}
+                  />
                   <DetailItem label="Access code" value={displayValue(record.access_code)} />
                   <DetailItem label="Encoder" value={displayValue(record.enumerator_name)} />
                   <DetailItem label="Date registered" value={displayValue(record.date_registered)} />
@@ -209,7 +214,7 @@ export default function FacedRecordViewModal({
                       record.evacuation_center_status === "yes"
                         ? displayValue(record.evacuation_center_site || "Yes")
                         : record.evacuation_center_status === "no"
-                          ? "No"
+                          ? displayValue(record.evacuation_center_site || "No")
                           : "—"
                     }
                   />

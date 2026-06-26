@@ -115,6 +115,7 @@ export type FacedMetadata = {
 
 export type FacedRecordData = {
   access_code: string;
+  serial_number: string;
   enumerator_name: string;
   region: string;
   province: string;
@@ -174,6 +175,7 @@ export function createEmptyFacedRecord(
 ): FacedRecordData {
   return {
     access_code: defaults?.access_code ?? "",
+    serial_number: "",
     enumerator_name: defaults?.enumerator_name ?? "",
     region: SARANGANI_REGION,
     province: SARANGANI_PROVINCE,

@@ -129,6 +129,13 @@ export const sessionBar = cn(
   "border-b border-faced-blue-border bg-gradient-to-r from-ph-yellow-light to-ph-blue-light",
 );
 
+export const appFooter = cn(
+  "mt-auto border-t border-faced-blue-border bg-gradient-to-b from-white to-ph-blue-light/40",
+);
+export const appFooterInner = "mx-auto max-w-6xl px-4 py-4 text-center";
+export const appFooterTitle = "text-xs font-bold uppercase tracking-wide text-ph-blue-dark";
+export const appFooterSub = "mt-1 text-[0.6875rem] leading-relaxed text-slate-600";
+
 export const badgeOnline = cn(
   "rounded-full border border-ph-blue/20 bg-ph-blue-light text-ph-blue-dark",
 );

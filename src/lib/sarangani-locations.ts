@@ -218,6 +218,42 @@ export function barangayOptions(municipality: string) {
   return list.map((b) => ({ value: b, label: b }));
 }
 
+const BARANGAY_CANONICAL = new Map<string, string>();
+for (const list of Object.values(SARANGANI_BARANGAYS)) {
+  for (const name of list) {
+    BARANGAY_CANONICAL.set(name.toUpperCase(), name);
+  }
+}
+
+function toProperCaseWords(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/(^|[\s-/])(\w)/g, (_, separator, char) => `${separator}${char.toUpperCase()}`);
+}
+
+/** Display barangay names in canonical/proper case (e.g. TUYAN → Tuyan). */
+export function formatDisplayBarangay(
+  barangay: string,
+  cityMunicipality?: string,
+): string {
+  const trimmed = barangay.trim();
+  if (!trimmed) return trimmed;
+
+  const canonical = BARANGAY_CANONICAL.get(trimmed.toUpperCase());
+  if (canonical) return canonical;
+
+  const municipality = cityMunicipality?.trim();
+  if (municipality && isSaranganiMunicipality(municipality)) {
+    const match = SARANGANI_BARANGAYS[municipality].find(
+      (name) => name.toUpperCase() === trimmed.toUpperCase(),
+    );
+    if (match) return match;
+  }
+
+  return toProperCaseWords(trimmed);
+}
+
 export function isSaranganiMunicipality(
   value: string,
 ): value is SaranganiMunicipality {

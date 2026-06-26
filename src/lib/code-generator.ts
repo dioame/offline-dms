@@ -14,6 +14,11 @@ export function generateAccessCode(): string {
   return `FACED-${randomSegment(4)}-${randomSegment(4)}`;
 }
 
+/** Unique serial for each encoded family FACED form (distinct from encoder access code). */
+export function generateFacedSerialNumber(): string {
+  return `FACED-SN-${randomSegment(4)}-${randomSegment(4)}`;
+}
+
 export function normalizeAccessCode(input: string): string {
   return input.trim().toUpperCase().replace(/\s+/g, "");
 }

@@ -2,6 +2,12 @@
 
 export const OUTSIDE_EC_LABEL = "Outside EC";
 
+export function formatOutsideEcSite(barangay: string): string {
+  const trimmed = barangay.trim();
+  if (!trimmed) return "OUTSIDE EC";
+  return `OUTSIDE EC - ${trimmed}`;
+}
+
 const OUTSIDE_EC_KEYWORDS = [
   "OUTSIDE EC",
   "OUTSIDE THE EC",

@@ -24,6 +24,8 @@ import {
 } from "@/lib/records-admin";
 import { sortDuplicateGroups } from "@/lib/duplicate-groups";
 import SoftDeleteConfirmDialog from "@/components/records/SoftDeleteConfirmDialog";
+import SoftDeleteProcessingDialog from "@/components/records/SoftDeleteProcessingDialog";
+import SoftDeleteSuccessDialog from "@/components/records/SoftDeleteSuccessDialog";
 import FacedRecordViewModal from "@/components/records/FacedRecordViewModal";
 import RecordRowActions from "@/components/records/RecordRowActions";
 import DuplicateFamilyMembers from "@/components/records/DuplicateFamilyMembers";
@@ -35,6 +37,7 @@ import {
   buildOfflineDmsPrintMap,
 } from "@/lib/print/offlineDmsFacedPrint";
 import { openFacedFormPrint } from "@/lib/print/openFacedFormPrint";
+import { openFacedIdPrintForRecord } from "@/lib/print/openFacedIdPrint";
 import { exportFacedToExcel, exportRecordsJsonToFacedRecords, type ExportRecordJson } from "@/lib/export-excel";
 import {
   SkeletonDuplicateList,
@@ -154,12 +157,15 @@ export default function RecordsPage() {
   const [deleteTarget, setDeleteTarget] = useState<{ uuid: string; headName: string } | null>(
     null,
   );
+  const [deleteSuccessHeadName, setDeleteSuccessHeadName] = useState<string | null>(null);
+  const [deleteProcessingHeadName, setDeleteProcessingHeadName] = useState<string | null>(null);
   const [restoreTarget, setRestoreTarget] = useState<{ uuid: string; headName: string } | null>(
     null,
   );
   const [deleting, setDeleting] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [printingUuid, setPrintingUuid] = useState<string | null>(null);
+  const [generatingIdUuid, setGeneratingIdUuid] = useState<string | null>(null);
 
   useEffect(() => {
     const stored = sessionStorage.getItem(ADMIN_STORAGE_KEY);
@@ -461,14 +467,36 @@ export default function RecordsPage() {
     }
   }
 
+  async function handleGenerateFacedId(uuid: string, headName: string) {
+    setMessage("");
+    setError("");
+    setGeneratingIdUuid(uuid);
+    try {
+      const res = await adminFetch(`/api/admin/records/${uuid}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load record for FACED ID.");
+      const record = data.record as FacedRecordAdminDetail;
+      const opened = openFacedIdPrintForRecord(record, `FACED ID — ${headName}`);
+      if (!opened) {
+        throw new Error("Pop-up blocked. Allow pop-ups for this site, then try Generate FACED ID again.");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "FACED ID generation failed.");
+    } finally {
+      setGeneratingIdUuid(null);
+    }
+  }
+
   async function confirmDelete() {
     if (!deleteTarget) return;
 
-    const { uuid } = deleteTarget;
+    const { uuid, headName } = deleteTarget;
     if (activeTab === "duplicates") {
       duplicateAnchorKeyRef.current =
         duplicateGroups.find((group) => group.records.some((row) => row.uuid === uuid))?.key ?? null;
     }
+    setDeleteProcessingHeadName(headName);
+    setDeleteTarget(null);
     setDeleting(true);
     setMessage("");
     setError("");
@@ -476,14 +504,14 @@ export default function RecordsPage() {
       const res = await adminFetch(`/api/admin/records/${uuid}`, { method: "DELETE" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to delete record.");
-      setMessage("Record deleted.");
-      setDeleteTarget(null);
       if (viewRecord?.uuid === uuid) closeView();
       await Promise.all([loadRecords(), loadDuplicates(), loadTrashCount()]);
+      setDeleteSuccessHeadName(headName);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Delete failed.");
     } finally {
       setDeleting(false);
+      setDeleteProcessingHeadName(null);
     }
   }
 
@@ -689,8 +717,10 @@ export default function RecordsPage() {
                             onView={() => void openView(row.uuid)}
                             onEdit={() => goToEdit(row.uuid)}
                             onPrint={() => void handlePrint(row.uuid, row.headName)}
+                            onGenerateId={() => void handleGenerateFacedId(row.uuid, row.headName)}
                             onDelete={() => requestDelete(row.uuid, row.headName)}
                             printing={printingUuid === row.uuid}
+                            generatingId={generatingIdUuid === row.uuid}
                           />
                         </td>
                       </tr>
@@ -834,8 +864,10 @@ export default function RecordsPage() {
                             onView={() => void openView(row.uuid)}
                             onEdit={() => goToEdit(row.uuid)}
                             onPrint={() => void handlePrint(row.uuid, row.headName)}
+                            onGenerateId={() => void handleGenerateFacedId(row.uuid, row.headName)}
                             onDelete={() => requestDelete(row.uuid, row.headName)}
                             printing={printingUuid === row.uuid}
+                            generatingId={generatingIdUuid === row.uuid}
                           />
                           </div>
                         </li>
@@ -991,13 +1023,22 @@ export default function RecordsPage() {
       )}
 
       <SoftDeleteConfirmDialog
-        open={deleteTarget !== null}
+        open={deleteTarget !== null && !deleting}
         headName={deleteTarget?.headName ?? ""}
-        deleting={deleting}
-        onNo={() => {
-          if (!deleting) setDeleteTarget(null);
-        }}
+        deleting={false}
+        onNo={() => setDeleteTarget(null)}
         onYes={() => void confirmDelete()}
+      />
+
+      <SoftDeleteProcessingDialog
+        open={deleting}
+        headName={deleteProcessingHeadName ?? ""}
+      />
+
+      <SoftDeleteSuccessDialog
+        open={deleteSuccessHeadName !== null && !deleting}
+        headName={deleteSuccessHeadName ?? ""}
+        onClose={() => setDeleteSuccessHeadName(null)}
       />
 
       <RestoreConfirmDialog
