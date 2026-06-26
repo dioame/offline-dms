@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import DevServiceWorkerCleanup from "@/components/DevServiceWorkerCleanup";
 import AppChrome from "@/components/AppChrome";
 import "./globals.css";
@@ -44,6 +45,15 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-sans">
+        {process.env.NODE_ENV === "development" ? (
+          <Script id="dev-sw-cleanup" strategy="beforeInteractive">
+            {`if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.getRegistrations().then(function (regs) {
+    regs.forEach(function (r) { r.unregister(); });
+  });
+}`}
+          </Script>
+        ) : null}
         <DevServiceWorkerCleanup />
         <AppChrome>{children}</AppChrome>
       </body>

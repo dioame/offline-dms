@@ -2,13 +2,52 @@
   "name": "offline-dms",
   "version": "0.1.0",
   "private": true,
+  "main": "electron/main.js",
   "scripts": {
-    "dev": "next dev --webpack",
+    "dev": "next dev --webpack -H 127.0.0.1",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "migrate": "tsx --env-file=.env scripts/migrate.ts",
-    "db:init": "npm run migrate"
+    "migrate": "tsx scripts/migrate.ts",
+    "db:init": "npm run migrate",
+    "electron:dev": "concurrently -k \"npm run dev\" \"wait-on http://127.0.0.1:3000 && cross-env NODE_ENV=development electron .\"",
+    "electron:pack": "npm run build && node scripts/prepare-standalone.js && electron-builder --win --dir",
+    "electron:build": "npm run build && node scripts/prepare-standalone.js && electron-builder --win"
+  },
+  "build": {
+    "appId": "com.offlinedms.faced",
+    "productName": "Offline DMS",
+    "copyright": "Copyright © 2026",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "electron/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": ".next/standalone",
+        "to": "standalone",
+        "filter": ["**/*"]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
@@ -27,10 +66,15 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/uuid": "^10.0.0",
+    "concurrently": "^10.0.3",
+    "cross-env": "^10.1.0",
+    "electron": "^42.5.0",
+    "electron-builder": "^26.15.3",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "tailwindcss": "^4",
     "tsx": "^4.20.3",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wait-on": "^9.0.10"
   }
 }

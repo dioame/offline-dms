@@ -1,29 +1,31 @@
-export function isTursoConfigured(): boolean {
-  return Boolean(
-    process.env.TURSO_DATABASE_URL?.trim() &&
-      process.env.TURSO_AUTH_TOKEN?.trim(),
-  );
+const DATABASE_URL = "file:D:/face_db.db";
+const ADMIN_PASSWORD = "admin123";
+const VERIFY_PASSWORD = "verify123";
+
+function isLocalDatabaseUrl(url: string): boolean {
+  return url.startsWith("file:");
 }
 
-export function getTursoEnv(): { url: string; authToken: string } {
-  const url = process.env.TURSO_DATABASE_URL?.trim();
-  const authToken = process.env.TURSO_AUTH_TOKEN?.trim();
+export function isTursoConfigured(): boolean {
+  if (!DATABASE_URL) return false;
+  if (isLocalDatabaseUrl(DATABASE_URL)) return true;
+  return false;
+}
 
-  if (!url || !authToken) {
-    throw new Error(
-      "Missing TURSO_DATABASE_URL or TURSO_AUTH_TOKEN. Copy .env.example to .env and add your Turso credentials.",
-    );
+export function getTursoEnv(): { url: string; authToken?: string } {
+  if (!DATABASE_URL) {
+    throw new Error("Database URL is not configured.");
   }
 
-  return { url, authToken };
+  return { url: DATABASE_URL };
 }
 
 export function getSyncApiSecret(): string | undefined {
-  return process.env.SYNC_API_SECRET?.trim() || undefined;
+  return undefined;
 }
 
 export function getAdminPassword(): string | undefined {
-  return process.env.ADMIN_PASSWORD?.trim() || undefined;
+  return ADMIN_PASSWORD;
 }
 
 export function verifyAdminPassword(password: string): boolean {
@@ -35,7 +37,7 @@ export function verifyAdminPassword(password: string): boolean {
 }
 
 export function getVerifyPassword(): string {
-  return process.env.VERIFY_PASSWORD?.trim() || "verify123";
+  return VERIFY_PASSWORD;
 }
 
 export function verifyVerifyPassword(password: string): boolean {

@@ -7,7 +7,9 @@ let client: Client | null = null;
 export function getTursoClient(): Client {
   if (!client) {
     const { url, authToken } = getTursoEnv();
-    client = createClient({ url, authToken });
+    client = authToken
+      ? createClient({ url, authToken })
+      : createClient({ url });
   }
   return client;
 }
