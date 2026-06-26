@@ -1,5 +1,9 @@
 "use client";
 
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import * as ui from "@/lib/ui";
+import { cn } from "@/lib/cn";
+
 export type ReportNavItem = {
   id: string;
   label: string;
@@ -38,15 +42,15 @@ export default function DashboardReportNavigator({
   }
 
   return (
-    <div className="dashboard-report-nav no-print" role="navigation" aria-label="Report section navigator">
-      <div className="dashboard-report-nav-main">
-        <button type="button" className="dashboard-report-nav-btn" onClick={goPrev} aria-label="Previous">
-          ←
+    <div className={cn(ui.dashboardReportNav, "no-print")} role="navigation" aria-label="Report section navigator">
+      <div className={ui.dashboardReportNavMain}>
+        <button type="button" className={ui.dashboardReportNavBtn} onClick={goPrev} aria-label="Previous">
+          <ChevronLeft className={ui.iconMd} aria-hidden />
         </button>
-        <label className="dashboard-report-nav-select-wrap">
+        <label className={ui.dashboardReportNavSelectWrap}>
           <span className="sr-only">Select {itemNoun}</span>
           <select
-            className="dashboard-report-nav-select"
+            className={ui.dashboardReportNavSelect}
             value={safeIndex}
             onChange={(e) => onSelectIndex(Number.parseInt(e.target.value, 10))}
           >
@@ -58,27 +62,27 @@ export default function DashboardReportNavigator({
             ))}
           </select>
         </label>
-        <button type="button" className="dashboard-report-nav-btn" onClick={goNext} aria-label="Next">
-          →
+        <button type="button" className={ui.dashboardReportNavBtn} onClick={goNext} aria-label="Next">
+          <ChevronRight className={ui.iconMd} aria-hidden />
         </button>
-        <span className="dashboard-report-nav-count">
+        <span className={ui.dashboardReportNavCount}>
           {safeIndex + 1} / {items.length}
         </span>
       </div>
       {current && (current.detail || current.meta) && (
-        <p className="dashboard-report-nav-detail">
+        <p className={ui.dashboardReportNavDetail}>
           {current.detail}
           {current.detail && current.meta ? " · " : ""}
           {current.meta}
         </p>
       )}
-      <label className="dashboard-report-nav-toggle">
+      <label className={ui.dashboardReportNavToggle}>
         <input
           type="checkbox"
           checked={showAll}
           onChange={(e) => onShowAllChange(e.target.checked)}
         />
-        Show all {items.length} {itemNoun}s (long scroll)
+        Show all {items.length} {itemNoun}s on one page (long scroll)
       </label>
     </div>
   );

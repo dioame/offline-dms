@@ -2,9 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  ChevronDown,
+  ChevronUp,
   ClipboardList,
   Home,
   MapPin,
+  MapPinOff,
   RefreshCw,
   Tent,
   UserRound,
@@ -14,6 +17,7 @@ import {
 import type { InsideEcGroup, ReportsBundle } from "@/lib/dashboard-types";
 import { loadCityMunFilter, saveCityMunFilter } from "@/lib/dashboard-city-filter";
 import EcInfoBoardReport, { EcInfoBoardGroups } from "@/components/dashboard/EcInfoBoardReport";
+import DashboardReportNavigator from "@/components/dashboard/DashboardReportNavigator";
 import type { ReportNavItem } from "@/components/dashboard/DashboardReportNavigator";
 import { SkeletonDashboard, SkeletonScreen } from "@/components/ui/Skeleton";
 import * as ui from "@/lib/ui";
@@ -24,6 +28,7 @@ type DashboardTab = "info-board" | "inside-ec" | "outside-ec" | "sex-age" | "she
 const TABS: { id: DashboardTab; label: string; icon: LucideIcon }[] = [
   { id: "info-board", label: "Evacuation Center Info Board", icon: ClipboardList },
   { id: "inside-ec", label: "Inside Evacuation Centers", icon: Home },
+  { id: "outside-ec", label: "Outside Evacuation Centers", icon: MapPinOff },
   { id: "sex-age", label: "Sex, Age & Sectoral", icon: Users },
   { id: "shelter", label: "Family & Shelter", icon: Tent },
 ];
@@ -63,7 +68,7 @@ export default function DashboardReports() {
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<DashboardTab>("info-board");
   const [nowOnly, setNowOnly] = useState(false);
-  const [controlsOpen, setControlsOpen] = useState(true);
+  const [controlsOpen, setControlsOpen] = useState(false);
   const [infoBoardIndex, setInfoBoardIndex] = useState(0);
   const [insideEcIndex, setInsideEcIndex] = useState(0);
   const [outsideBrgyIndex, setOutsideBrgyIndex] = useState(0);
@@ -138,99 +143,135 @@ export default function DashboardReports() {
       : [];
 
   return (
-    <div className="space-y-6">
-      <div className={cn(ui.dashboardFilter, "no-print")}>
-        <div className="flex flex-wrap items-end gap-4">
-          <label className="block min-w-[220px]">
-            <span className={ui.dashboardFilterLabel}>Municipality</span>
-            <select
-              value={cityMun}
-              onChange={(e) => handleMunicipalityChange(e.target.value)}
-              className={ui.dashboardFilterSelect}
-            >
-              <option value="">All municipalities</option>
-              {municipalities.map((m) => (
-                <option key={m.city_mun} value={m.city_mun}>
-                  {m.city_mun} ({m.heads_count} families)
-                </option>
-              ))}
-            </select>
-          </label>
+    <div className="space-y-4">
+      <div className={cn(ui.dashboardControlsBar, "no-print")}>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-sm font-bold text-ph-blue-dark">Filters &amp; summary</h2>
           <button
             type="button"
-            onClick={() => void load()}
-            className={cn(ui.headerBtn, ui.withIcon)}
-            disabled={loading}
+            className={cn(ui.dashboardControlsToggle, ui.withIcon)}
+            onClick={() => setControlsOpen((open) => !open)}
+            aria-expanded={controlsOpen}
           >
-            <RefreshCw className={cn(ui.iconSm, loading && "animate-spin")} aria-hidden />
-            {loading ? "Loading…" : "Refresh"}
+            {controlsOpen ? (
+              <>
+                <ChevronUp className={ui.iconSm} aria-hidden />
+                Hide
+              </>
+            ) : (
+              <>
+                <ChevronDown className={ui.iconSm} aria-hidden />
+                Show
+              </>
+            )}
           </button>
-          {cityMun && (
-            <span className={ui.dashboardFilterBadge}>Filtered: {cityMun}</span>
-          )}
         </div>
-        <p className={ui.dashboardFilterNote}>
-          Filter applies to all report tabs. Data comes from synced FACED records in Turso.
-        </p>
+
+        {controlsOpen && (
+          <div className="mt-4 space-y-4">
+            <div className="flex flex-wrap items-end gap-4">
+              <label className="block min-w-[220px]">
+                <span className={ui.dashboardFilterLabel}>Municipality</span>
+                <select
+                  value={cityMun}
+                  onChange={(e) => handleMunicipalityChange(e.target.value)}
+                  className={ui.dashboardFilterSelect}
+                >
+                  <option value="">All municipalities</option>
+                  {municipalities.map((m) => (
+                    <option key={m.city_mun} value={m.city_mun}>
+                      {m.city_mun} ({m.heads_count} families)
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                type="button"
+                onClick={() => void load()}
+                className={cn(ui.btnSecondary, ui.withIcon)}
+                disabled={loading}
+              >
+                <RefreshCw className={cn(ui.iconSm, loading && "animate-spin")} aria-hidden />
+                {loading ? "Loading…" : "Refresh"}
+              </button>
+              {cityMun && (
+                <span className={ui.dashboardFilterBadge}>Filtered: {cityMun}</span>
+              )}
+            </div>
+            <p className={ui.dashboardFilterNote}>
+              Filter applies to all report tabs. Data comes from synced FACED records in Turso.
+            </p>
+
+            {bundle && !loading && (
+              <div className={ui.dashboardSummaryGrid}>
+                <div className={ui.dashboardStat}>
+                  <p className={cn(ui.dashboardStatLabel, ui.withIcon)}>
+                    <Users className={ui.iconSm} aria-hidden />
+                    Total families
+                  </p>
+                  <p className={ui.dashboardStatValue}>{bundle.total_records}</p>
+                </div>
+                <div className={ui.dashboardStat}>
+                  <p className={cn(ui.dashboardStatLabel, ui.withIcon)}>
+                    <Home className={ui.iconSm} aria-hidden />
+                    Inside EC
+                  </p>
+                  <p className={ui.dashboardStatValue}>{bundle.inside_ec_records}</p>
+                </div>
+                <div className={ui.dashboardStat}>
+                  <p className={cn(ui.dashboardStatLabel, ui.withIcon)}>
+                    <MapPinOff className={ui.iconSm} aria-hidden />
+                    Outside EC
+                  </p>
+                  <p className={ui.dashboardStatValue}>{bundle.outside_ec_records}</p>
+                </div>
+                <div className={ui.dashboardStat}>
+                  <p className={cn(ui.dashboardStatLabel, ui.withIcon)}>
+                    <MapPin className={ui.iconSm} aria-hidden />
+                    EC sites
+                  </p>
+                  <p className={ui.dashboardStatValue}>{bundle.inside_ec.ec_sites_count}</p>
+                </div>
+                <div className={ui.dashboardStat}>
+                  <p className={cn(ui.dashboardStatLabel, ui.withIcon)}>
+                    <UserRound className={ui.iconSm} aria-hidden />
+                    Persons (encoded)
+                  </p>
+                  <p className={ui.dashboardStatValue}>{bundle.sex_age_sectoral.totals.total_cum}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {error && <div className={ui.alertError}>{error}</div>}
 
-      {bundle && !loading && (
-        <div className={cn(ui.dashboardSummaryGrid, "no-print")}>
-          <div className={ui.dashboardStat}>
-            <p className={cn(ui.dashboardStatLabel, ui.withIcon)}>
-              <Users className={ui.iconSm} aria-hidden />
-              Total families
-            </p>
-            <p className={ui.dashboardStatValue}>{bundle.total_records}</p>
+      <div className={cn(ui.dashboardStickyToolbar, "no-print")}>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className={ui.verifyTabs} role="tablist" aria-label="Dashboard reports">
+            {TABS.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === tab.id}
+                className={cn(ui.verifyTabClass(activeTab === tab.id), ui.withIcon)}
+                onClick={() => setActiveTab(tab.id)}
+              >
+                <tab.icon className={ui.iconSm} aria-hidden />
+                {tab.label}
+              </button>
+            ))}
           </div>
-          <div className={ui.dashboardStat}>
-            <p className={cn(ui.dashboardStatLabel, ui.withIcon)}>
-              <Home className={ui.iconSm} aria-hidden />
-              Inside EC
-            </p>
-            <p className={ui.dashboardStatValue}>{bundle.inside_ec_records}</p>
-          </div>
-          <div className={ui.dashboardStat}>
-            <p className={cn(ui.dashboardStatLabel, ui.withIcon)}>
-              <MapPin className={ui.iconSm} aria-hidden />
-              EC sites
-            </p>
-            <p className={ui.dashboardStatValue}>{bundle.inside_ec.ec_sites_count}</p>
-          </div>
-          <div className={ui.dashboardStat}>
-            <p className={cn(ui.dashboardStatLabel, ui.withIcon)}>
-              <UserRound className={ui.iconSm} aria-hidden />
-              Persons (encoded)
-            </p>
-            <p className={ui.dashboardStatValue}>{bundle.sex_age_sectoral.totals.total_cum}</p>
-          </div>
+          <label className={ui.dashboardNowToggle}>
+            <input type="checkbox" checked={nowOnly} onChange={(e) => setNowOnly(e.target.checked)} />
+            NOW only (hide CUM columns)
+          </label>
         </div>
-      )}
-
-      <div className={cn(ui.dashboardToolbar, "no-print")}>
-        <div className={ui.verifyTabs} role="tablist" aria-label="Dashboard reports">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              role="tab"
-              aria-selected={activeTab === tab.id}
-              className={cn(ui.verifyTabClass(activeTab === tab.id), ui.withIcon)}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              <tab.icon className={ui.iconSm} aria-hidden />
-              {tab.label}
-            </button>
-          ))}
-        </div>
-        <label className={ui.dashboardNowToggle}>
-          <input type="checkbox" checked={nowOnly} onChange={(e) => setNowOnly(e.target.checked)} />
-          NOW only (hide CUM columns)
-        </label>
       </div>
 
+      <div ref={reportPaneRef}>
       {loading && !bundle && (
         <SkeletonScreen label="Loading dashboard reports">
           <SkeletonDashboard />
@@ -238,24 +279,49 @@ export default function DashboardReports() {
       )}
 
       {bundle && activeTab === "info-board" && (
-        <section>
+        <section className={ui.dashboardReportPane}>
           <h3 className={ui.dashboardPanelTitle}>Evacuation Center Information Board</h3>
-          <EcInfoBoardGroups groups={bundle.info_board.groups} nowOnly={nowOnly} />
+          <EcInfoBoardGroups
+            groups={bundle.info_board.groups}
+            nowOnly={nowOnly}
+            selectedIndex={infoBoardSafeIndex}
+            onSelectIndex={setInfoBoardIndex}
+            showAll={showAllBoards}
+            onShowAllChange={setShowAllBoards}
+            itemNoun="evacuation center"
+          />
         </section>
       )}
 
       {bundle && activeTab === "inside-ec" && (
-        <section>
+        <section className={ui.dashboardReportPane}>
           <h3 className={ui.dashboardPanelTitle}>Inside Evacuation Center Data</h3>
           {bundle.inside_ec.groups.length === 0 ? (
             <div className={ui.dashboardEmpty}>No inside-EC families for this filter.</div>
           ) : (
-            <div className="space-y-8">
-              {bundle.inside_ec.groups.map((group) => (
-                <div key={group.ec_name}>
-                  <h4 className={ui.dashboardEcLabel}>{group.ec_name}</h4>
-                  {group.ec_address && <p className="text-sm text-slate-600 mb-3">{group.ec_address}</p>}
-                  <div className={ui.ecBoardTableWrap}>
+            <div className="space-y-6">
+              {insideEcGroups.length > 1 && (
+                <DashboardReportNavigator
+                  items={insideEcNavItems(insideEcGroups)}
+                  selectedIndex={insideEcSafeIndex}
+                  onSelectIndex={setInsideEcIndex}
+                  showAll={showAllBoards}
+                  onShowAllChange={setShowAllBoards}
+                  itemNoun="evacuation center"
+                />
+              )}
+              <div className="space-y-8">
+                {visibleInsideEcGroups.map((group) => (
+                  <div key={group.ec_name}>
+                    {(showAllBoards || insideEcGroups.length > 1) && (
+                      <>
+                        <h4 className={ui.dashboardEcLabel}>{group.ec_name}</h4>
+                        {group.ec_address && (
+                          <p className="mb-3 text-sm text-slate-600">{group.ec_address}</p>
+                        )}
+                      </>
+                    )}
+                    <div className={ui.ecBoardTableWrap}>
                     <table className={ui.ecBoardTable}>
                       <thead>
                         <tr>
@@ -307,34 +373,44 @@ export default function DashboardReports() {
                   </div>
                 </div>
               ))}
+              </div>
             </div>
           )}
         </section>
       )}
 
       {bundle && activeTab === "outside-ec" && (
-        <section className="space-y-8">
-          <div className="dashboard-summary-grid dashboard-summary-grid--section">
-            <div className="dashboard-stat dashboard-stat--outside">
-              <p className="dashboard-stat-label">Outside EC families</p>
-              <p className="dashboard-stat-value">{bundle.outside_ec.totals.families_cum}</p>
+        <section className={cn(ui.dashboardReportPane, "space-y-8")}>
+          <div className={ui.dashboardSummaryGrid}>
+            <div className={ui.dashboardStat}>
+              <p className={cn(ui.dashboardStatLabel, ui.withIcon)}>
+                <MapPinOff className={ui.iconSm} aria-hidden />
+                Outside EC families
+              </p>
+              <p className={ui.dashboardStatValue}>{bundle.outside_ec.totals.families_cum}</p>
             </div>
-            <div className="dashboard-stat dashboard-stat--outside">
-              <p className="dashboard-stat-label">Outside EC persons</p>
-              <p className="dashboard-stat-value">{bundle.outside_ec.totals.persons_cum}</p>
+            <div className={ui.dashboardStat}>
+              <p className={cn(ui.dashboardStatLabel, ui.withIcon)}>
+                <UserRound className={ui.iconSm} aria-hidden />
+                Outside EC persons
+              </p>
+              <p className={ui.dashboardStatValue}>{bundle.outside_ec.totals.persons_cum}</p>
             </div>
-            <div className="dashboard-stat dashboard-stat--outside">
-              <p className="dashboard-stat-label">Barangays</p>
-              <p className="dashboard-stat-value">{bundle.outside_ec.by_barangay.length}</p>
+            <div className={ui.dashboardStat}>
+              <p className={cn(ui.dashboardStatLabel, ui.withIcon)}>
+                <MapPin className={ui.iconSm} aria-hidden />
+                Barangays
+              </p>
+              <p className={ui.dashboardStatValue}>{bundle.outside_ec.by_barangay.length}</p>
             </div>
           </div>
 
           {bundle.outside_ec.totals.families_cum === 0 ? (
-            <div className="dashboard-empty">No outside-EC families for this filter.</div>
+            <div className={ui.dashboardEmpty}>No outside-EC families for this filter.</div>
           ) : (
             <>
               <div>
-                <h3 className="dashboard-panel-title">Outside EC — Summary</h3>
+                <h3 className={ui.dashboardPanelTitle}>Outside EC — Summary</h3>
                 <p className="mb-4 text-sm text-slate-600">
                   Families not in an evacuation center (blank site, &quot;Outside EC&quot;, Tuyan, or
                   evacuation status &quot;no&quot;), with age/sex and sectoral disaggregation.
@@ -348,15 +424,7 @@ export default function DashboardReports() {
 
               {bundle.outside_ec.barangay_groups.length > 0 && (
                 <div>
-                  <h3 className="dashboard-panel-title">
-                    Outside EC — by Barangay
-                    {bundle.outside_ec.barangay_groups.length > 1 && !showAllBoards && (
-                      <span className="dashboard-panel-meta">
-                        {" "}
-                        — {outsideBrgySafeIndex + 1} of {bundle.outside_ec.barangay_groups.length}
-                      </span>
-                    )}
-                  </h3>
+                  <h3 className={ui.dashboardPanelTitle}>Outside EC — by Barangay</h3>
                   <EcInfoBoardGroups
                     groups={bundle.outside_ec.barangay_groups}
                     nowOnly={nowOnly}
@@ -373,46 +441,46 @@ export default function DashboardReports() {
               )}
 
               <div>
-                <h3 className="dashboard-panel-title">Shelter damage — by Barangay</h3>
-                <div className="ec-board-table-wrap">
-                  <table className="ec-board-table">
+                <h3 className={ui.dashboardPanelTitle}>Shelter damage — by Barangay</h3>
+                <div className={ui.ecBoardTableWrap}>
+                  <table className={ui.ecBoardTable}>
                     <thead>
                       <tr>
-                        <th className="ec-board-th ec-board-th--label">Barangay</th>
-                        <th className="ec-board-th">Family Heads</th>
-                        <th className="ec-board-th">Total Persons</th>
-                        <th className="ec-board-th">Totally</th>
-                        <th className="ec-board-th">Partially</th>
-                        <th className="ec-board-th">Not Identified</th>
+                        <th className={cn(ui.ecBoardTh, ui.ecBoardThLabel)}>Barangay</th>
+                        <th className={ui.ecBoardTh}>Family Heads</th>
+                        <th className={ui.ecBoardTh}>Total Persons</th>
+                        <th className={ui.ecBoardTh}>Totally</th>
+                        <th className={ui.ecBoardTh}>Partially</th>
+                        <th className={ui.ecBoardTh}>Not Identified</th>
                       </tr>
                     </thead>
                     <tbody>
                       {bundle.outside_ec.by_barangay.map((row, index) => (
                         <tr
                           key={row.barangay}
-                          className={index % 2 === 0 ? "ec-board-row ec-board-row--alt" : "ec-board-row"}
+                          className={index % 2 === 0 ? ui.ecBoardRowAlt : undefined}
                         >
-                          <td className="ec-board-td ec-board-td--label">{row.barangay}</td>
-                          <td className="ec-board-td ec-board-td--metric">{row.families_cum}</td>
-                          <td className="ec-board-td ec-board-td--metric">{row.persons_cum}</td>
-                          <td className="ec-board-td ec-board-td--metric">{row.shelter?.totally ?? 0}</td>
-                          <td className="ec-board-td ec-board-td--metric">{row.shelter?.partially ?? 0}</td>
-                          <td className="ec-board-td ec-board-td--metric">
+                          <td className={cn(ui.ecBoardTd, ui.ecBoardTdLabel)}>{row.barangay}</td>
+                          <td className={cn(ui.ecBoardTd, ui.ecBoardTdMetric)}>{row.families_cum}</td>
+                          <td className={cn(ui.ecBoardTd, ui.ecBoardTdMetric)}>{row.persons_cum}</td>
+                          <td className={cn(ui.ecBoardTd, ui.ecBoardTdMetric)}>{row.shelter?.totally ?? 0}</td>
+                          <td className={cn(ui.ecBoardTd, ui.ecBoardTdMetric)}>{row.shelter?.partially ?? 0}</td>
+                          <td className={cn(ui.ecBoardTd, ui.ecBoardTdMetric)}>
                             {row.shelter?.not_identified ?? 0}
                           </td>
                         </tr>
                       ))}
-                      <tr className="ec-board-row ec-board-row--total">
-                        <td className="ec-board-td ec-board-td--label">TOTAL</td>
-                        <td className="ec-board-td ec-board-td--metric">{bundle.outside_ec.totals.families_cum}</td>
-                        <td className="ec-board-td ec-board-td--metric">{bundle.outside_ec.totals.persons_cum}</td>
-                        <td className="ec-board-td ec-board-td--metric">
+                      <tr className={ui.ecBoardRowTotal}>
+                        <td className={cn(ui.ecBoardTd, ui.ecBoardTdLabel)}>TOTAL</td>
+                        <td className={cn(ui.ecBoardTd, ui.ecBoardTdMetric)}>{bundle.outside_ec.totals.families_cum}</td>
+                        <td className={cn(ui.ecBoardTd, ui.ecBoardTdMetric)}>{bundle.outside_ec.totals.persons_cum}</td>
+                        <td className={cn(ui.ecBoardTd, ui.ecBoardTdMetric)}>
                           {bundle.outside_ec.totals.shelter?.totally ?? 0}
                         </td>
-                        <td className="ec-board-td ec-board-td--metric">
+                        <td className={cn(ui.ecBoardTd, ui.ecBoardTdMetric)}>
                           {bundle.outside_ec.totals.shelter?.partially ?? 0}
                         </td>
-                        <td className="ec-board-td ec-board-td--metric">
+                        <td className={cn(ui.ecBoardTd, ui.ecBoardTdMetric)}>
                           {bundle.outside_ec.totals.shelter?.not_identified ?? 0}
                         </td>
                       </tr>
@@ -426,7 +494,7 @@ export default function DashboardReports() {
       )}
 
       {bundle && activeTab === "sex-age" && (
-        <section className="space-y-8">
+        <section className={cn(ui.dashboardReportPane, "space-y-8")}>
           <div>
             <h3 className={ui.dashboardPanelTitle}>Sex &amp; Age Distribution — Encoded Records</h3>
             {bundle.sex_age_sectoral.totals.total_cum === 0 ? (
@@ -519,7 +587,7 @@ export default function DashboardReports() {
       )}
 
       {bundle && activeTab === "shelter" && (
-        <section>
+        <section className={ui.dashboardReportPane}>
           <h3 className={ui.dashboardPanelTitle}>Family &amp; Shelter</h3>
           <div className={ui.dashboardShelterGrid}>
             <div>
@@ -591,6 +659,7 @@ export default function DashboardReports() {
           </div>
         </section>
       )}
+      </div>
     </div>
   );
 }

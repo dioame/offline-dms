@@ -598,7 +598,11 @@ export default function FacedForm({
     setShowDuplicateConfirm(false);
   }
 
-  function handleDuplicateConfirmCancel() {
+  function handleDuplicateConfirmGoBack() {
+    window.location.reload();
+  }
+
+  function handleDuplicateConfirmDismiss() {
     setShowDuplicateConfirm(false);
     setDuplicateDismissedQuery(buildDuplicateQuery());
   }
@@ -1163,7 +1167,8 @@ export default function FacedForm({
         source={duplicateSource}
         saving={saving}
         intent={duplicateConfirmIntent}
-        onCancel={handleDuplicateConfirmCancel}
+        onDismiss={handleDuplicateConfirmDismiss}
+        onGoBack={handleDuplicateConfirmGoBack}
         onContinue={handleDuplicateConfirmContinue}
       />
     </>

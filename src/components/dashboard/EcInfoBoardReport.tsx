@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import type { AgeRow, InfoBoardGroup, SectoralRow } from "@/lib/dashboard-types";
 import { SARANGANI_REGION } from "@/lib/sarangani-locations";
 import type { ReportNavItem } from "@/components/dashboard/DashboardReportNavigator";
+import DashboardReportNavigator from "@/components/dashboard/DashboardReportNavigator";
 import { cn } from "@/lib/cn";
 import * as ui from "@/lib/ui";
 
@@ -264,31 +265,39 @@ export function EcInfoBoardGroups({
   const safeIndex = Math.min(Math.max(selectedIndex, 0), Math.max(groups.length - 1, 0));
 
   if (groups.length === 0) {
-    return (
-      <div className="dashboard-empty">
-        No families currently listed inside evacuation centers for this filter.
-      </div>
-    );
+    return <div className={ui.dashboardEmpty}>{emptyMessage}</div>;
   }
 
   const visibleGroups = showAll ? groups : groups[safeIndex] ? [groups[safeIndex]] : [];
 
   return (
-    <div className="ec-info-board-screen space-y-8">
-      {groups.map((group) => (
-        <div key={group.ec_name} className="ec-info-board-group">
-          {groups.length > 1 && (
-            <div className="ec-info-board-group-label">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--ph-blue-dark)]">
-                Evacuation Center
-              </p>
-              <p className="font-semibold text-slate-900">{group.ec_name}</p>
-              {group.ec_address && <p className="text-sm text-slate-600">{group.ec_address}</p>}
-            </div>
-          )}
-          <EcInfoBoardReport data={group} nowOnly={nowOnly} />
-        </div>
-      ))}
+    <div className="space-y-6">
+      {onSelectIndex && onShowAllChange && groups.length > 1 && (
+        <DashboardReportNavigator
+          items={navItems}
+          selectedIndex={safeIndex}
+          onSelectIndex={onSelectIndex}
+          showAll={showAll}
+          onShowAllChange={onShowAllChange}
+          itemNoun={itemNoun}
+        />
+      )}
+      <div className="space-y-8">
+        {visibleGroups.map((group, index) => (
+          <div key={`${group.ec_name}-${group.address ?? ""}-${safeIndex + index}`}>
+            {(showAll || groups.length > 1) && (
+              <div className={ui.ecInfoBoardGroupLabel}>
+                <p className="text-xs font-semibold uppercase tracking-wide text-ph-blue-dark">
+                  {groupLabelPrefix}
+                </p>
+                <p className="font-semibold text-slate-900">{group.ec_name}</p>
+                {group.ec_address && <p className="text-sm text-slate-600">{group.ec_address}</p>}
+              </div>
+            )}
+            <EcInfoBoardReport data={group} nowOnly={nowOnly} title={title} />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

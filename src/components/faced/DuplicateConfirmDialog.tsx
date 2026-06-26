@@ -12,7 +12,8 @@ type DuplicateConfirmDialogProps = {
   source: "online" | "offline" | "local" | null;
   saving: boolean;
   intent: "detect" | "save";
-  onCancel: () => void;
+  onDismiss: () => void;
+  onGoBack: () => void;
   onContinue: () => void;
 };
 
@@ -29,13 +30,14 @@ export default function DuplicateConfirmDialog({
   source,
   saving,
   intent,
-  onCancel,
+  onDismiss,
+  onGoBack,
   onContinue,
 }: DuplicateConfirmDialogProps) {
   if (!open) return null;
 
   return (
-    <div className={ui.modalBackdrop} role="presentation" onClick={onCancel}>
+    <div className={ui.modalBackdrop} role="presentation" onClick={onDismiss}>
       <div
         className={ui.modal}
         role="dialog"
@@ -73,7 +75,7 @@ export default function DuplicateConfirmDialog({
           ) : null}
         </div>
         <div className={ui.modalActions}>
-          <button type="button" onClick={onCancel} disabled={saving} className={cn(ui.btnSecondary, ui.withIcon)}>
+          <button type="button" onClick={onGoBack} disabled={saving} className={cn(ui.btnSecondary, ui.withIcon)}>
             <ArrowLeft className={ui.iconSm} aria-hidden />
             Go back
           </button>

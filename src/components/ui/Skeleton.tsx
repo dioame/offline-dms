@@ -183,9 +183,16 @@ export function SkeletonDuplicateList({ groups = 3 }: { groups?: number }) {
           </div>
           <div className="divide-y divide-amber-200/60 px-4 py-2">
             {Array.from({ length: 2 }, (_, row) => (
-              <div key={row} className="flex justify-between gap-2 py-2">
-                <Skeleton className="h-4 w-48" />
-                <Skeleton className="h-8 w-20" />
+              <div key={row} className="space-y-2 py-2">
+                <div className="flex justify-between gap-2">
+                  <Skeleton className="h-4 w-48" />
+                  <Skeleton className="h-8 w-20" />
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  <Skeleton className="h-5 w-28 rounded" />
+                  <Skeleton className="h-5 w-32 rounded" />
+                  <Skeleton className="h-5 w-24 rounded" />
+                </div>
               </div>
             ))}
           </div>

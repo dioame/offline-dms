@@ -368,6 +368,33 @@ export const dashboardEmpty = cn(
   "rounded-xl border border-dashed border-faced-blue-border bg-slate-50 px-4 py-8 text-center text-sm text-slate-500",
 );
 export const dashboardShelterGrid = "grid gap-6 md:grid-cols-2";
+export const dashboardControlsBar = cn(
+  "rounded-xl border border-faced-blue-border bg-white px-4 py-3",
+);
+export const dashboardControlsToggle = cn(
+  "inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-semibold text-ph-blue",
+  "hover:bg-ph-blue-light",
+);
+export const dashboardStickyToolbar = cn(
+  "sticky top-[2.65rem] z-30 -mx-1 rounded-xl border border-faced-blue-border",
+  "bg-white/95 px-3 py-3 shadow-sm backdrop-blur-sm",
+);
+export const dashboardReportPane = cn(
+  "rounded-xl border border-faced-blue-border bg-white p-4 sm:p-6",
+);
+export const dashboardReportNav = cn(
+  "mb-4 rounded-lg border border-faced-blue-border bg-ph-blue-light/50 px-4 py-3",
+);
+export const dashboardReportNavMain = "flex flex-wrap items-center gap-2";
+export const dashboardReportNavBtn = cn(
+  "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-faced-blue-border",
+  "bg-white text-ph-blue transition hover:border-ph-blue hover:bg-ph-blue-light",
+);
+export const dashboardReportNavSelectWrap = "min-w-0 flex-1";
+export const dashboardReportNavSelect = cn(input, "w-full min-w-[12rem] text-sm");
+export const dashboardReportNavCount = "shrink-0 text-sm font-bold tabular-nums text-slate-600";
+export const dashboardReportNavDetail = "mt-2 text-sm text-slate-600";
+export const dashboardReportNavToggle = cn(dashboardNowToggle, "mt-2");
 
 export const ecBoardHeader = "mb-4 text-center";
 export const ecBoardTitle = "text-lg font-extrabold tracking-wide text-ph-blue-dark";

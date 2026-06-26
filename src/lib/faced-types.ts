@@ -253,6 +253,12 @@ export function toDateInputValue(birthdate: string): string {
   return `${fullYear}-${mm}-${dd}`;
 }
 
+export function formatDisplayBirthdate(birthdate: string | undefined | null): string {
+  const trimmed = birthdate?.trim() ?? "";
+  if (!trimmed) return "";
+  return toDateInputValue(trimmed) || trimmed;
+}
+
 export function computeAge(birthdate: string): string {
   if (!birthdate.trim()) return "";
   let born: Date;

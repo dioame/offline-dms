@@ -6,7 +6,16 @@ import {
   type TursoExportRecord,
 } from "./faced-export-shared";
 import { formatHeadName, normField } from "./verify-match";
+import { sortDuplicateGroups } from "./duplicate-groups";
 import { ensureTursoSchema, getTursoClient, upsertFacedRecord } from "./turso";
+
+export type FamilyMemberListItem = {
+  name: string;
+  relationship: string;
+  birthdate: string;
+  age: string;
+  sex: string;
+};
 
 export type FacedRecordListItem = {
   uuid: string;
@@ -23,6 +32,7 @@ export type FacedRecordListItem = {
   date_registered: string;
   updated_at: string;
   deleted_at?: string;
+  family_members: FamilyMemberListItem[];
 };
 
 export type FacedRecordAdminDetail = TursoExportRecord;
@@ -37,6 +47,36 @@ export type DuplicateGroup = {
   records: FacedRecordListItem[];
 };
 
+function compareListItems(a: FacedRecordListItem, b: FacedRecordListItem): number {
+  const byName =
+    a.lastName.localeCompare(b.lastName, "en", { sensitivity: "base" }) ||
+    a.firstName.localeCompare(b.firstName, "en", { sensitivity: "base" }) ||
+    (a.middleName || "").localeCompare(b.middleName || "", "en", { sensitivity: "base" });
+  if (byName !== 0) return byName;
+
+  const byBirthdate = (a.birthdate || "").localeCompare(b.birthdate || "");
+  if (byBirthdate !== 0) return byBirthdate;
+
+  const byBarangay = (a.barangay || "").localeCompare(b.barangay || "", "en", {
+    sensitivity: "base",
+  });
+  if (byBarangay !== 0) return byBarangay;
+
+  return a.uuid.localeCompare(b.uuid);
+}
+
+function buildDuplicateGroup(key: string, records: FacedRecordListItem[]): DuplicateGroup {
+  const sortedRecords = [...records].sort(compareListItems);
+  const lead = sortedRecords[0];
+  return {
+    key,
+    first_name: lead?.firstName ?? "",
+    last_name: lead?.lastName ?? "",
+    count: sortedRecords.length,
+    records: sortedRecords,
+  };
+}
+
 export type ListFacedRecordsInput = {
   search?: string;
   page?: number;
@@ -50,7 +90,22 @@ export type ListFacedRecordsResult = {
   pageSize: number;
 };
 
-function rowToListItem(row: Record<string, unknown>, payload: FacedRecordData): FacedRecordListItem {
+function summarizeFamilyMembers(payload: FacedRecordData): FamilyMemberListItem[] {
+  return (payload.family_members ?? [])
+    .filter((member) => member.family_member_name?.trim())
+    .map((member) => ({
+      name: member.family_member_name.trim(),
+      relationship: member.relationship_to_family_head?.trim() ?? "",
+      birthdate: member.birthdate?.trim() ?? "",
+      age: member.age?.trim() ?? "",
+      sex: member.sex?.trim() ?? "",
+    }));
+}
+
+export function facedRecordToListItem(
+  row: Record<string, unknown>,
+  payload: FacedRecordData,
+): FacedRecordListItem {
   const head = payload.head_of_family;
   return {
     uuid: String(row.uuid),
@@ -72,13 +127,14 @@ function rowToListItem(row: Record<string, unknown>, payload: FacedRecordData): 
     date_registered: String(row.date_registered ?? payload.date_registered ?? ""),
     updated_at: String(row.updated_at ?? ""),
     deleted_at: row.deleted_at ? String(row.deleted_at) : undefined,
+    family_members: summarizeFamilyMembers(payload),
   };
 }
 
 function parseRowListItem(row: Record<string, unknown>): FacedRecordListItem | null {
   const parsed = parseTursoFacedRecordRow(row);
   if (!parsed) return null;
-  return rowToListItem(row, parsed);
+  return facedRecordToListItem(row, parsed);
 }
 
 export async function listFacedRecordsAdmin(
@@ -380,7 +436,7 @@ export async function listDuplicateGroups(): Promise<DuplicateGroup[]> {
     sql: `
       ${FACED_EXPORT_SELECT}
       ${facedRecordsWhere()}
-      ORDER BY updated_at DESC
+      ORDER BY updated_at DESC, uuid ASC
     `,
   });
 
@@ -398,16 +454,11 @@ export async function listDuplicateGroups(): Promise<DuplicateGroup[]> {
     groups.set(key, list);
   }
 
-  return [...groups.entries()]
-    .filter(([, records]) => records.length > 1)
-    .map(([key, records]) => ({
-      key,
-      first_name: records[0].firstName,
-      last_name: records[0].lastName,
-      count: records.length,
-      records,
-    }))
-    .sort((a, b) => b.count - a.count || a.last_name.localeCompare(b.last_name));
+  return sortDuplicateGroups(
+    [...groups.entries()]
+      .filter(([, records]) => records.length > 1)
+      .map(([key, records]) => buildDuplicateGroup(key, records)),
+  );
 }
 
 export { countFacedRecordsTrash, listFacedRecordsTrashAdmin } from "./records-trash";

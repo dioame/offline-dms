@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ChevronLeft,
@@ -17,16 +17,19 @@ import {
 import { useRouter } from "next/navigation";
 import BrandEmblem from "@/components/brand/BrandEmblem";
 import TricolorBar from "@/components/brand/TricolorBar";
-import type {
-  DuplicateGroup,
-  FacedRecordAdminDetail,
-  FacedRecordListItem,
+import {
+  type DuplicateGroup,
+  type FacedRecordAdminDetail,
+  type FacedRecordListItem,
 } from "@/lib/records-admin";
+import { sortDuplicateGroups } from "@/lib/duplicate-groups";
 import SoftDeleteConfirmDialog from "@/components/records/SoftDeleteConfirmDialog";
 import FacedRecordViewModal from "@/components/records/FacedRecordViewModal";
 import RecordRowActions from "@/components/records/RecordRowActions";
+import DuplicateFamilyMembers from "@/components/records/DuplicateFamilyMembers";
 import TrashRowActions from "@/components/records/TrashRowActions";
 import RestoreConfirmDialog from "@/components/records/RestoreConfirmDialog";
+import { formatDisplayBirthdate } from "@/lib/faced-types";
 import {
   buildOfflineDmsPrintBundle,
   buildOfflineDmsPrintMap,
@@ -73,6 +76,13 @@ function duplicateRecordHaystack(row: FacedRecordListItem): string {
     row.uuid,
     row.access_code,
     row.date_registered,
+    ...row.family_members.flatMap((member) => [
+      member.name,
+      member.relationship,
+      member.birthdate,
+      member.age,
+      member.sex,
+    ]),
   ]
     .filter(Boolean)
     .join(" ")
@@ -81,29 +91,36 @@ function duplicateRecordHaystack(row: FacedRecordListItem): string {
 
 function filterDuplicateGroups(groups: DuplicateGroup[], query: string): DuplicateGroup[] {
   const q = query.trim().toLowerCase();
-  if (!q) return groups;
+  if (!q) return sortDuplicateGroups(groups);
 
-  return groups
-    .map((group) => {
-      const groupHaystack = `${group.first_name} ${group.last_name}`.toLowerCase();
-      const groupMatches = groupHaystack.includes(q);
-      const records = groupMatches
-        ? group.records
-        : group.records.filter((row) => duplicateRecordHaystack(row).includes(q));
+  return sortDuplicateGroups(
+    groups
+      .map((group) => {
+        const groupHaystack = `${group.first_name} ${group.last_name}`.toLowerCase();
+        const groupMatches = groupHaystack.includes(q);
+        const records = groupMatches
+          ? group.records
+          : group.records.filter((row) => duplicateRecordHaystack(row).includes(q));
 
-      if (records.length === 0) return null;
+        if (records.length === 0) return null;
 
-      return {
-        ...group,
-        count: records.length,
-        records,
-      };
-    })
-    .filter((group): group is DuplicateGroup => group !== null);
+        return {
+          ...group,
+          count: records.length,
+          records,
+        };
+      })
+      .filter((group): group is DuplicateGroup => group !== null),
+  );
+}
+
+function duplicateGroupDomId(key: string): string {
+  return `duplicate-group-${encodeURIComponent(key)}`;
 }
 
 export default function RecordsPage() {
   const router = useRouter();
+  const duplicateAnchorKeyRef = useRef<string | null>(null);
   const [password, setPassword] = useState("");
   const [unlocked, setUnlocked] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -199,7 +216,7 @@ export default function RecordsPage() {
       const res = await adminFetch("/api/admin/records/duplicates");
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to load duplicates.");
-      setDuplicateGroups(data.groups || []);
+      setDuplicateGroups(sortDuplicateGroups(data.groups || []));
       setDuplicateStats({
         groupCount: Number(data.groupCount ?? 0),
         totalDuplicates: Number(data.totalDuplicates ?? 0),
@@ -283,6 +300,16 @@ export default function RecordsPage() {
   useEffect(() => {
     setTrashPage(1);
   }, [trashSearch]);
+
+  useEffect(() => {
+    const anchorKey = duplicateAnchorKeyRef.current;
+    if (!anchorKey) return;
+    const element = document.getElementById(duplicateGroupDomId(anchorKey));
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      duplicateAnchorKeyRef.current = null;
+    }
+  }, [duplicateGroups]);
 
   const pages = useMemo(() => totalPages(totalRecords, PAGE_SIZE), [totalRecords]);
   const trashPages = useMemo(() => totalPages(totalTrash, PAGE_SIZE), [totalTrash]);
@@ -438,6 +465,10 @@ export default function RecordsPage() {
     if (!deleteTarget) return;
 
     const { uuid } = deleteTarget;
+    if (activeTab === "duplicates") {
+      duplicateAnchorKeyRef.current =
+        duplicateGroups.find((group) => group.records.some((row) => row.uuid === uuid))?.key ?? null;
+    }
     setDeleting(true);
     setMessage("");
     setError("");
@@ -765,10 +796,11 @@ export default function RecordsPage() {
                 filteredDuplicateGroups.map((group) => (
                   <article
                     key={group.key}
+                    id={duplicateGroupDomId(group.key)}
                     className="overflow-hidden rounded-lg border border-amber-300/60 bg-ph-yellow-light/40"
                   >
                     <div className="border-b border-amber-300/40 bg-amber-100/50 px-4 py-2">
-                      <p className="font-bold text-ph-blue-dark">
+                      <p className="font-bold uppercase text-ph-blue-dark">
                         {group.last_name}, {group.first_name}
                       </p>
                       <p className="text-xs text-amber-900/80">
@@ -779,24 +811,33 @@ export default function RecordsPage() {
                       {group.records.map((row) => (
                         <li
                           key={row.uuid}
-                          className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm"
+                          className="flex flex-wrap items-start justify-between gap-2 px-4 py-2.5 text-sm"
                         >
-                          <div>
-                            <span className="font-medium">{row.headName}</span>
-                            <span className="text-zinc-600">
-                              {" "}
-                              · {[row.barangay, row.city_municipality].filter(Boolean).join(", ")}
-                              {row.birthdate ? ` · ${row.birthdate}` : ""}
-                              {row.enumerator_name ? ` · Encoder: ${row.enumerator_name}` : ""}
-                            </span>
+                          <div className="min-w-0 flex-1">
+                            <div>
+                              <span className="font-medium uppercase">{row.headName}</span>
+                              <span className="text-zinc-600">
+                                {" "}
+                                · {[row.barangay, row.city_municipality].filter(Boolean).join(", ")}
+                                {row.birthdate ? ` · ${formatDisplayBirthdate(row.birthdate)}` : ""}
+                              </span>
+                            </div>
+                            <DuplicateFamilyMembers members={row.family_members} />
                           </div>
-                          <RecordRowActions
+                          <div className="flex shrink-0 flex-wrap items-center gap-2 self-start">
+                            {row.enumerator_name ? (
+                              <span className="text-right text-xs text-zinc-600">
+                                Encoder: {row.enumerator_name}
+                              </span>
+                            ) : null}
+                            <RecordRowActions
                             onView={() => void openView(row.uuid)}
                             onEdit={() => goToEdit(row.uuid)}
                             onPrint={() => void handlePrint(row.uuid, row.headName)}
                             onDelete={() => requestDelete(row.uuid, row.headName)}
                             printing={printingUuid === row.uuid}
                           />
+                          </div>
                         </li>
                       ))}
                     </ul>
