@@ -1,6 +1,11 @@
 import { ensureTursoSchema, getTursoClient } from "./turso";
 import { facedRecordsWhere } from "./faced-export-shared";
 import {
+  filterMatchesWithExclusions,
+  buildNameKey,
+} from "./duplicate-exclusion-rules";
+import { listDuplicatePairExclusionsForNameKeys } from "./duplicate-exclusions";
+import {
   filterVerifyEntries,
   normField,
   type VerifyCacheEntry,
@@ -87,8 +92,16 @@ export async function searchEncodedBeneficiary(
     .map((row) => rowToEntry(row as Record<string, unknown>))
     .filter((entry): entry is VerifyCacheEntry => entry !== null);
 
+  const nameKey = buildNameKey(lastName, firstName);
+  const exclusions = await listDuplicatePairExclusionsForNameKeys([nameKey]);
+  const matches = filterMatchesWithExclusions(
+    filterVerifyEntries(entries, input),
+    input,
+    exclusions,
+  );
+
   return {
-    matches: filterVerifyEntries(entries, input),
+    matches,
     searchedAt: new Date().toISOString(),
     source: "online",
   };

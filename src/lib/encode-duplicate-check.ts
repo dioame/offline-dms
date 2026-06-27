@@ -1,6 +1,15 @@
 import { getAuthSession, getFacedRecords } from "./db";
 import type { FacedRecord } from "./faced-types";
 import {
+  filterCachedMatchesWithExclusions,
+  getAllDuplicateExclusionsCache,
+} from "./duplicate-exclusions-cache";
+import {
+  buildNameKey,
+  filterMatchesWithExclusions,
+} from "./duplicate-exclusion-rules";
+import type { DuplicatePairExclusion } from "./duplicate-exclusion-types";
+import {
   getAllVerifyCacheEntries,
   getVerifyCacheCount,
   searchCachedBeneficiary,
@@ -50,9 +59,38 @@ function mergeMatches(lists: VerifyMatch[][]): VerifyMatch[] {
   return [...byUuid.values()].sort((a, b) => b.encodedAt.localeCompare(a.encodedAt));
 }
 
+async function loadLocalDuplicateExclusions(
+  input: VerifySearchInput,
+): Promise<DuplicatePairExclusion[]> {
+  const nameKey = buildNameKey(input.last_name, input.first_name);
+  const cached = await getAllDuplicateExclusionsCache();
+  return cached
+    .filter((entry) => entry.name_key === nameKey)
+    .map((entry, index) => ({
+      id: index,
+      uuid_a: entry.uuid_a,
+      uuid_b: entry.uuid_b,
+      name_key: entry.name_key,
+      excluded_at: "",
+      excluded_by: "cache",
+      note: "",
+    }));
+}
+
+function applyExclusions(
+  matches: VerifyMatch[],
+  input: VerifySearchInput,
+  exclusions: DuplicatePairExclusion[],
+  candidateUuid?: string,
+): VerifyMatch[] {
+  if (exclusions.length === 0) return matches;
+  return filterMatchesWithExclusions(matches, input, exclusions, candidateUuid);
+}
+
 async function searchLocalFacedRecords(
   input: VerifySearchInput,
   options: EncodeDuplicateCheckOptions,
+  exclusions: DuplicatePairExclusion[],
 ): Promise<VerifyMatch[]> {
   const records = await getFacedRecords();
   const entries = records
@@ -63,7 +101,12 @@ async function searchLocalFacedRecords(
     })
     .map(facedRecordToEntry);
 
-  return filterVerifyEntries(entries, input);
+  return applyExclusions(
+    filterVerifyEntries(entries, input),
+    input,
+    exclusions,
+    options.excludeUuid,
+  );
 }
 
 async function searchOnlineDuplicates(
@@ -104,13 +147,19 @@ export async function checkEncodingDuplicates(
     return { matches: [], source: null, canCheck: false };
   }
 
-  const localMatches = await searchLocalFacedRecords(input, options);
+  const exclusions = await loadLocalDuplicateExclusions(input);
+  const localMatches = await searchLocalFacedRecords(input, options, exclusions);
   const isOnline = typeof navigator !== "undefined" && navigator.onLine;
 
   if (isOnline) {
     try {
       const onlineMatches = await searchOnlineDuplicates(input, options);
-      const matches = mergeMatches([onlineMatches, localMatches]);
+      const matches = applyExclusions(
+        mergeMatches([onlineMatches, localMatches]),
+        input,
+        exclusions,
+        options.excludeUuid,
+      );
       return {
         matches,
         source: "online",
@@ -120,8 +169,12 @@ export async function checkEncodingDuplicates(
       const cacheCount = await getVerifyCacheCount();
       if (cacheCount > 0) {
         const entries = await getAllVerifyCacheEntries();
-        const cached = searchCachedBeneficiary(entries, input).matches.filter(
-          (match) => match.uuid !== options.excludeUuid,
+        const cached = await filterCachedMatchesWithExclusions(
+          searchCachedBeneficiary(entries, input).matches.filter(
+            (match) => match.uuid !== options.excludeUuid,
+          ),
+          input,
+          options.excludeUuid,
         );
         const matches = mergeMatches([cached, localMatches]);
         return {
@@ -138,8 +191,12 @@ export async function checkEncodingDuplicates(
   const cacheCount = await getVerifyCacheCount();
   if (cacheCount > 0) {
     const entries = await getAllVerifyCacheEntries();
-    const cached = searchCachedBeneficiary(entries, input).matches.filter(
-      (match) => match.uuid !== options.excludeUuid,
+    const cached = await filterCachedMatchesWithExclusions(
+      searchCachedBeneficiary(entries, input).matches.filter(
+        (match) => match.uuid !== options.excludeUuid,
+      ),
+      input,
+      options.excludeUuid,
     );
     const matches = mergeMatches([cached, localMatches]);
     return {

@@ -1,5 +1,9 @@
 import { clearVerifyCache, downloadVerifyCache } from "./verify-cache";
 import {
+  clearDuplicateExclusionsCache,
+  saveDuplicateExclusionsCache,
+} from "./duplicate-exclusions-cache";
+import {
   clearEcLibraryCache,
   saveEcLibraryCache,
   saveEncodeOfflineMeta,
@@ -7,7 +11,7 @@ import {
 import type { EcLibraryCacheEntry } from "./encode-offline-types";
 
 export type EncodeOfflineDownloadProgress = {
-  phase: "families" | "ec-library" | "finishing";
+  phase: "families" | "ec-library" | "duplicate-exclusions" | "finishing";
   label: string;
   downloaded: number;
   total: number;
@@ -24,12 +28,14 @@ function familyPercent(downloaded: number, total: number): number {
 export type EncodeOfflineDownloadResult = {
   totalFamilies: number;
   totalEcSites: number;
+  totalDuplicateExclusions: number;
   syncedAt: string;
 };
 
 export async function downloadEncodeOfflineBundle(
   fetchFamiliesChunk: (offset: number, limit: number) => Promise<Response>,
   fetchEcLibrary: () => Promise<Response>,
+  fetchDuplicateExclusions: () => Promise<Response>,
   onProgress?: (progress: EncodeOfflineDownloadProgress) => void,
 ): Promise<EncodeOfflineDownloadResult> {
   onProgress?.({
@@ -78,10 +84,34 @@ export async function downloadEncodeOfflineBundle(
   }
 
   onProgress?.({
+    phase: "duplicate-exclusions",
+    label: "Downloading duplicate exclusions",
+    downloaded: 0,
+    total: 0,
+    percent: 92,
+  });
+
+  await clearDuplicateExclusionsCache();
+
+  const exclusionsRes = await fetchDuplicateExclusions();
+  const exclusionsData = (await exclusionsRes.json()) as {
+    exclusions?: import("./duplicate-exclusion-types").DuplicateExclusionCacheEntry[];
+    error?: string;
+  };
+  if (!exclusionsRes.ok) {
+    throw new Error(exclusionsData.error || "Failed to download duplicate exclusions.");
+  }
+
+  const exclusions = exclusionsData.exclusions ?? [];
+  if (exclusions.length > 0) {
+    await saveDuplicateExclusionsCache(exclusions);
+  }
+
+  onProgress?.({
     phase: "finishing",
     label: "Saving offline copy",
-    downloaded: sites.length,
-    total: sites.length,
+    downloaded: exclusions.length,
+    total: exclusions.length,
     percent: 98,
   });
 
@@ -96,14 +126,15 @@ export async function downloadEncodeOfflineBundle(
   onProgress?.({
     phase: "finishing",
     label: "Offline copy ready",
-    downloaded: familyResult.totalRecords + sites.length,
-    total: familyResult.totalRecords + sites.length,
+    downloaded: familyResult.totalRecords + sites.length + exclusions.length,
+    total: familyResult.totalRecords + sites.length + exclusions.length,
     percent: 100,
   });
 
   return {
     totalFamilies: familyResult.totalRecords,
     totalEcSites: sites.length,
+    totalDuplicateExclusions: exclusions.length,
     syncedAt,
   };
 }
@@ -111,6 +142,7 @@ export async function downloadEncodeOfflineBundle(
 export async function clearEncodeOfflineBundle(): Promise<void> {
   await clearVerifyCache();
   await clearEcLibraryCache();
+  await clearDuplicateExclusionsCache();
   await saveEncodeOfflineMeta({
     id: "current",
     syncedAt: "",

@@ -8,6 +8,11 @@ import {
 } from "./faced-export-shared";
 import { formatHeadName, normField } from "./verify-match";
 import { sortDuplicateGroups } from "./duplicate-groups";
+import {
+  buildExcludedPairKeySet,
+  splitRecordsByExclusions,
+} from "./duplicate-exclusion-rules";
+import { listDuplicatePairExclusionsForNameKeys } from "./duplicate-exclusions";
 import { ensureTursoSchema, getTursoClient, upsertFacedRecord } from "./turso";
 
 export type FamilyMemberListItem = {
@@ -463,11 +468,32 @@ export async function listDuplicateGroups(): Promise<DuplicateGroup[]> {
     groups.set(key, list);
   }
 
-  return sortDuplicateGroups(
-    [...groups.entries()]
-      .filter(([, records]) => records.length > 1)
-      .map(([key, records]) => buildDuplicateGroup(key, records)),
-  );
+  const candidateKeys = [...groups.entries()]
+    .filter(([, records]) => records.length > 1)
+    .map(([key]) => key);
+
+  const exclusions = await listDuplicatePairExclusionsForNameKeys(candidateKeys);
+  const excludedPairs = buildExcludedPairKeySet(exclusions);
+
+  const duplicateGroups: DuplicateGroup[] = [];
+
+  for (const [key, records] of groups.entries()) {
+    if (records.length < 2) continue;
+
+    const components = splitRecordsByExclusions(records, excludedPairs);
+    for (const component of components) {
+      const componentKey = `${key}::${component
+        .map((record) => record.uuid)
+        .sort()
+        .join("|")}`;
+      duplicateGroups.push({
+        ...buildDuplicateGroup(key, component),
+        key: componentKey,
+      });
+    }
+  }
+
+  return sortDuplicateGroups(duplicateGroups);
 }
 
 export { countFacedRecordsTrash, listFacedRecordsTrashAdmin } from "./records-trash";

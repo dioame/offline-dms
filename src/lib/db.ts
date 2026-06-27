@@ -27,6 +27,10 @@ const db = new Dexie("OfflineDMS") as Dexie & {
   verify_meta: EntityTable<VerifyCacheMeta, "id">;
   ec_library_cache: EntityTable<import("./encode-offline-types").EcLibraryCacheEntry, "id">;
   encode_offline_meta: EntityTable<EncodeOfflineMeta, "id">;
+  duplicate_exclusions_cache: EntityTable<
+    import("./duplicate-exclusion-types").DuplicateExclusionCacheEntry,
+    "pair_key"
+  >;
 };
 
 export type AuthSession = {
@@ -106,6 +110,17 @@ db.version(7).stores({
   verify_meta: "id",
   ec_library_cache: "id, city_municipality, barangay, site_name",
   encode_offline_meta: "id",
+});
+
+db.version(8).stores({
+  faced_records:
+    "++id, uuid, barangay, access_code, enumerator_name, sync_status, createdAt, date_registered",
+  auth_session: "id",
+  verify_cache: "uuid, last_name, first_name, barangay, city_municipality",
+  verify_meta: "id",
+  ec_library_cache: "id, city_municipality, barangay, site_name",
+  encode_offline_meta: "id",
+  duplicate_exclusions_cache: "pair_key, uuid_a, uuid_b, name_key",
 });
 
 export async function getAuthSession(): Promise<AuthSession | undefined> {
