@@ -119,7 +119,7 @@ export default function FacedRecordList({ refreshKey, onEdit, onSynced, onRecord
       }
     } catch (err) {
       setSyncMessage(
-        err instanceof Error ? err.message : "Sync failed. Check your connection and .env.",
+        err instanceof Error ? err.message : "Sync failed. Check your connection.",
       );
     } finally {
       setSyncing(false);

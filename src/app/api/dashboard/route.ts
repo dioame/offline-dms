@@ -9,7 +9,7 @@ import { isTursoConfigured } from "@/lib/env";
 export async function GET(request: Request) {
   if (!isTursoConfigured()) {
     return NextResponse.json(
-      { error: "Turso is not configured. Set TURSO_DATABASE_URL and TURSO_AUTH_TOKEN in .env" },
+      { error: "Database is not configured" },
       { status: 503 },
     );
   }

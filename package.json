@@ -10,9 +10,9 @@
     "lint": "eslint",
     "migrate": "tsx scripts/migrate.ts",
     "db:init": "npm run migrate",
-    "electron:dev": "concurrently -k \"npm run dev\" \"wait-on http://127.0.0.1:3000 && cross-env NODE_ENV=development electron .\"",
-    "electron:pack": "npm run build && node scripts/prepare-standalone.js && electron-builder --win --dir",
-    "electron:build": "npm run build && node scripts/prepare-standalone.js && electron-builder --win"
+    "electron:dev": "node scripts/stop-app-processes.js && cross-env NODE_ENV=development electron .",
+    "electron:pack": "node scripts/stop-app-processes.js && npm run build && node scripts/prepare-standalone.js && electron-builder --win --dir",
+    "electron:build": "node scripts/stop-app-processes.js && npm run build && node scripts/prepare-standalone.js && electron-builder --win"
   },
   "build": {
     "appId": "com.offlinedms.faced",
@@ -24,15 +24,16 @@
     },
     "files": [
       "electron/**/*",
+      "config.js",
       "package.json"
     ],
     "extraResources": [
       {
-        "from": ".next/standalone",
-        "to": "standalone",
-        "filter": ["**/*"]
+        "from": "electron-standalone",
+        "to": "standalone"
       }
     ],
+    "afterPack": "scripts/after-pack.js",
     "win": {
       "target": [
         {

@@ -20,10 +20,12 @@
 # production
 /build
 /dist
+/electron-standalone
 
 # misc
 .DS_Store
 *.pem
+.electron-dev.pid
 
 # debug
 npm-debug.log*

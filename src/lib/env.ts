@@ -1,6 +1,8 @@
-const DATABASE_URL = "file:D:/face_db.db";
-const ADMIN_PASSWORD = "admin123";
-const VERIFY_PASSWORD = "verify123";
+import appConfig from "../../config.js";
+
+const DATABASE_URL = appConfig.TURSO_DATABASE_URL;
+const ADMIN_PASSWORD = appConfig.ADMIN_PASSWORD;
+const VERIFY_PASSWORD = appConfig.VERIFY_PASSWORD;
 
 function isLocalDatabaseUrl(url: string): boolean {
   return url.startsWith("file:");

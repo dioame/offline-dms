@@ -7,7 +7,7 @@ export async function GET() {
     return NextResponse.json({
       ok: false,
       turso: "not_configured",
-      message: "Set TURSO_DATABASE_URL and TURSO_AUTH_TOKEN in .env",
+      message: "Database is not configured",
     });
   }
 

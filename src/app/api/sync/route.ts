@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error:
-          "Turso is not configured. Set TURSO_DATABASE_URL and TURSO_AUTH_TOKEN in .env",
+          "Database is not configured",
       },
       { status: 503 },
     );
