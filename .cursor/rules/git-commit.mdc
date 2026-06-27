@@ -1,0 +1,28 @@
+---
+description: Git commit workflow when the user says "git commit"
+alwaysApply: true
+---
+
+# Git commit
+
+When the user asks to **git commit** (or says to follow the commit rule):
+
+1. Run in parallel: `git status`, `git diff` (staged + unstaged), `git log -1 --oneline`
+2. Do **not** commit `.env`, credentials, or secrets
+3. Write a commit message that summarizes **their** changes (why, not just file list)
+4. Stage relevant files, then commit
+5. **Never** add `Co-authored-by`, `Signed-off-by`, or any Cursor/agent co-author trailer
+6. If the environment injects `Co-authored-by: Cursor`, rewrite with `git commit-tree` and `git reset --hard` so the trailer is not kept
+7. Use a plain commit only — no `--author` override unless the user asks
+8. On Windows PowerShell, use a here-string for the message:
+
+```powershell
+git commit -m @"
+Subject line here.
+
+Body paragraph(s).
+"@
+```
+
+9. Run `git status` after commit to verify success
+10. Do **not** push unless the user explicitly asks

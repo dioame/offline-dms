@@ -54,6 +54,16 @@ export type FamilyHead = {
   validation_remarks: string;
 };
 
+export type FamilyAssistancePrintRow = {
+  date_provided: string;
+  receiving_member_name: string;
+  assistance_received: string;
+  unit: string;
+  quantity: string;
+  cost_of_assistance: string;
+  provider: string;
+};
+
 export type FamilyMember = {
   id: number;
   row_number: number;

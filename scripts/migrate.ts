@@ -1,22 +1,18 @@
 import { createClient } from "@libsql/client";
 import { backfillFacedRecordAccessCodes } from "../src/lib/backfill-access-codes";
+import { getDatabaseClientConfig, isRemoteTursoConfigured } from "../src/lib/env";
 import { runMigrations } from "../src/lib/run-migrations";
 
 async function main() {
-  const url = process.env.TURSO_DATABASE_URL?.trim();
-  const authToken = process.env.TURSO_AUTH_TOKEN?.trim();
+  const { url, authToken } = getDatabaseClientConfig();
 
-  if (!url || !authToken) {
-    console.error(
-      "Missing TURSO_DATABASE_URL or TURSO_AUTH_TOKEN.\n" +
-        "Fill in .env then run: npm run migrate",
-    );
-    process.exit(1);
-  }
+  const db = authToken ? createClient({ url, authToken }) : createClient({ url });
 
-  const db = createClient({ url, authToken });
-
-  console.log("Running Turso migrations...\n");
+  console.log(
+    isRemoteTursoConfigured()
+      ? "Running Turso migrations...\n"
+      : `Running local SQLite migrations (${url})...\n`,
+  );
 
   const { applied, skipped } = await runMigrations(db);
 

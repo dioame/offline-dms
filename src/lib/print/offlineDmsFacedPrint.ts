@@ -10,7 +10,7 @@ import type {
 import { mergePermanentAddressLine } from "../faced-types";
 import { resolveFacedSerialNumber } from "../faced-serial";
 import { formatBirth, formatAgeDisplay, formatSexDisplay } from "./facedAnnexPrint";
-import type { FamilyHead, FamilyMember } from "./faced-print-types";
+import type { FamilyHead, FamilyMember, FamilyAssistancePrintRow } from "./faced-print-types";
 
 function clean(v: unknown): string {
   if (v == null) return "";
@@ -257,4 +257,19 @@ export function buildOfflineDmsPrintBundles(records: TursoExportRecord[]): {
   }
 
   return { heads, membersByHead };
+}
+
+export function buildAssistanceByHeadForPrint(
+  records: TursoExportRecord[],
+  assistanceByUuid: Map<string, FamilyAssistancePrintRow[]>,
+): Map<string, FamilyAssistancePrintRow[]> {
+  const assistanceByHead = new Map<string, FamilyAssistancePrintRow[]>();
+
+  for (const record of records) {
+    const head = recordToPrintHead(record);
+    const key = head.serial_code.trim().toUpperCase();
+    assistanceByHead.set(key, assistanceByUuid.get(record.uuid) ?? []);
+  }
+
+  return assistanceByHead;
 }

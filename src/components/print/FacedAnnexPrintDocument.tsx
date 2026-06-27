@@ -1,5 +1,10 @@
-import type { FamilyHead, FamilyMember } from "@/lib/print/faced-print-types";
+import type {
+  FamilyAssistancePrintRow,
+  FamilyHead,
+  FamilyMember,
+} from "@/lib/print/faced-print-types";
 import {
+  assistanceForHead,
   displayVal,
   formatBirth,
   formatAgeDisplay,
@@ -25,7 +30,35 @@ const COPY_LABEL: Record<CopyKind, string> = {
 
 const HOUSE_OPTIONS = ["OWNER", "RENTER", "SHARER", "INFORMAL SETTLER", "NOT IDENTIFIED"] as const;
 const DAMAGE_OPTIONS = ["PARTIALLY DAMAGED", "TOTALLY DAMAGED", "NOT IDENTIFIED"] as const;
-const RECORD_ROWS = 8;
+const ASSISTANCE_ROWS_PER_PAGE = 10;
+
+const EMPTY_ASSISTANCE_ROW: FamilyAssistancePrintRow = {
+  date_provided: "",
+  receiving_member_name: "",
+  assistance_received: "",
+  unit: "",
+  quantity: "",
+  cost_of_assistance: "",
+  provider: "",
+};
+
+function padAssistancePage(rows: FamilyAssistancePrintRow[]): FamilyAssistancePrintRow[] {
+  const filled = [...rows];
+  while (filled.length < ASSISTANCE_ROWS_PER_PAGE) {
+    filled.push({ ...EMPTY_ASSISTANCE_ROW });
+  }
+  return filled.slice(0, ASSISTANCE_ROWS_PER_PAGE);
+}
+
+function chunkAssistancePages(rows: FamilyAssistancePrintRow[]): FamilyAssistancePrintRow[][] {
+  if (rows.length === 0) return [[]];
+
+  const pages: FamilyAssistancePrintRow[][] = [];
+  for (let index = 0; index < rows.length; index += ASSISTANCE_ROWS_PER_PAGE) {
+    pages.push(rows.slice(index, index + ASSISTANCE_ROWS_PER_PAGE));
+  }
+  return pages;
+}
 
 function FieldLine({ label, value, wide }: { label: string; value: string; wide?: boolean }) {
   return (
@@ -230,18 +263,34 @@ function FacedAnnexCard({
   );
 }
 
-function AssistanceRecordTable({ copy, serialCode }: { copy: CopyKind; serialCode: string }) {
+function AssistanceRecordTable({
+  copy,
+  serialCode,
+  rows,
+  pageNumber = 1,
+}: {
+  copy: CopyKind;
+  serialCode: string;
+  rows: FamilyAssistancePrintRow[];
+  pageNumber?: number;
+}) {
+  const tableRows = padAssistancePage(rows);
+  const sectionTitle =
+    pageNumber > 1
+      ? `35. FAMILY ASSISTANCE RECORD (CONTINUATION — PAGE ${pageNumber})`
+      : "35. FAMILY ASSISTANCE RECORD";
+
   return (
     <div className={`faced-record-card faced-record-card--${copy}`}>
       <FacedAnnexGovHeader copyLabel={COPY_LABEL[copy]} variant="record" serialCode={displayVal(serialCode)} />
-      <SectionBar>35. FAMILY ASSISTANCE RECORD</SectionBar>
+      <SectionBar>{sectionTitle}</SectionBar>
       <div className="faced-record-table-wrap">
-        <table className="faced-record-table faced-record-table--fill">
+        <table className="faced-record-table faced-record-table--fill faced-record-table--compact">
           <thead>
             <tr>
               <th rowSpan={2}>DATE</th>
               <th rowSpan={2}>NAME OF RECEIVING FAMILY MEMBER</th>
-              <th colSpan={4}>ASSISTANCE PROVIDED</th>
+              <th colSpan={5}>ASSISTANCE PROVIDED</th>
               <th rowSpan={2}>SIGNATURE/ THUMBMARK</th>
             </tr>
             <tr>
@@ -249,25 +298,19 @@ function AssistanceRecordTable({ copy, serialCode }: { copy: CopyKind; serialCod
               <th>UNIT</th>
               <th>QUANTITY</th>
               <th>COST</th>
-            </tr>
-            <tr className="faced-record-provider-row">
-              <th />
-              <th />
-              <th colSpan={4} className="faced-record-provider-head">
-                PROVIDER
-              </th>
-              <th />
+              <th>PROVIDER</th>
             </tr>
           </thead>
           <tbody>
-            {Array.from({ length: RECORD_ROWS }, (_, i) => (
+            {tableRows.map((row, i) => (
               <tr key={`${copy}-rec-${i}`}>
-                <td>&nbsp;</td>
-                <td>&nbsp;</td>
-                <td>&nbsp;</td>
-                <td>&nbsp;</td>
-                <td>&nbsp;</td>
-                <td>&nbsp;</td>
+                <td>{displayVal(row.date_provided)}</td>
+                <td className="faced-members-name">{displayVal(row.receiving_member_name)}</td>
+                <td>{displayVal(row.assistance_received)}</td>
+                <td>{displayVal(row.unit)}</td>
+                <td>{displayVal(row.quantity)}</td>
+                <td>{displayVal(row.cost_of_assistance)}</td>
+                <td>{displayVal(row.provider)}</td>
                 <td>&nbsp;</td>
               </tr>
             ))}
@@ -278,7 +321,18 @@ function AssistanceRecordTable({ copy, serialCode }: { copy: CopyKind; serialCod
   );
 }
 
-function FacedFamilyAnnexPages({ head, members }: { head: FamilyHead; members: FamilyMember[] }) {
+function FacedFamilyAnnexPages({
+  head,
+  members,
+  assistance,
+}: {
+  head: FamilyHead;
+  members: FamilyMember[];
+  assistance: FamilyAssistancePrintRow[];
+}) {
+  const assistancePages = chunkAssistancePages(assistance);
+  const [firstAssistancePage, ...continuationPages] = assistancePages;
+
   return (
     <div className="faced-family-pack">
       <div className="faced-print-page faced-print-page--form">
@@ -286,9 +340,41 @@ function FacedFamilyAnnexPages({ head, members }: { head: FamilyHead; members: F
         <FacedAnnexCard head={head} members={members} copy="social-worker" />
       </div>
       <div className="faced-print-page faced-print-page--record">
-        <AssistanceRecordTable copy="beneficiary" serialCode={head.serial_code} />
-        <AssistanceRecordTable copy="social-worker" serialCode={head.serial_code} />
+        <AssistanceRecordTable
+          copy="beneficiary"
+          serialCode={head.serial_code}
+          rows={firstAssistancePage ?? []}
+          pageNumber={1}
+        />
+        <AssistanceRecordTable
+          copy="social-worker"
+          serialCode={head.serial_code}
+          rows={firstAssistancePage ?? []}
+          pageNumber={1}
+        />
       </div>
+      {continuationPages.map((pageRows, index) => {
+        const pageNumber = index + 2;
+        return (
+          <div
+            key={`${head.serial_code}-assistance-${pageNumber}`}
+            className="faced-print-page faced-print-page--record faced-print-page--record-continuation"
+          >
+            <AssistanceRecordTable
+              copy="beneficiary"
+              serialCode={head.serial_code}
+              rows={pageRows}
+              pageNumber={pageNumber}
+            />
+            <AssistanceRecordTable
+              copy="social-worker"
+              serialCode={head.serial_code}
+              rows={pageRows}
+              pageNumber={pageNumber}
+            />
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -296,10 +382,18 @@ function FacedFamilyAnnexPages({ head, members }: { head: FamilyHead; members: F
 type Props = {
   heads: FamilyHead[];
   membersByHead: Map<string, FamilyMember[]>;
+  assistanceByHead?: Map<string, FamilyAssistancePrintRow[]>;
   standalone?: boolean;
 };
 
-export default function FacedAnnexPrintDocument({ heads, membersByHead, standalone = false }: Props) {
+export default function FacedAnnexPrintDocument({
+  heads,
+  membersByHead,
+  assistanceByHead,
+  standalone = false,
+}: Props) {
+  const assistanceMap = assistanceByHead ?? new Map<string, FamilyAssistancePrintRow[]>();
+
   if (!heads.length) return null;
 
   return (
@@ -312,6 +406,7 @@ export default function FacedAnnexPrintDocument({ heads, membersByHead, standalo
           key={head.serial_code}
           head={head}
           members={membersForHead(head, membersByHead)}
+          assistance={assistanceForHead(head, assistanceMap)}
         />
       ))}
     </div>

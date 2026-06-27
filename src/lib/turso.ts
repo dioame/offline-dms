@@ -1,18 +1,18 @@
 import { createClient, type Client } from "@libsql/client";
-import { getTursoEnv } from "./env";
-import { runMigrations } from "./run-migrations";
+import { getDatabaseClientConfig } from "./env";
 
 let client: Client | null = null;
 
 export function getTursoClient(): Client {
   if (!client) {
-    const { url, authToken } = getTursoEnv();
-    client = createClient({ url, authToken });
+    const { url, authToken } = getDatabaseClientConfig();
+    client = authToken ? createClient({ url, authToken }) : createClient({ url });
   }
   return client;
 }
 
 export async function ensureTursoSchema(): Promise<void> {
+  const { runMigrations } = await import("./run-migrations");
   await runMigrations(getTursoClient());
 }
 

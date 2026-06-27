@@ -35,7 +35,7 @@ export default function RowActionsMenu({ items, label = "Actions" }: RowActionsM
     const button = buttonRef.current;
     if (!button) return;
     const rect = button.getBoundingClientRect();
-    const minWidth = 168;
+    const minWidth = 240;
     const left = Math.min(rect.right - minWidth, window.innerWidth - minWidth - 8);
     setMenuPosition({
       top: rect.bottom + 4,

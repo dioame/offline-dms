@@ -1,9 +1,14 @@
 import {
   getFacedRecordsByStatus,
+  getFamilyAssistanceRecordsByStatus,
   markFacedRecordFailed,
   markFacedRecordSynced,
+  markFamilyAssistanceFailed,
+  markFamilyAssistanceSynced,
 } from "./db";
 import type { FacedRecord } from "./faced-types";
+import type { FamilyAssistanceRecord } from "./family-assistance-types";
+import { serializeFamilyAssistanceRecord } from "./family-assistance-types";
 
 function toIso(value: Date | string | undefined): string {
   if (!value) return new Date().toISOString();
@@ -19,9 +24,15 @@ function serializeRecord(record: FacedRecord) {
   };
 }
 
+function serializeAssistanceRecord(record: FamilyAssistanceRecord) {
+  return serializeFamilyAssistanceRecord(record);
+}
+
 type SyncApiResponse = {
   synced?: string[];
   failed?: { uuid: string; error: string }[];
+  synced_assistance?: string[];
+  failed_assistance?: { uuid: string; error: string }[];
   error?: string;
 };
 
@@ -55,7 +66,11 @@ export async function syncPendingRecords(): Promise<SyncResult> {
   const failed = await getFacedRecordsByStatus("failed");
   const toSync = [...pending, ...failed];
 
-  if (toSync.length === 0) {
+  const pendingAssistance = await getFamilyAssistanceRecordsByStatus("pending");
+  const failedAssistance = await getFamilyAssistanceRecordsByStatus("failed");
+  const toSyncAssistance = [...pendingAssistance, ...failedAssistance];
+
+  if (toSync.length === 0 && toSyncAssistance.length === 0) {
     return { synced: 0, failed: 0 };
   }
 
@@ -64,6 +79,7 @@ export async function syncPendingRecords(): Promise<SyncResult> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       records: toSync.map(serializeRecord),
+      assistance_records: toSyncAssistance.map(serializeAssistanceRecord),
     }),
   });
 
@@ -75,6 +91,8 @@ export async function syncPendingRecords(): Promise<SyncResult> {
 
   const syncedUuids = body.synced ?? [];
   const failedItems = body.failed ?? [];
+  const syncedAssistanceUuids = body.synced_assistance ?? [];
+  const failedAssistanceItems = body.failed_assistance ?? [];
 
   for (const uuid of syncedUuids) {
     await markFacedRecordSynced(uuid);
@@ -82,10 +100,16 @@ export async function syncPendingRecords(): Promise<SyncResult> {
   for (const item of failedItems) {
     await markFacedRecordFailed(item.uuid);
   }
+  for (const uuid of syncedAssistanceUuids) {
+    await markFamilyAssistanceSynced(uuid);
+  }
+  for (const item of failedAssistanceItems) {
+    await markFamilyAssistanceFailed(item.uuid);
+  }
 
   return {
-    synced: syncedUuids.length,
-    failed: failedItems.length,
-    errors: failedItems.map((f) => f.error),
+    synced: syncedUuids.length + syncedAssistanceUuids.length,
+    failed: failedItems.length + failedAssistanceItems.length,
+    errors: [...failedItems, ...failedAssistanceItems].map((f) => f.error),
   };
 }

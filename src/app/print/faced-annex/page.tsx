@@ -8,6 +8,7 @@ import FacedAnnexPrintDocument from "@/components/print/FacedAnnexPrintDocument"
 import { SkeletonFormCard, SkeletonScreen } from "@/components/ui/Skeleton";
 import {
   clearFacedAnnexPrintPayload,
+  assistanceMapFromRecord,
   loadFacedAnnexPrintPayload,
   membersMapFromRecord,
   type FacedAnnexPrintPayload,
@@ -76,6 +77,11 @@ function FacedAnnexPrintContent() {
 
   const membersByHead = useMemo(
     () => (payload ? membersMapFromRecord(payload.membersByHead) : new Map()),
+    [payload],
+  );
+
+  const assistanceByHead = useMemo(
+    () => (payload ? assistanceMapFromRecord(payload.assistanceByHead) : new Map()),
     [payload],
   );
 
@@ -153,7 +159,12 @@ function FacedAnnexPrintContent() {
           </div>
         </div>
       ) : null}
-      <FacedAnnexPrintDocument heads={payload.heads} membersByHead={membersByHead} standalone />
+      <FacedAnnexPrintDocument
+        heads={payload.heads}
+        membersByHead={membersByHead}
+        assistanceByHead={assistanceByHead}
+        standalone
+      />
       {isServerJob && ready ? (
         <div id="faced-print-ready" style={{ display: "none" }} aria-hidden="true" />
       ) : null}

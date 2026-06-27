@@ -1,8 +1,25 @@
-export function isTursoConfigured(): boolean {
+export function isRemoteTursoConfigured(): boolean {
   return Boolean(
     process.env.TURSO_DATABASE_URL?.trim() &&
       process.env.TURSO_AUTH_TOKEN?.trim(),
   );
+}
+
+/** True when a server database is available (remote Turso or local SQLite). */
+export function isTursoConfigured(): boolean {
+  return isRemoteTursoConfigured() || isLocalSqliteConfigured();
+}
+
+export function isLocalSqliteConfigured(): boolean {
+  return !isRemoteTursoConfigured();
+}
+
+export function getSqliteDatabasePath(): string {
+  return process.env.SQLITE_DATABASE_PATH?.trim() || "face_db.db";
+}
+
+export function getLocalDatabaseUrl(): string {
+  return `file:${getSqliteDatabasePath()}`;
 }
 
 export function getTursoEnv(): { url: string; authToken: string } {
@@ -16,6 +33,13 @@ export function getTursoEnv(): { url: string; authToken: string } {
   }
 
   return { url, authToken };
+}
+
+export function getDatabaseClientConfig(): { url: string; authToken?: string } {
+  if (isRemoteTursoConfigured()) {
+    return getTursoEnv();
+  }
+  return { url: getLocalDatabaseUrl() };
 }
 
 export function getSyncApiSecret(): string | undefined {

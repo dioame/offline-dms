@@ -81,17 +81,20 @@ export function CheckboxGroup({
 type SelectInputProps = React.SelectHTMLAttributes<HTMLSelectElement> & {
   options: { value: string; label: string }[];
   placeholder?: string;
+  /** When false, omit the blank placeholder row (use for single-option defaults). */
+  includeEmptyOption?: boolean;
 };
 
 export function SelectInput({
   options,
   placeholder = "Select...",
+  includeEmptyOption = true,
   className = "",
   ...props
 }: SelectInputProps) {
   return (
     <select className={cn(ui.input, className)} {...props}>
-      <option value="">{placeholder}</option>
+      {includeEmptyOption ? <option value="">{placeholder}</option> : null}
       {options.map((o) => (
         <option key={o.value} value={o.value}>
           {o.label}

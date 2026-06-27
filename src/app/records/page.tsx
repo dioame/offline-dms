@@ -30,6 +30,8 @@ import SoftDeleteProcessingDialog from "@/components/records/SoftDeleteProcessin
 import SoftDeleteSuccessDialog from "@/components/records/SoftDeleteSuccessDialog";
 import FacedRecordViewModal from "@/components/records/FacedRecordViewModal";
 import RecordRowActions from "@/components/records/RecordRowActions";
+import AddAssistanceModal from "@/components/faced/AddAssistanceModal";
+import ViewAssistanceProvidedModal from "@/components/records/ViewAssistanceProvidedModal";
 import DuplicateFamilyMembers from "@/components/records/DuplicateFamilyMembers";
 import TrashRowActions from "@/components/records/TrashRowActions";
 import RestoreConfirmDialog from "@/components/records/RestoreConfirmDialog";
@@ -37,6 +39,12 @@ import VerifyNotDuplicateDialog from "@/components/records/VerifyNotDuplicateDia
 import VerifyNotDuplicateSuccessDialog from "@/components/records/VerifyNotDuplicateSuccessDialog";
 import { useBatchPdfJob } from "@/components/records/BatchPdfJobContext";
 import { formatDisplayBirthdate } from "@/lib/faced-types";
+import {
+  buildFamilyMemberOptionsFromNames,
+  type FamilyAssistanceRecordData,
+  type FamilyMemberOption,
+} from "@/lib/family-assistance-types";
+import type { FamilyAssistancePrintRow } from "@/lib/print/faced-print-types";
 import {
   openFacedFormPrint,
 } from "@/lib/print/openFacedFormPrint";
@@ -173,6 +181,20 @@ export default function RecordsPage() {
   const [restoring, setRestoring] = useState(false);
   const [printingUuid, setPrintingUuid] = useState<string | null>(null);
   const [generatingIdUuid, setGeneratingIdUuid] = useState<string | null>(null);
+  const [assistanceContext, setAssistanceContext] = useState<{
+    familyUuid: string;
+    accessCode: string;
+    memberOptions: FamilyMemberOption[];
+  } | null>(null);
+  const [viewAssistance, setViewAssistance] = useState<{
+    familyUuid: string;
+    accessCode: string;
+    headName: string;
+    memberOptions: FamilyMemberOption[];
+    loading: boolean;
+    error: string;
+    records: FamilyAssistancePrintRow[];
+  } | null>(null);
   const [verifyTarget, setVerifyTarget] = useState<{
     uuids: string[];
     firstName: string;
@@ -401,6 +423,107 @@ export default function RecordsPage() {
     router.push(`/records/${uuid}/edit`);
   }
 
+  function openAddAssistance(row: FacedRecordListItem) {
+    setMessage("");
+    setError("");
+    setAssistanceContext({
+      familyUuid: row.uuid,
+      accessCode: row.access_code,
+      memberOptions: buildFamilyMemberOptionsFromNames(row.headName, row.family_members),
+    });
+  }
+
+  function closeAddAssistance() {
+    setAssistanceContext(null);
+  }
+
+  function closeViewAssistance() {
+    setViewAssistance(null);
+  }
+
+  async function openViewAssistance(row: FacedRecordListItem) {
+    setMessage("");
+    setError("");
+    setViewAssistance({
+      familyUuid: row.uuid,
+      accessCode: row.access_code,
+      headName: row.headName,
+      memberOptions: buildFamilyMemberOptionsFromNames(row.headName, row.family_members),
+      loading: true,
+      error: "",
+      records: [],
+    });
+
+    try {
+      const res = await adminFetch(`/api/admin/records/${row.uuid}/assistance`);
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to load assistance records.");
+      }
+      setViewAssistance((current) =>
+        current && current.familyUuid === row.uuid
+          ? {
+              ...current,
+              loading: false,
+              records: (data.assistance as FamilyAssistancePrintRow[]) ?? [],
+            }
+          : current,
+      );
+    } catch (err) {
+      setViewAssistance((current) =>
+        current && current.familyUuid === row.uuid
+          ? {
+              ...current,
+              loading: false,
+              error: err instanceof Error ? err.message : "Failed to load assistance records.",
+            }
+          : current,
+      );
+    }
+  }
+
+  function openAddAssistanceFromView() {
+    if (!viewAssistance) return;
+    const { familyUuid, accessCode, memberOptions } = viewAssistance;
+    closeViewAssistance();
+    setAssistanceContext({ familyUuid, accessCode, memberOptions });
+  }
+
+  async function refreshViewAssistanceIfOpen(familyUuid: string) {
+    try {
+      const res = await adminFetch(`/api/admin/records/${familyUuid}/assistance`);
+      const data = await res.json();
+      if (!res.ok) return;
+      setViewAssistance((current) =>
+        current?.familyUuid === familyUuid
+          ? {
+              ...current,
+              loading: false,
+              error: "",
+              records: (data.assistance as FamilyAssistancePrintRow[]) ?? [],
+            }
+          : current,
+      );
+    } catch {
+      // Keep the list view open; user can close and retry.
+    }
+  }
+
+  async function saveAssistanceForRecord(data: FamilyAssistanceRecordData) {
+    const res = await adminFetch(`/api/admin/records/${data.faced_record_uuid}/assistance`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    const body = await res.json();
+    if (!res.ok) {
+      throw new Error(body.error || "Failed to save assistance record.");
+    }
+    if (viewAssistance?.familyUuid === data.faced_record_uuid) {
+      await refreshViewAssistanceIfOpen(data.faced_record_uuid);
+    }
+  }
+
   async function openView(uuid: string, scope: "active" | "trash" = "active") {
     setMessage("");
     setError("");
@@ -466,15 +589,26 @@ export default function RecordsPage() {
     setError("");
     setPrintingUuid(uuid);
     try {
-      const res = await adminFetch(`/api/admin/records/${uuid}`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to load record for printing.");
-      const record = data.record as FacedRecordAdminDetail;
+      const [recordRes, assistanceRes] = await Promise.all([
+        adminFetch(`/api/admin/records/${uuid}`),
+        adminFetch(`/api/admin/records/${uuid}/assistance`),
+      ]);
+      const recordData = await recordRes.json();
+      const assistanceData = await assistanceRes.json();
+      if (!recordRes.ok) throw new Error(recordData.error || "Failed to load record for printing.");
+      if (!assistanceRes.ok) {
+        throw new Error(assistanceData.error || "Failed to load assistance records for printing.");
+      }
+      const record = recordData.record as FacedRecordAdminDetail;
       const { head } = buildOfflineDmsPrintBundle(record);
+      const assistanceByHead = new Map([
+        [head.serial_code.trim().toUpperCase(), assistanceData.assistance ?? []],
+      ]);
       const opened = openFacedFormPrint(
         [head],
         buildOfflineDmsPrintMap(record),
         `FACED Form — ${headName}`,
+        assistanceByHead,
       );
       if (!opened) {
         throw new Error("Pop-up blocked. Allow pop-ups for this site, then try Print FACED again.");
@@ -778,6 +912,8 @@ export default function RecordsPage() {
                             onEdit={() => goToEdit(row.uuid)}
                             onPrint={() => void handlePrint(row.uuid, row.headName)}
                             onGenerateId={() => void handleGenerateFacedId(row.uuid, row.headName)}
+                            onAddAssistance={() => openAddAssistance(row)}
+                            onViewAssistance={() => void openViewAssistance(row)}
                             onDelete={() => requestDelete(row.uuid, row.headName)}
                             printing={printingUuid === row.uuid}
                             generatingId={generatingIdUuid === row.uuid}
@@ -943,6 +1079,8 @@ export default function RecordsPage() {
                             onEdit={() => goToEdit(row.uuid)}
                             onPrint={() => void handlePrint(row.uuid, row.headName)}
                             onGenerateId={() => void handleGenerateFacedId(row.uuid, row.headName)}
+                            onAddAssistance={() => openAddAssistance(row)}
+                            onViewAssistance={() => void openViewAssistance(row)}
                             onDelete={() => requestDelete(row.uuid, row.headName)}
                             printing={printingUuid === row.uuid}
                             generatingId={generatingIdUuid === row.uuid}
@@ -1147,6 +1285,26 @@ export default function RecordsPage() {
         headName={verifySuccess?.headName ?? ""}
         pairCount={verifySuccess?.pairCount ?? 0}
         onClose={() => setVerifySuccess(null)}
+      />
+
+      <ViewAssistanceProvidedModal
+        open={viewAssistance !== null}
+        headName={viewAssistance?.headName ?? ""}
+        loading={viewAssistance?.loading ?? false}
+        error={viewAssistance?.error || null}
+        records={viewAssistance?.records ?? []}
+        onClose={closeViewAssistance}
+        onAddAssistance={viewAssistance ? openAddAssistanceFromView : undefined}
+      />
+
+      <AddAssistanceModal
+        open={assistanceContext !== null}
+        familyUuid={assistanceContext?.familyUuid ?? ""}
+        accessCode={assistanceContext?.accessCode ?? ""}
+        memberOptions={assistanceContext?.memberOptions ?? []}
+        onClose={closeAddAssistance}
+        onDone={closeAddAssistance}
+        saveAssistance={saveAssistanceForRecord}
       />
     </div>
   );

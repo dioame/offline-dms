@@ -4,7 +4,7 @@ import { createElement } from "react";
 import { createRoot } from "react-dom/client";
 import "@/styles/print-faced.css";
 import type { FacedAnnexPrintPayload } from "./facedAnnexPrintWindow";
-import { membersMapFromRecord } from "./facedAnnexPrintWindow";
+import { assistanceMapFromRecord, membersMapFromRecord } from "./facedAnnexPrintWindow";
 
 export const FACED_PDF_DONE = "faced-pdf-done";
 export const FACED_PDF_ERROR = "faced-pdf-error";
@@ -93,11 +93,13 @@ export async function downloadFacedAnnexPdf(
       await import("@/components/print/FacedAnnexPrintDocument")
     ).default;
     const membersByHead = membersMapFromRecord(payload.membersByHead);
+    const assistanceByHead = assistanceMapFromRecord(payload.assistanceByHead);
 
     root.render(
       createElement(FacedAnnexPrintDocument, {
         heads: payload.heads,
         membersByHead,
+        assistanceByHead,
         standalone: true,
       }),
     );

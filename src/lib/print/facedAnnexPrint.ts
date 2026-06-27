@@ -1,5 +1,35 @@
-import type { FamilyHead, FamilyMember } from "./faced-print-types";
+import type { FamilyHead, FamilyMember, FamilyAssistancePrintRow } from "./faced-print-types";
 import { emptyPrintMember } from "./faced-print-types";
+
+export function formatAssistancePrintDate(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  const iso = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (iso) {
+    return `${iso[2].padStart(2, "0")}-${iso[3].padStart(2, "0")}-${iso[1]}`;
+  }
+  return trimmed;
+}
+
+export function toFamilyAssistancePrintRow(input: {
+  date_provided: string;
+  receiving_member_name: string;
+  assistance_received: string;
+  unit: string;
+  quantity: string;
+  cost_of_assistance: string;
+  provider: string;
+}): FamilyAssistancePrintRow {
+  return {
+    date_provided: formatAssistancePrintDate(input.date_provided),
+    receiving_member_name: input.receiving_member_name.trim(),
+    assistance_received: input.assistance_received.trim(),
+    unit: input.unit.trim(),
+    quantity: input.quantity.trim(),
+    cost_of_assistance: input.cost_of_assistance.trim(),
+    provider: input.provider.trim(),
+  };
+}
 
 export function pad2(s: string): string {
   const t = (s || "").trim();
@@ -71,6 +101,14 @@ export function membersForHead(
 ): FamilyMember[] {
   const key = head.serial_code.trim().toUpperCase();
   return membersByHead.get(key) ?? [];
+}
+
+export function assistanceForHead(
+  head: FamilyHead,
+  assistanceByHead: Map<string, FamilyAssistancePrintRow[]>,
+): FamilyAssistancePrintRow[] {
+  const key = head.serial_code.trim().toUpperCase();
+  return assistanceByHead.get(key) ?? [];
 }
 
 export function memberRows(members: FamilyMember[], minRows = 5): FamilyMember[] {

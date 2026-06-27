@@ -1,13 +1,17 @@
 import { NextResponse } from "next/server";
-import { isTursoConfigured } from "@/lib/env";
+import {
+  getLocalDatabaseUrl,
+  isRemoteTursoConfigured,
+  isTursoConfigured,
+} from "@/lib/env";
 import { ensureTursoSchema, getTursoClient } from "@/lib/turso";
 
 export async function GET() {
   if (!isTursoConfigured()) {
     return NextResponse.json({
       ok: false,
-      turso: "not_configured",
-      message: "Set TURSO_DATABASE_URL and TURSO_AUTH_TOKEN in .env",
+      database: "not_configured",
+      message: "Set TURSO_DATABASE_URL and TURSO_AUTH_TOKEN, or use local SQLite.",
     });
   }
 
@@ -18,7 +22,8 @@ export async function GET() {
 
     return NextResponse.json({
       ok: true,
-      turso: "connected",
+      database: isRemoteTursoConfigured() ? "turso" : "sqlite",
+      url: isRemoteTursoConfigured() ? undefined : getLocalDatabaseUrl(),
     });
   } catch (err) {
     return NextResponse.json(
