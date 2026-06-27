@@ -241,3 +241,20 @@ export function buildOfflineDmsPrintMap(
   const key = head.serial_code.trim().toUpperCase();
   return new Map([[key, members]]);
 }
+
+export function buildOfflineDmsPrintBundles(records: TursoExportRecord[]): {
+  heads: FamilyHead[];
+  membersByHead: Map<string, FamilyMember[]>;
+} {
+  const heads: FamilyHead[] = [];
+  const membersByHead = new Map<string, FamilyMember[]>();
+
+  for (const record of records) {
+    const { head, members } = buildOfflineDmsPrintBundle(record);
+    const key = head.serial_code.trim().toUpperCase();
+    heads.push(head);
+    membersByHead.set(key, members);
+  }
+
+  return { heads, membersByHead };
+}

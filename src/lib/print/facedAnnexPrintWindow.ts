@@ -8,6 +8,8 @@ export type FacedAnnexPrintPayload = {
   membersByHead: Record<string, FamilyMember[]>;
   title?: string;
   createdAt?: number;
+  autoDownloadPdf?: boolean;
+  pdfFilename?: string;
 };
 
 export function serializeMembersByHead(
