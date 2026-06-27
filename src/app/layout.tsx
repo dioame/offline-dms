@@ -1,7 +1,11 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
+<<<<<<< HEAD
 import Script from "next/script";
 import DevServiceWorkerCleanup from "@/components/DevServiceWorkerCleanup";
+=======
+>>>>>>> dadc66ef36a982c53e4d97b232e6c9dd731c6063
 import AppChrome from "@/components/AppChrome";
 import "./globals.css";
 
@@ -47,6 +51,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col font-sans">
         {process.env.NODE_ENV === "development" ? (
           <Script id="dev-sw-cleanup" strategy="beforeInteractive">
+<<<<<<< HEAD
             {`if ("serviceWorker" in navigator) {
   navigator.serviceWorker.getRegistrations().then(function (regs) {
     regs.forEach(function (r) { r.unregister(); });
@@ -55,6 +60,33 @@ export default function RootLayout({
           </Script>
         ) : null}
         <DevServiceWorkerCleanup />
+=======
+            {`(function () {
+  if (typeof window === "undefined") return;
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function (regs) {
+      regs.forEach(function (r) { r.unregister(); });
+    });
+  }
+  if (window.caches) {
+    caches.keys().then(function (keys) {
+      keys.forEach(function (k) { caches.delete(k); });
+    });
+  }
+  window.addEventListener("error", function (event) {
+    var msg = event.message || "";
+    if (msg.indexOf("ChunkLoadError") === -1) return;
+    if (sessionStorage.getItem("__offline_dms_chunk_reload__")) return;
+    sessionStorage.setItem("__offline_dms_chunk_reload__", "1");
+    window.location.reload();
+  });
+  window.addEventListener("load", function () {
+    sessionStorage.removeItem("__offline_dms_chunk_reload__");
+  });
+})();`}
+          </Script>
+        ) : null}
+>>>>>>> dadc66ef36a982c53e4d97b232e6c9dd731c6063
         <AppChrome>{children}</AppChrome>
       </body>
     </html>

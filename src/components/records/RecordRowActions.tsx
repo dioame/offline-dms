@@ -1,4 +1,4 @@
-import { Eye, IdCard, Pencil, Printer, Trash2 } from "lucide-react";
+import { ClipboardList, Eye, Gift, IdCard, Pencil, Printer, Trash2 } from "lucide-react";
 import RowActionsMenu from "./RowActionsMenu";
 
 type RecordRowActionsProps = {
@@ -6,6 +6,8 @@ type RecordRowActionsProps = {
   onEdit: () => void;
   onPrint: () => void;
   onGenerateId: () => void;
+  onViewAssistance: () => void;
+  onAddAssistance: () => void;
   onDelete: () => void;
   printing?: boolean;
   generatingId?: boolean;
@@ -16,6 +18,8 @@ export default function RecordRowActions({
   onEdit,
   onPrint,
   onGenerateId,
+  onViewAssistance,
+  onAddAssistance,
   onDelete,
   printing = false,
   generatingId = false,
@@ -38,6 +42,20 @@ export default function RecordRowActions({
           label: generatingId ? "Generating…" : "Generate FACED ID",
           icon: IdCard,
           onClick: onGenerateId,
+          disabled: busy,
+          variant: "success",
+        },
+        {
+          label: "Add Assistance Provided",
+          icon: Gift,
+          onClick: onAddAssistance,
+          disabled: busy,
+          variant: "success",
+        },
+        {
+          label: "View Assistance Provided",
+          icon: ClipboardList,
+          onClick: onViewAssistance,
           disabled: busy,
           variant: "success",
         },

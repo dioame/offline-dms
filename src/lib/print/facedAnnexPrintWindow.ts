@@ -1,4 +1,4 @@
-import type { FamilyHead, FamilyMember } from "./faced-print-types";
+import type { FamilyHead, FamilyMember, FamilyAssistancePrintRow } from "./faced-print-types";
 
 export const FACED_ANNEX_PRINT_PREFIX = "facedAnnexPrint:";
 const JOB_TTL_MS = 60 * 60 * 1000;
@@ -6,6 +6,7 @@ const JOB_TTL_MS = 60 * 60 * 1000;
 export type FacedAnnexPrintPayload = {
   heads: FamilyHead[];
   membersByHead: Record<string, FamilyMember[]>;
+  assistanceByHead?: Record<string, FamilyAssistancePrintRow[]>;
   title?: string;
   createdAt?: number;
   autoDownloadPdf?: boolean;
@@ -26,6 +27,22 @@ export function membersMapFromRecord(
   record: Record<string, FamilyMember[]>,
 ): Map<string, FamilyMember[]> {
   return new Map(Object.entries(record));
+}
+
+export function serializeAssistanceByHead(
+  map: Map<string, FamilyAssistancePrintRow[]>,
+): Record<string, FamilyAssistancePrintRow[]> {
+  const out: Record<string, FamilyAssistancePrintRow[]> = {};
+  map.forEach((rows, key) => {
+    out[key] = rows;
+  });
+  return out;
+}
+
+export function assistanceMapFromRecord(
+  record: Record<string, FamilyAssistancePrintRow[]> | undefined,
+): Map<string, FamilyAssistancePrintRow[]> {
+  return new Map(Object.entries(record ?? {}));
 }
 
 function storageKey(jobId: string) {

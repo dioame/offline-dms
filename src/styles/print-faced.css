@@ -99,6 +99,11 @@
   min-height: var(--faced-page-height);
 }
 
+.faced-print-page--record-continuation {
+  break-before: page;
+  page-break-before: always;
+}
+
 .faced-print-page--form .faced-card--form,
 .faced-print-page--record .faced-record-card {
   min-height: var(--faced-page-height);
@@ -598,6 +603,22 @@
   height: inherit;
 }
 
+.faced-record-table--compact th,
+.faced-record-table--compact td {
+  font-size: 4.4pt;
+  line-height: 1.05;
+  padding: 0.012in 0.018in;
+}
+
+.faced-record-table--compact tbody td {
+  min-height: 0.1in;
+}
+
+.faced-record-table--compact td.faced-members-name {
+  font-size: 4.2pt;
+  line-height: 1.08;
+}
+
 .faced-members-table th {
   font-weight: 700;
   font-size: 4.6pt;
@@ -783,6 +804,11 @@
   .faced-print-page {
     break-inside: avoid;
     page-break-inside: avoid;
+  }
+
+  .faced-print-page--record-continuation {
+    break-before: page;
+    page-break-before: always;
   }
 
   .faced-family-pack:last-child .faced-print-page:last-child {

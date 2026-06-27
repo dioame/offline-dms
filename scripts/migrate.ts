@@ -1,13 +1,22 @@
 import { createClient } from "@libsql/client";
 import { backfillFacedRecordAccessCodes } from "../src/lib/backfill-access-codes";
-import { getTursoEnv } from "../src/lib/env";
 import { runMigrations } from "../src/lib/run-migrations";
 
 async function main() {
-  const { url } = getTursoEnv();
-  const db = createClient({ url });
+  const url = process.env.TURSO_DATABASE_URL?.trim();
+  const authToken = process.env.TURSO_AUTH_TOKEN?.trim();
 
-  console.log("Running database migrations...\n");
+  if (!url || !authToken) {
+    console.error(
+      "Missing TURSO_DATABASE_URL or TURSO_AUTH_TOKEN.\n" +
+        "Fill in .env then run: npm run migrate",
+    );
+    process.exit(1);
+  }
+
+  const db = createClient({ url, authToken });
+
+  console.log("Running Turso migrations...\n");
 
   const { applied, skipped } = await runMigrations(db);
 

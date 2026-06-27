@@ -68,7 +68,7 @@ export default function HomePage() {
                 }}
                 onSaved={() => {
                   setRefreshKey((k) => k + 1);
-                  if (editId) setEditId(null);
+                  setEditId(null);
                 }}
                 onCancelEdit={() => setEditId(null)}
               />

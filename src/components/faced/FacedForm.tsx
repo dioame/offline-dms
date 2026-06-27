@@ -44,10 +44,15 @@ import {
   RELIGION_SUGGESTIONS,
 } from "@/lib/faced-options";
 import type { VerifyMatch } from "@/lib/verify-match";
+import {
+  buildFamilyMemberOptions,
+  type FamilyMemberOption,
+} from "@/lib/family-assistance-types";
 import SectionHeader from "./SectionHeader";
 import DuplicateCheckAlert from "./DuplicateCheckAlert";
 import DuplicateConfirmDialog from "./DuplicateConfirmDialog";
-import SavedSerialDialog from "./SavedSerialDialog";
+import FamilySavedDialog from "./FamilySavedDialog";
+import AddAssistanceModal from "./AddAssistanceModal";
 import FamilyMemberCard from "./FamilyMemberCard";
 import BrandEmblem from "@/components/brand/BrandEmblem";
 import { SkeletonFormCard, SkeletonScreen } from "@/components/ui/Skeleton";
@@ -219,9 +224,20 @@ export default function FacedForm({
   );
   const [duplicateAcknowledged, setDuplicateAcknowledged] = useState(false);
   const [duplicateDismissedQuery, setDuplicateDismissedQuery] = useState("");
-  const [savedSerialDialog, setSavedSerialDialog] = useState<{
+  const [savedFamilyDialog, setSavedFamilyDialog] = useState<{
     serial: string;
     mode: "created" | "updated";
+    familyUuid: string;
+    accessCode: string;
+    memberOptions: FamilyMemberOption[];
+    isEditing: boolean;
+  } | null>(null);
+  const [assistanceModalOpen, setAssistanceModalOpen] = useState(false);
+  const [assistanceContext, setAssistanceContext] = useState<{
+    familyUuid: string;
+    accessCode: string;
+    memberOptions: FamilyMemberOption[];
+    isEditing: boolean;
   } | null>(null);
   const [recordLoading, setRecordLoading] = useState(Boolean(editId));
   const [ecSuggestions, setEcSuggestions] = useState<string[]>([]);
@@ -588,6 +604,29 @@ export default function FacedForm({
     }));
   }
 
+  async function resolveFamilyUuid(): Promise<string> {
+    if (editUuid?.trim()) return editUuid.trim();
+    if (syncedEditUuid?.trim()) return syncedEditUuid.trim();
+    if (editId) {
+      const record = await getFacedRecord(editId);
+      return record?.uuid?.trim() ?? "";
+    }
+    return "";
+  }
+
+  function finishSaveFlow(wasEditing: boolean) {
+    setSavedFamilyDialog(null);
+    setAssistanceModalOpen(false);
+    setAssistanceContext(null);
+
+    if (wasEditing) {
+      onSaved();
+      return;
+    }
+
+    void resetFormForNewFamily();
+  }
+
   async function saveRecord() {
     setSaving(true);
     try {
@@ -607,29 +646,42 @@ export default function FacedForm({
           : session?.enumeratorName?.trim() || form.enumerator_name.trim(),
       };
 
+      const memberOptions = buildFamilyMemberOptions(recordData);
+      const isEditing = Boolean(editId || isSyncedEdit);
+      const savedDialogPayload = {
+        serial: recordData.serial_number,
+        accessCode: recordData.access_code,
+        memberOptions,
+        isEditing,
+      };
+
       if (isSyncedEdit && onSyncedSave) {
         await onSyncedSave(recordData);
-        setSavedSerialDialog({
-          serial: recordData.serial_number,
+        const familyUuid = (await resolveFamilyUuid()) || syncedEditUuid || "";
+        setForm(normalizeLoadedRecord(recordData));
+        if (familyUuid) setEditUuid(familyUuid);
+        setSavedFamilyDialog({
+          ...savedDialogPayload,
           mode: "updated",
+          familyUuid,
         });
       } else if (editId) {
         await updateFacedRecord(editId, recordData);
-        setSavedSerialDialog({
-          serial: recordData.serial_number,
+        const familyUuid = await resolveFamilyUuid();
+        setForm(normalizeLoadedRecord(recordData));
+        if (familyUuid) setEditUuid(familyUuid);
+        setSavedFamilyDialog({
+          ...savedDialogPayload,
           mode: "updated",
+          familyUuid,
         });
       } else {
-        await addFacedRecord(recordData);
-        setForm(
-          createEmptyFacedRecord({
-            access_code: session?.code ?? "",
-            enumerator_name: session?.enumeratorName ?? "",
-          }),
-        );
-        setSavedSerialDialog({
-          serial: recordData.serial_number,
+        const { uuid } = await addFacedRecord(recordData);
+        setSavedFamilyDialog({
+          ...savedDialogPayload,
           mode: "created",
+          familyUuid: uuid,
+          isEditing: false,
         });
       }
       setShowDuplicateConfirm(false);
@@ -640,9 +692,45 @@ export default function FacedForm({
     }
   }
 
-  function handleSavedSerialClose() {
-    setSavedSerialDialog(null);
+  async function resetFormForNewFamily() {
+    const session = await getAuthSession();
+    setForm(
+      createEmptyFacedRecord({
+        access_code: session?.code ?? "",
+        enumerator_name: session?.enumeratorName ?? "",
+      }),
+    );
+    setEditUuid(undefined);
+    setDuplicateMatches([]);
+    setDuplicateAcknowledged(false);
+    setDuplicateDismissedQuery("");
+    setShowDuplicateConfirm(false);
     onSaved();
+  }
+
+  function handleSavedFamilyCancel() {
+    finishSaveFlow(savedFamilyDialog?.isEditing ?? false);
+  }
+
+  function handleAddAssistance() {
+    if (!savedFamilyDialog?.familyUuid) return;
+    setAssistanceContext({
+      familyUuid: savedFamilyDialog.familyUuid,
+      accessCode: savedFamilyDialog.accessCode,
+      memberOptions: savedFamilyDialog.memberOptions,
+      isEditing: savedFamilyDialog.isEditing,
+    });
+    setSavedFamilyDialog(null);
+    setAssistanceModalOpen(true);
+  }
+
+  function handleAssistanceClose() {
+    setAssistanceModalOpen(false);
+    setAssistanceContext(null);
+  }
+
+  function handleAssistanceDone() {
+    finishSaveFlow(assistanceContext?.isEditing ?? false);
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -808,7 +896,7 @@ export default function FacedForm({
             value={form.province || SARANGANI_PROVINCE}
             onChange={(e) => updateField("province", e.target.value)}
             options={[{ value: SARANGANI_PROVINCE, label: SARANGANI_PROVINCE }]}
-            placeholder={SARANGANI_PROVINCE}
+            includeEmptyOption={false}
           />
         </FormField>
         <FormField label="City/Municipality" number="3">
@@ -1079,7 +1167,7 @@ export default function FacedForm({
             value={form.permanent_address.province || SARANGANI_PROVINCE}
             onChange={(e) => updateAddress("province", e.target.value)}
             options={[{ value: SARANGANI_PROVINCE, label: SARANGANI_PROVINCE }]}
-            placeholder={SARANGANI_PROVINCE}
+            includeEmptyOption={false}
           />
         </FormField>
         <FormField label="Zip Code">
@@ -1334,11 +1422,21 @@ export default function FacedForm({
         onEditLocalRecord={onEditExistingRecord}
       />
 
-      <SavedSerialDialog
-        open={savedSerialDialog !== null}
-        serialNumber={savedSerialDialog?.serial ?? ""}
-        mode={savedSerialDialog?.mode ?? "created"}
-        onClose={handleSavedSerialClose}
+      <FamilySavedDialog
+        open={savedFamilyDialog !== null}
+        serialNumber={savedFamilyDialog?.serial ?? ""}
+        mode={savedFamilyDialog?.mode ?? "created"}
+        onAddAssistance={handleAddAssistance}
+        onCancel={handleSavedFamilyCancel}
+      />
+
+      <AddAssistanceModal
+        open={assistanceModalOpen}
+        familyUuid={assistanceContext?.familyUuid ?? ""}
+        accessCode={assistanceContext?.accessCode ?? ""}
+        memberOptions={assistanceContext?.memberOptions ?? []}
+        onClose={handleAssistanceClose}
+        onDone={handleAssistanceDone}
       />
     </>
   );

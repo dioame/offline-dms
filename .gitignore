@@ -48,6 +48,11 @@ next-env.d.ts
 .tmp/
 .puppeteer-cache/
 
+# local SQLite (face_db)
+face_db
+face_db.db
+face_db.db-*
+
 # PWA generated files
 public/sw.js
 public/sw.js.map

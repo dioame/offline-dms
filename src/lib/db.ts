@@ -6,6 +6,10 @@ import {
   type FacedRecordData,
   type SyncStatus,
 } from "./faced-types";
+import type {
+  FamilyAssistanceRecord,
+  FamilyAssistanceRecordData,
+} from "./family-assistance-types";
 
 export type VerifyCacheMeta = {
   id: "current";
@@ -31,6 +35,7 @@ const db = new Dexie("OfflineDMS") as Dexie & {
     import("./duplicate-exclusion-types").DuplicateExclusionCacheEntry,
     "pair_key"
   >;
+  family_assistance_records: EntityTable<FamilyAssistanceRecord, "id">;
 };
 
 export type AuthSession = {
@@ -123,6 +128,19 @@ db.version(8).stores({
   duplicate_exclusions_cache: "pair_key, uuid_a, uuid_b, name_key",
 });
 
+db.version(9).stores({
+  faced_records:
+    "++id, uuid, barangay, access_code, enumerator_name, sync_status, createdAt, date_registered",
+  auth_session: "id",
+  verify_cache: "uuid, last_name, first_name, barangay, city_municipality",
+  verify_meta: "id",
+  ec_library_cache: "id, city_municipality, barangay, site_name",
+  encode_offline_meta: "id",
+  duplicate_exclusions_cache: "pair_key, uuid_a, uuid_b, name_key",
+  family_assistance_records:
+    "++id, uuid, faced_record_uuid, sync_status, createdAt, date_provided",
+});
+
 export async function getAuthSession(): Promise<AuthSession | undefined> {
   return db.auth_session.get("current");
 }
@@ -149,16 +167,17 @@ export async function clearAuthSession(): Promise<void> {
 
 export { db };
 
-export async function addFacedRecord(data: FacedRecordData): Promise<number> {
+export async function addFacedRecord(data: FacedRecordData): Promise<{ id: number; uuid: string }> {
   const now = new Date();
+  const uuid = uuidv4();
   const id = await db.faced_records.add({
     ...data,
-    uuid: uuidv4(),
+    uuid,
     sync_status: "pending",
     createdAt: now,
     updatedAt: now,
   });
-  return id as number;
+  return { id: id as number, uuid };
 }
 
 export async function updateFacedRecord(
@@ -210,6 +229,47 @@ export async function markFacedRecordFailed(uuid: string): Promise<void> {
   const record = await db.faced_records.where("uuid").equals(uuid).first();
   if (record?.id) {
     await db.faced_records.update(record.id, {
+      sync_status: "failed",
+      updatedAt: new Date(),
+    });
+  }
+}
+
+export async function addFamilyAssistanceRecord(
+  data: FamilyAssistanceRecordData,
+): Promise<{ id: number; uuid: string }> {
+  const now = new Date();
+  const uuid = uuidv4();
+  const id = await db.family_assistance_records.add({
+    ...data,
+    uuid,
+    sync_status: "pending",
+    createdAt: now,
+    updatedAt: now,
+  });
+  return { id: id as number, uuid };
+}
+
+export async function getFamilyAssistanceRecordsByStatus(
+  status: SyncStatus,
+): Promise<FamilyAssistanceRecord[]> {
+  return db.family_assistance_records.where("sync_status").equals(status).toArray();
+}
+
+export async function markFamilyAssistanceSynced(uuid: string): Promise<void> {
+  const record = await db.family_assistance_records.where("uuid").equals(uuid).first();
+  if (record?.id) {
+    await db.family_assistance_records.update(record.id, {
+      sync_status: "synced",
+      updatedAt: new Date(),
+    });
+  }
+}
+
+export async function markFamilyAssistanceFailed(uuid: string): Promise<void> {
+  const record = await db.family_assistance_records.where("uuid").equals(uuid).first();
+  if (record?.id) {
+    await db.family_assistance_records.update(record.id, {
       sync_status: "failed",
       updatedAt: new Date(),
     });

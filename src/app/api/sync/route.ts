@@ -1,12 +1,21 @@
 import { NextResponse } from "next/server";
 import { getSyncApiSecret, isTursoConfigured } from "@/lib/env";
 import type { FacedRecord } from "@/lib/faced-types";
+import type { FamilyAssistanceRecord } from "@/lib/family-assistance-types";
+import {
+  toTursoFamilyAssistanceRow,
+  upsertFamilyAssistanceRecord,
+} from "@/lib/family-assistance";
 import { ensureTursoSchema, upsertFacedRecord } from "@/lib/turso";
 import { normalizeRecordAccessCode } from "@/lib/backfill-access-codes";
 import { ensureFacedSerialNumber } from "@/lib/faced-serial";
 
 type SyncPayload = {
   records: (Omit<FacedRecord, "createdAt" | "updatedAt"> & {
+    createdAt: string;
+    updatedAt: string;
+  })[];
+  assistance_records?: (Omit<FamilyAssistanceRecord, "createdAt" | "updatedAt" | "id"> & {
     createdAt: string;
     updatedAt: string;
   })[];
@@ -38,9 +47,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  if (!Array.isArray(body.records) || body.records.length === 0) {
+  if (!Array.isArray(body.records)) {
     return NextResponse.json(
       { error: "records array is required" },
+      { status: 400 },
+    );
+  }
+
+  const assistanceRecords = body.assistance_records ?? [];
+  if (body.records.length === 0 && assistanceRecords.length === 0) {
+    return NextResponse.json(
+      { error: "records or assistance_records array is required" },
       { status: 400 },
     );
   }
@@ -60,6 +77,8 @@ export async function POST(request: Request) {
 
   const synced: string[] = [];
   const failed: { uuid: string; error: string }[] = [];
+  const syncedAssistance: string[] = [];
+  const failedAssistance: { uuid: string; error: string }[] = [];
 
   for (const record of body.records) {
     try {
@@ -95,5 +114,35 @@ export async function POST(request: Request) {
     }
   }
 
-  return NextResponse.json({ synced, failed });
+  for (const record of assistanceRecords) {
+    try {
+      if (!record.uuid) {
+        throw new Error("Assistance record missing uuid");
+      }
+      if (!record.faced_record_uuid) {
+        throw new Error("Assistance record missing faced_record_uuid");
+      }
+
+      await upsertFamilyAssistanceRecord(
+        toTursoFamilyAssistanceRow({
+          ...record,
+          access_code: normalizeRecordAccessCode(record.access_code),
+        }),
+      );
+
+      syncedAssistance.push(record.uuid);
+    } catch (err) {
+      failedAssistance.push({
+        uuid: record.uuid,
+        error: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  }
+
+  return NextResponse.json({
+    synced,
+    failed,
+    synced_assistance: syncedAssistance,
+    failed_assistance: failedAssistance,
+  });
 }

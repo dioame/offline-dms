@@ -1,6 +1,10 @@
-import type { FamilyHead, FamilyMember } from "./faced-print-types";
+import type { FamilyHead, FamilyMember, FamilyAssistancePrintRow } from "./faced-print-types";
 import { downloadFacedAnnexPdf } from "./facedAnnexPdf";
-import { openFacedAnnexPrintWindow, serializeMembersByHead } from "./facedAnnexPrintWindow";
+import {
+  openFacedAnnexPrintWindow,
+  serializeAssistanceByHead,
+  serializeMembersByHead,
+} from "./facedAnnexPrintWindow";
 
 export { buildFacedBatchPdfFilename } from "@/lib/batch-pdf/filename";
 
@@ -8,6 +12,7 @@ export function openFacedFormPrint(
   heads: FamilyHead[],
   membersByHead: Map<string, FamilyMember[]>,
   label?: string,
+  assistanceByHead?: Map<string, FamilyAssistancePrintRow[]>,
 ): boolean {
   if (!heads.length) {
     return false;
@@ -27,6 +32,7 @@ export function openFacedFormPrint(
   const opened = openFacedAnnexPrintWindow({
     heads,
     membersByHead: serializeMembersByHead(membersByHead),
+    assistanceByHead: assistanceByHead ? serializeAssistanceByHead(assistanceByHead) : undefined,
     title,
   });
 
@@ -42,6 +48,7 @@ export async function downloadFacedFormPdf(
     container?: HTMLElement | null;
     onProgress?: (message: string) => void;
   },
+  assistanceByHead?: Map<string, FamilyAssistancePrintRow[]>,
 ): Promise<void> {
   if (!heads.length) {
     throw new Error("No FACED forms to download.");
@@ -62,6 +69,7 @@ export async function downloadFacedFormPdf(
     {
       heads,
       membersByHead: serializeMembersByHead(membersByHead),
+      assistanceByHead: assistanceByHead ? serializeAssistanceByHead(assistanceByHead) : undefined,
       title,
       pdfFilename,
       autoDownloadPdf: true,

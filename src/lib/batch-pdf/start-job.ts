@@ -1,7 +1,14 @@
 import { listFacedRecordsForAdminExport } from "@/lib/admin-export";
 import { buildFacedBatchPdfFilename } from "@/lib/batch-pdf/filename";
-import { buildOfflineDmsPrintBundles } from "@/lib/print/offlineDmsFacedPrint";
-import { serializeMembersByHead } from "@/lib/print/facedAnnexPrintWindow";
+import { listFamilyAssistanceByFacedRecordUuids } from "@/lib/family-assistance";
+import {
+  buildAssistanceByHeadForPrint,
+  buildOfflineDmsPrintBundles,
+} from "@/lib/print/offlineDmsFacedPrint";
+import {
+  serializeAssistanceByHead,
+  serializeMembersByHead,
+} from "@/lib/print/facedAnnexPrintWindow";
 import {
   createBatchPdfJob,
   writeBatchPdfPayload,
@@ -36,6 +43,10 @@ export async function startBatchPdfJob(input: StartBatchPdfInput, baseUrl: strin
 
   const filename = buildFacedBatchPdfFilename(city_municipality, barangay);
   const { heads, membersByHead } = buildOfflineDmsPrintBundles(records);
+  const assistanceByUuid = await listFamilyAssistanceByFacedRecordUuids(
+    records.map((record) => record.uuid),
+  );
+  const assistanceByHead = buildAssistanceByHeadForPrint(records, assistanceByUuid);
 
   const dateLabel = new Date().toLocaleDateString("en-US", {
     month: "long",
@@ -53,6 +64,7 @@ export async function startBatchPdfJob(input: StartBatchPdfInput, baseUrl: strin
   await writeBatchPdfPayload(job.id, {
     heads,
     membersByHead: serializeMembersByHead(membersByHead),
+    assistanceByHead: serializeAssistanceByHead(assistanceByHead),
     title,
     pdfFilename: filename,
   });
