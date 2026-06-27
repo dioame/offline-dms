@@ -294,12 +294,12 @@ export const topbar = cn(
   "sticky top-0 z-45 border-b-2 border-ph-yellow bg-[#0a2d6e] shadow-[0_2px_8px_rgba(0,0,0,0.12)]",
 );
 export const topbarInner = cn(
-  "mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-3 px-4 py-2",
+  "mx-auto flex max-w-6xl items-center justify-between gap-x-4 px-4 py-2",
 );
 export const topbarKicker = cn(
-  "text-[0.6875rem] font-bold uppercase tracking-wider text-white/72",
+  "min-w-0 truncate text-[0.6875rem] font-bold uppercase tracking-wider text-white/72",
 );
-export const topbarLinks = "m-0 flex list-none flex-wrap items-center gap-1.5 p-0";
+export const topbarLinks = "m-0 hidden list-none items-center gap-1.5 p-0 md:flex";
 export const topbarLink = cn(
   "inline-flex items-center rounded-md border border-transparent px-3.5 py-1.5",
   "text-[0.8125rem] font-semibold text-white/88 no-underline transition",
@@ -310,6 +310,23 @@ export const topbarLinkActive = cn(
 );
 export const topbarLinkLogout = cn(
   topbarLink,
+  "cursor-pointer border-red-300/45 font-[inherit] text-red-200",
+  "hover:border-red-300/65 hover:bg-red-600/22 hover:text-white",
+);
+export const topbarMenuButton = cn(
+  "inline-flex shrink-0 items-center justify-center rounded-md border border-white/25",
+  "p-2 text-white transition hover:bg-white/12 md:hidden",
+);
+export const topbarMobilePanel = cn(
+  "border-t border-white/15 bg-[#0a2d6e] px-4 py-3 md:hidden",
+);
+export const topbarMobileLinks = "m-0 flex list-none flex-col gap-1 p-0";
+export const topbarMobileLink = cn(
+  topbarLink,
+  "w-full justify-start px-3 py-2.5",
+);
+export const topbarMobileLinkLogout = cn(
+  topbarMobileLink,
   "cursor-pointer border-red-300/45 font-[inherit] text-red-200",
   "hover:border-red-300/65 hover:bg-red-600/22 hover:text-white",
 );
@@ -454,4 +471,8 @@ export function verifyTabClass(active: boolean) {
 
 export function topbarLinkClass(active: boolean) {
   return cn(topbarLink, active && topbarLinkActive);
+}
+
+export function topbarMobileLinkClass(active: boolean) {
+  return cn(topbarMobileLink, active && topbarLinkActive);
 }

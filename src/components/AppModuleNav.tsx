@@ -2,13 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   ClipboardPen,
   FolderOpen,
   LayoutDashboard,
   LogOut,
+  Menu,
   SearchCheck,
   Settings,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { logoutApp } from "@/lib/app-logout";
@@ -30,31 +33,61 @@ function isActive(pathname: string, href: string): boolean {
 
 export default function AppModuleNav() {
   const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setMenuOpen(false);
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [menuOpen]);
 
   async function handleLogout() {
+    setMenuOpen(false);
     await logoutApp();
     window.location.assign("/");
+  }
+
+  function renderModuleLink(
+    module: (typeof modules)[number],
+    active: boolean,
+    mobile: boolean,
+  ) {
+    const Icon = module.icon;
+    return (
+      <Link
+        href={module.href}
+        className={cn(
+          mobile ? ui.topbarMobileLinkClass(active) : ui.topbarLinkClass(active),
+          ui.withIcon,
+        )}
+        aria-current={active ? "page" : undefined}
+        onClick={() => setMenuOpen(false)}
+      >
+        <Icon className={ui.iconSm} aria-hidden />
+        {module.label}
+      </Link>
+    );
   }
 
   return (
     <nav className={ui.topbar} aria-label="Application modules">
       <div className={ui.topbarInner}>
         <p className={ui.topbarKicker}>DSWD · Offline DMS</p>
+
         <ul className={ui.topbarLinks} role="list">
           {modules.map((module) => {
             const active = isActive(pathname, module.href);
-            const Icon = module.icon;
             return (
-              <li key={module.href}>
-                <Link
-                  href={module.href}
-                  className={cn(ui.topbarLinkClass(active), ui.withIcon)}
-                  aria-current={active ? "page" : undefined}
-                >
-                  <Icon className={ui.iconSm} aria-hidden />
-                  {module.label}
-                </Link>
-              </li>
+              <li key={module.href}>{renderModuleLink(module, active, false)}</li>
             );
           })}
           <li>
@@ -68,7 +101,45 @@ export default function AppModuleNav() {
             </button>
           </li>
         </ul>
+
+        <button
+          type="button"
+          className={ui.topbarMenuButton}
+          aria-expanded={menuOpen}
+          aria-controls="app-module-mobile-nav"
+          aria-label={menuOpen ? "Close menu" : "Open menu"}
+          onClick={() => setMenuOpen((open) => !open)}
+        >
+          {menuOpen ? (
+            <X className={ui.iconMd} aria-hidden />
+          ) : (
+            <Menu className={ui.iconMd} aria-hidden />
+          )}
+        </button>
       </div>
+
+      {menuOpen ? (
+        <div id="app-module-mobile-nav" className={ui.topbarMobilePanel}>
+          <ul className={ui.topbarMobileLinks} role="list">
+            {modules.map((module) => {
+              const active = isActive(pathname, module.href);
+              return (
+                <li key={module.href}>{renderModuleLink(module, active, true)}</li>
+              );
+            })}
+            <li>
+              <button
+                type="button"
+                onClick={() => void handleLogout()}
+                className={cn(ui.topbarMobileLinkLogout, ui.withIcon)}
+              >
+                <LogOut className={ui.iconSm} aria-hidden />
+                Logout
+              </button>
+            </li>
+          </ul>
+        </div>
+      ) : null}
     </nav>
   );
 }
