@@ -128,7 +128,7 @@ function StarRating({
 }
 
 export default function UsabilitySurveyForm() {
-  const [form, setForm] = useState<SurveyFormDraft>(emptySurveyFormDraft);
+  const [form, setForm] = useState<SurveyFormDraft>(() => emptySurveyFormDraft());
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);

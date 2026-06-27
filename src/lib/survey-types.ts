@@ -78,7 +78,7 @@ export type SurveyPayload = {
   overall_rating: SurveyOverallRating;
 };
 
-/** Unsubmitted form state — no pre-selected ratings or choices to avoid bias. */
+/** Unsubmitted form state — respondent info defaults only; ratings/choices require explicit selection. */
 export type SurveyFormDraft = {
   name?: string;
   office_division: string;
@@ -252,13 +252,17 @@ export function emptySurveyBenefits(): SurveyBenefits {
   };
 }
 
+function todayLocalDateString(): string {
+  return new Date().toLocaleDateString("en-CA");
+}
+
 export function emptySurveyFormDraft(): SurveyFormDraft {
   return {
     name: "",
-    office_division: "",
+    office_division: "MSWDO",
     position: "",
-    region_field_office: "",
-    date: "",
+    region_field_office: "Region XII",
+    date: todayLocalDateString(),
     informed: "",
     usage_duration: "",
     usage_frequency: "",

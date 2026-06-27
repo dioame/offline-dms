@@ -43,6 +43,10 @@ const TABS: { id: DashboardTab; label: string; icon: LucideIcon }[] = [
   { id: "shelter", label: "Family & Shelter", icon: Tent },
 ];
 
+function isReportTab(tab: DashboardTab): boolean {
+  return tab !== "encoding-summary";
+}
+
 function CumNowCells({
   cum,
   now,
@@ -72,9 +76,11 @@ function insideEcNavItems(groups: InsideEcGroup[]): ReportNavItem[] {
 
 export default function DashboardReports() {
   const reportPaneRef = useRef<HTMLDivElement>(null);
+  /** Last city_mun filter successfully loaded into `bundle` (skip duplicate tab switches). */
+  const fetchedForCityMunRef = useRef<string | null>(null);
   const [cityMun, setCityMun] = useState("");
   const [bundle, setBundle] = useState<ReportsBundle | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<DashboardTab>("encoding-summary");
   const [nowOnly, setNowOnly] = useState(false);
@@ -94,6 +100,7 @@ export default function DashboardReports() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to load dashboard.");
       setBundle(data as ReportsBundle);
+      fetchedForCityMunRef.current = cityMun.trim();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load dashboard.");
       setBundle(null);
@@ -106,9 +113,12 @@ export default function DashboardReports() {
     setCityMun(loadCityMunFilter());
   }, []);
 
+  // Load report bundle only when a report tab is active (not on initial Encoding Summary view).
   useEffect(() => {
+    if (!isReportTab(activeTab)) return;
+    if (fetchedForCityMunRef.current === cityMun.trim()) return;
     void load();
-  }, [load]);
+  }, [activeTab, cityMun, load]);
 
   useEffect(() => {
     setInfoBoardIndex(0);
@@ -197,9 +207,17 @@ export default function DashboardReports() {
               </label>
               <button
                 type="button"
-                onClick={() => void load()}
+                onClick={() => {
+                  fetchedForCityMunRef.current = null;
+                  void load();
+                }}
                 className={cn(ui.btnSecondary, ui.withIcon)}
-                disabled={loading}
+                disabled={loading || !isReportTab(activeTab)}
+                title={
+                  isReportTab(activeTab)
+                    ? undefined
+                    : "Switch to a report tab to load evacuation data"
+                }
               >
                 <RefreshCw className={cn(ui.iconSm, loading && "animate-spin")} aria-hidden />
                 {loading ? "Loading…" : "Refresh"}
@@ -209,7 +227,8 @@ export default function DashboardReports() {
               )}
             </div>
             <p className={ui.dashboardFilterNote}>
-              Filter applies to all report tabs. Data comes from synced FACED records in Turso.
+              Filter applies to evacuation and shelter report tabs. Data loads when you open a
+              report tab (not Encoding Summary).
             </p>
 
             {bundle && !loading && (
