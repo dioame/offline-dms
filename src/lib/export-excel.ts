@@ -162,3 +162,53 @@ export function exportAccessCodesToExcel(
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(sheet), "Access Codes");
   XLSX.writeFile(workbook, filename);
 }
+
+import { surveyPayloadToExportRow } from "./survey-types";
+
+export type SurveyExportRow = ReturnType<typeof surveyPayloadToExportRow>;
+
+export function exportSurveyResponsesToExcel(
+  rows: SurveyExportRow[],
+  filename = "Offline_Online_Faced_App_Survey_Responses.xlsx",
+): void {
+  const raw = rows.map((row) => ({
+    ID: row.id,
+    "Submitted At": formatExportDate(row.submitted_at),
+    Name: row.name,
+    "Office / Division": row.office_division,
+    Position: row.position,
+    "Region/Field Office": row.region_field_office,
+    Date: row.date,
+    "Informed About Offline/Online Faced App": row.informed,
+    "Usage Duration": row.usage_duration,
+    "Usage Frequency": row.usage_frequency,
+    "Easy to Understand (1-5)": row.eval_easy_to_understand,
+    "Improves Efficiency (1-5)": row.eval_improves_efficiency,
+    "Reduces Processing Time (1-5)": row.eval_reduces_processing_time,
+    "Minimizes Errors (1-5)": row.eval_minimizes_errors,
+    "User-Friendly (1-5)": row.eval_user_friendly,
+    "Accurate Information (1-5)": row.eval_accurate_information,
+    "Improves Service Delivery (1-5)": row.eval_improves_service_delivery,
+    "Transparency & Accountability (1-5)": row.eval_transparency_accountability,
+    "Would Recommend (1-5)": row.eval_would_recommend,
+    "Overall Satisfied (1-5)": row.eval_overall_satisfied,
+    Benefits: row.benefits,
+    "Benefits (Others)": row.benefits_others,
+    "Work Improvement": row.work_improvement,
+    "Aspect Improved Most": row.aspect_improved_most,
+    "Sustained Over Time (1-5)": row.sustain_over_time,
+    "Replicable (1-5)": row.sustain_replicable,
+    "Adequate Support (1-5)": row.sustain_adequate_support,
+    "Sufficient Training (1-5)": row.sustain_sufficient_training,
+    "Like Most": row.like_most,
+    Challenges: row.challenges,
+    "Improvements Suggested": row.improvements_suggested,
+    "Other Comments": row.other_comments,
+    "Overall Stars (1-5)": row.overall_stars,
+    "Overall Rating": row.overall_rating,
+  }));
+
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(raw), "Raw Responses");
+  XLSX.writeFile(workbook, filename);
+}

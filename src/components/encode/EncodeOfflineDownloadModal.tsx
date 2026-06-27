@@ -93,14 +93,17 @@ export default function EncodeOfflineDownloadModal({
         (offset, limit) =>
           fetch(`/api/encode/offline-sync?offset=${offset}&limit=${limit}`, { headers }),
         () => fetch("/api/encode/ec-library", { headers }),
+        () => fetch("/api/encode/duplicate-exclusions", { headers }),
         setProgress,
       );
 
       setProgress({
         phase: "finishing",
         label: `Ready — ${result.totalFamilies} families, ${result.totalEcSites} EC sites`,
-        downloaded: result.totalFamilies + result.totalEcSites,
-        total: result.totalFamilies + result.totalEcSites,
+        downloaded:
+          result.totalFamilies + result.totalEcSites + result.totalDuplicateExclusions,
+        total:
+          result.totalFamilies + result.totalEcSites + result.totalDuplicateExclusions,
         percent: 100,
       });
 

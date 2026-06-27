@@ -1,0 +1,337 @@
+/**
+ * Generates usability / impact / encoder experience survey Excel for Google Forms.
+ * Run: node scripts/generate-survey-excel.mjs
+ */
+import { writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+const XLSX = require("xlsx");
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const outPath = join(__dirname, "..", "docs", "FACED-Encoder-Survey-Google-Form.xlsx");
+
+/** Format used by Form Builder add-ons and manual Google Form setup */
+const questions = [
+  // Section header rows use Type = "Section"
+  {
+    section: "Profile",
+    number: "",
+    question: "Encoder Profile",
+    type: "Section header",
+    option1: "",
+    option2: "",
+    option3: "",
+    option4: "",
+    option5: "",
+    required: "",
+  },
+  {
+    section: "Profile",
+    number: 1,
+    question: "Your name (optional)",
+    type: "Short answer",
+    option1: "",
+    option2: "",
+    option3: "",
+    option4: "",
+    option5: "",
+    required: "No",
+  },
+  {
+    section: "Profile",
+    number: 2,
+    question: "Municipality where you encode",
+    type: "Dropdown",
+    option1: "Alabel",
+    option2: "Glan",
+    option3: "Kiamba",
+    option4: "Maasim",
+    option5: "Maitum",
+    option6: "Malapatan",
+    option7: "Malungon",
+    option8: "Other",
+    required: "Yes",
+  },
+  {
+    section: "Profile",
+    number: 3,
+    question: "How long have you used the Online/Offline Faced Application?",
+    type: "Multiple choice",
+    option1: "Less than 1 week",
+    option2: "1–4 weeks",
+    option3: "1–3 months",
+    option4: "More than 3 months",
+    option5: "",
+    required: "Yes",
+  },
+
+  {
+    section: "Usability",
+    number: "",
+    question: "Usability",
+    type: "Section header",
+    option1: "",
+    option2: "",
+    option3: "",
+    option4: "",
+    option5: "",
+    required: "",
+  },
+  {
+    section: "Usability",
+    number: 4,
+    question: "The system is easy to learn and use.",
+    type: "Linear scale (1-5)",
+    option1: "1 — Strongly disagree",
+    option2: "2",
+    option3: "3 — Neutral",
+    option4: "4",
+    option5: "5 — Strongly agree",
+    required: "Yes",
+  },
+  {
+    section: "Usability",
+    number: 5,
+    question: "The FACED encoding form is clear and easy to fill out.",
+    type: "Linear scale (1-5)",
+    option1: "1 — Strongly disagree",
+    option2: "2",
+    option3: "3 — Neutral",
+    option4: "4",
+    option5: "5 — Strongly agree",
+    required: "Yes",
+  },
+  {
+    section: "Usability",
+    number: 6,
+    question: "Offline encoding works well when there is no internet.",
+    type: "Linear scale (1-5)",
+    option1: "1 — Strongly disagree",
+    option2: "2",
+    option3: "3 — Neutral",
+    option4: "4",
+    option5: "5 — Strongly agree",
+    required: "Yes",
+  },
+  {
+    section: "Usability",
+    number: 7,
+    question: "Syncing records online is easy to understand and do.",
+    type: "Linear scale (1-5)",
+    option1: "1 — Strongly disagree",
+    option2: "2",
+    option3: "3 — Neutral",
+    option4: "4",
+    option5: "5 — Strongly agree",
+    required: "Yes",
+  },
+
+  {
+    section: "Impact",
+    number: "",
+    question: "Impact",
+    type: "Section header",
+    option1: "",
+    option2: "",
+    option3: "",
+    option4: "",
+    option5: "",
+    required: "",
+  },
+  {
+    section: "Impact",
+    number: 8,
+    question: "The system helped me encode FACED records faster.",
+    type: "Linear scale (1-5)",
+    option1: "1 — Strongly disagree",
+    option2: "2",
+    option3: "3 — Neutral",
+    option4: "4",
+    option5: "5 — Strongly agree",
+    required: "Yes",
+  },
+  {
+    section: "Impact",
+    number: 9,
+    question: "Duplicate checking helps improve data quality.",
+    type: "Linear scale (1-5)",
+    option1: "1 — Strongly disagree",
+    option2: "2",
+    option3: "3 — Neutral",
+    option4: "4",
+    option5: "5 — Strongly agree",
+    required: "Yes",
+  },
+  {
+    section: "Impact",
+    number: 10,
+    question: "The system has a positive impact on my FACED field work.",
+    type: "Linear scale (1-5)",
+    option1: "1 — Strongly disagree",
+    option2: "2",
+    option3: "3 — Neutral",
+    option4: "4",
+    option5: "5 — Strongly agree",
+    required: "Yes",
+  },
+
+  {
+    section: "Encoder Experience",
+    number: "",
+    question: "Encoder Experience",
+    type: "Section header",
+    option1: "",
+    option2: "",
+    option3: "",
+    option4: "",
+    option5: "",
+    required: "",
+  },
+  {
+    section: "Encoder Experience",
+    number: 11,
+    question: "Overall, I am satisfied with the Online/Offline Faced Application.",
+    type: "Linear scale (1-5)",
+    option1: "1 — Strongly disagree",
+    option2: "2",
+    option3: "3 — Neutral",
+    option4: "4",
+    option5: "5 — Strongly agree",
+    required: "Yes",
+  },
+  {
+    section: "Encoder Experience",
+    number: 12,
+    question: "What feature or part of the system works best for you?",
+    type: "Short answer",
+    option1: "",
+    option2: "",
+    option3: "",
+    option4: "",
+    option5: "",
+    required: "No",
+  },
+  {
+    section: "Encoder Experience",
+    number: 13,
+    question: "What should be improved?",
+    type: "Short answer",
+    option1: "",
+    option2: "",
+    option3: "",
+    option4: "",
+    option5: "",
+    required: "No",
+  },
+  {
+    section: "Encoder Experience",
+    number: 14,
+    question: "Would you recommend this system to other FACED encoders?",
+    type: "Multiple choice",
+    option1: "Yes",
+    option2: "No",
+    option3: "Maybe",
+    option4: "",
+    option5: "",
+    required: "Yes",
+  },
+];
+
+const questionHeaders = [
+  "Section",
+  "Question #",
+  "Question Text",
+  "Question Type",
+  "Option 1",
+  "Option 2",
+  "Option 3",
+  "Option 4",
+  "Option 5",
+  "Option 6",
+  "Option 7",
+  "Option 8",
+  "Required",
+];
+
+const questionRows = questions.map((q) => [
+  q.section,
+  q.number,
+  q.question,
+  q.type,
+  q.option1,
+  q.option2,
+  q.option3,
+  q.option4,
+  q.option5,
+  q.option6 ?? "",
+  q.option7 ?? "",
+  q.option8 ?? "",
+  q.required,
+]);
+
+const instructions = [
+  ["How to create a Google Form from this file"],
+  [""],
+  ["1. Upload this Excel file to Google Drive."],
+  ["2. Open with Google Sheets."],
+  ["3. Use the 'Survey Questions' sheet to build your form:"],
+  ["   • Manual: Create a new Google Form and copy each question row."],
+  ["   • Add-on (optional): Install 'Form Builder for Sheets' or similar,"],
+  ["     then import rows from the Survey Questions sheet."],
+  [""],
+  ["Question types in this file:"],
+  ["• Section header — use as a section title in Google Forms"],
+  ["• Short answer — Google Forms: Short answer"],
+  ["• Multiple choice — Google Forms: Multiple choice"],
+  ["• Dropdown — Google Forms: Dropdown"],
+  ["• Linear scale (1-5) — Google Forms: Linear scale, set min=1 max=5"],
+  [""],
+  ["Suggested form title:"],
+  ["FACED Encoder Survey — Usability, Impact & Experience"],
+  [""],
+  ["Suggested form description:"],
+  [
+    "Short feedback survey for enumerators using the Online/Offline Faced Application. Estimated time: 3–5 minutes.",
+  ],
+  [""],
+  ["Sections:"],
+  ["• Profile (3 questions)"],
+  ["• Usability (4 questions)"],
+  ["• Impact (3 questions)"],
+  ["• Encoder Experience (4 questions)"],
+  ["Total: 14 questions (excluding section headers)"],
+  [""],
+  ["Made by DSWD Caraga"],
+];
+
+
+const wb = XLSX.utils.book_new();
+
+const wsQuestions = XLSX.utils.aoa_to_sheet([questionHeaders, ...questionRows]);
+wsQuestions["!cols"] = [
+  { wch: 18 },
+  { wch: 10 },
+  { wch: 58 },
+  { wch: 22 },
+  { wch: 22 },
+  { wch: 14 },
+  { wch: 16 },
+  { wch: 10 },
+  { wch: 18 },
+  { wch: 12 },
+  { wch: 12 },
+  { wch: 10 },
+  { wch: 10 },
+];
+XLSX.utils.book_append_sheet(wb, wsQuestions, "Survey Questions");
+
+const wsInstructions = XLSX.utils.aoa_to_sheet(instructions);
+wsInstructions["!cols"] = [{ wch: 90 }];
+XLSX.utils.book_append_sheet(wb, wsInstructions, "Instructions");
+
+const buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+writeFileSync(outPath, buffer);
+console.log(`Excel written: ${outPath}`);

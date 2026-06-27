@@ -12,6 +12,7 @@ import {
   Lock,
   RefreshCw,
   Search,
+  ShieldCheck,
   Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -31,6 +32,8 @@ import RecordRowActions from "@/components/records/RecordRowActions";
 import DuplicateFamilyMembers from "@/components/records/DuplicateFamilyMembers";
 import TrashRowActions from "@/components/records/TrashRowActions";
 import RestoreConfirmDialog from "@/components/records/RestoreConfirmDialog";
+import VerifyNotDuplicateDialog from "@/components/records/VerifyNotDuplicateDialog";
+import VerifyNotDuplicateSuccessDialog from "@/components/records/VerifyNotDuplicateSuccessDialog";
 import { formatDisplayBirthdate } from "@/lib/faced-types";
 import {
   buildOfflineDmsPrintBundle,
@@ -166,6 +169,16 @@ export default function RecordsPage() {
   const [restoring, setRestoring] = useState(false);
   const [printingUuid, setPrintingUuid] = useState<string | null>(null);
   const [generatingIdUuid, setGeneratingIdUuid] = useState<string | null>(null);
+  const [verifyTarget, setVerifyTarget] = useState<{
+    uuids: string[];
+    firstName: string;
+    lastName: string;
+  } | null>(null);
+  const [verifySuccess, setVerifySuccess] = useState<{
+    headName: string;
+    pairCount: number;
+  } | null>(null);
+  const [verifyingNotDuplicate, setVerifyingNotDuplicate] = useState(false);
 
   useEffect(() => {
     const stored = sessionStorage.getItem(ADMIN_STORAGE_KEY);
@@ -515,6 +528,38 @@ export default function RecordsPage() {
     }
   }
 
+  async function confirmVerifyNotDuplicate() {
+    if (!verifyTarget) return;
+
+    const { uuids, firstName, lastName } = verifyTarget;
+    setVerifyingNotDuplicate(true);
+    setMessage("");
+    setError("");
+    try {
+      const res = await adminFetch("/api/admin/records/duplicates/exclude", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uuids,
+          first_name: firstName,
+          last_name: lastName,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to verify not duplicates.");
+      setVerifyTarget(null);
+      setVerifySuccess({
+        headName: `${lastName}, ${firstName}`,
+        pairCount: Number(data.pairCount ?? 0),
+      });
+      await loadDuplicates();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Verify not duplicates failed.");
+    } finally {
+      setVerifyingNotDuplicate(false);
+    }
+  }
+
   if (!unlocked) {
     return (
       <div className={cn(ui.pageBg, "flex flex-col")}>
@@ -829,13 +874,31 @@ export default function RecordsPage() {
                     id={duplicateGroupDomId(group.key)}
                     className="overflow-hidden rounded-lg border border-amber-300/60 bg-ph-yellow-light/40"
                   >
-                    <div className="border-b border-amber-300/40 bg-amber-100/50 px-4 py-2">
-                      <p className="font-bold uppercase text-ph-blue-dark">
-                        {group.last_name}, {group.first_name}
-                      </p>
-                      <p className="text-xs text-amber-900/80">
-                        {group.count} records with the same first and last name
-                      </p>
+                    <div className="flex flex-wrap items-start justify-between gap-2 border-b border-amber-300/40 bg-amber-100/50 px-4 py-2">
+                      <div>
+                        <p className="font-bold uppercase text-ph-blue-dark">
+                          {group.last_name}, {group.first_name}
+                        </p>
+                        <p className="text-xs text-amber-900/80">
+                          {group.count} records with the same first and last name
+                        </p>
+                      </div>
+                      {group.count >= 2 ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setVerifyTarget({
+                              uuids: group.records.map((row) => row.uuid),
+                              firstName: group.first_name,
+                              lastName: group.last_name,
+                            })
+                          }
+                          className={cn(ui.btnSecondary, "shrink-0 text-xs", ui.withIcon)}
+                        >
+                          <ShieldCheck className={ui.iconSm} aria-hidden />
+                          Verify not duplicates
+                        </button>
+                      ) : null}
                     </div>
                     <ul className="divide-y divide-amber-200/60">
                       {group.records.map((row) => (
@@ -1049,6 +1112,26 @@ export default function RecordsPage() {
           if (!restoring) setRestoreTarget(null);
         }}
         onYes={() => void confirmRestore()}
+      />
+
+      <VerifyNotDuplicateDialog
+        open={verifyTarget !== null}
+        headName={
+          verifyTarget ? `${verifyTarget.lastName}, ${verifyTarget.firstName}` : ""
+        }
+        recordCount={verifyTarget?.uuids.length ?? 0}
+        verifying={verifyingNotDuplicate}
+        onNo={() => {
+          if (!verifyingNotDuplicate) setVerifyTarget(null);
+        }}
+        onYes={() => void confirmVerifyNotDuplicate()}
+      />
+
+      <VerifyNotDuplicateSuccessDialog
+        open={verifySuccess !== null}
+        headName={verifySuccess?.headName ?? ""}
+        pairCount={verifySuccess?.pairCount ?? 0}
+        onClose={() => setVerifySuccess(null)}
       />
     </div>
   );

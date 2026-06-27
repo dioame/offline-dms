@@ -23,6 +23,7 @@ import {
   TextInput,
 } from "@/components/faced/FormField";
 import { exportFacedToExcel } from "@/lib/export-excel";
+import { filterCachedMatchesWithExclusions } from "@/lib/duplicate-exclusions-cache";
 import type { FacedRecord } from "@/lib/faced-types";
 import {
   barangayOptions,
@@ -335,7 +336,8 @@ export default function VerifyPage() {
         }
         const entries = await getAllVerifyCacheEntries();
         const result = searchCachedBeneficiary(entries, form);
-        setMatches(result.matches);
+        const matches = await filterCachedMatchesWithExclusions(result.matches, form);
+        setMatches(matches);
         setSearchSource("offline");
       }
 
