@@ -90,10 +90,15 @@ const PAGE_SIZE = 20;
 
 type AdminTab = "summary" | "create" | "codes" | "ec-library";
 
-const ADMIN_TABS: { id: AdminTab; label: string; icon: typeof BarChart3 }[] = [
+const ADMIN_TABS: {
+  id: AdminTab;
+  label: string;
+  mobileLabel?: string;
+  icon: typeof BarChart3;
+}[] = [
   { id: "summary", label: "Summary", icon: BarChart3 },
-  { id: "create", label: "Create codes", icon: Sparkles },
-  { id: "codes", label: "Manage codes", icon: KeyRound },
+  { id: "create", label: "Create codes", mobileLabel: "Create", icon: Sparkles },
+  { id: "codes", label: "Manage codes", mobileLabel: "Manage", icon: KeyRound },
   { id: "ec-library", label: "EC Library", icon: Tent },
 ];
 
@@ -677,11 +682,13 @@ export default function AdminPage() {
                 type="button"
                 role="tab"
                 aria-selected={activeTab === tab.id}
+                aria-label={tab.label}
                 className={cn(ui.verifyTabClass(activeTab === tab.id), ui.withIcon)}
                 onClick={() => setActiveTab(tab.id)}
               >
                 <Icon className={ui.iconSm} aria-hidden />
-                {tab.label}
+                <span className="sm:hidden">{tab.mobileLabel ?? tab.label}</span>
+                <span className="hidden sm:inline">{tab.label}</span>
               </button>
             );
           })}

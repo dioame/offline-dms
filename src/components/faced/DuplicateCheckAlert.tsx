@@ -26,20 +26,21 @@ export default function DuplicateCheckAlert({
   checking,
   canCheck,
 }: DuplicateCheckAlertProps) {
-  if (!canCheck) {
-    return null;
-  }
-
   if (checking) {
     return (
-      <div className={cn(ui.encodeDuplicateChecking, ui.withIcon, "sm:col-span-2")}>
+      <div
+        className={cn(ui.encodeDuplicateChecking, ui.withIcon, "sm:col-span-2")}
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+      >
         <Loader2 className={cn(ui.iconSm, "animate-spin")} aria-hidden />
-        Checking duplicates…
+        Duplicate checking in process…
       </div>
     );
   }
 
-  if (matches.length === 0) {
+  if (!canCheck || matches.length === 0) {
     return null;
   }
 

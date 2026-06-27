@@ -228,6 +228,7 @@ export default function FacedForm({
     "online" | "local" | "static" | null
   >(null);
   const duplicateQueryRef = useRef("");
+  const duplicateCheckIdRef = useRef(0);
 
   function buildDuplicateQuery(): string {
     return [
@@ -376,6 +377,7 @@ export default function FacedForm({
     }
 
     setDuplicateChecking(true);
+    const checkId = ++duplicateCheckIdRef.current;
     const timer = window.setTimeout(() => {
       void checkEncodingDuplicates(
         {
@@ -389,17 +391,21 @@ export default function FacedForm({
         { excludeUuid: editUuid, excludeEditId: isSyncedEdit ? undefined : editId ?? undefined },
       )
         .then((result) => {
+          if (duplicateCheckIdRef.current !== checkId) return;
           setDuplicateMatches(result.matches);
           setDuplicateSource(result.source);
           setDuplicateCanCheck(result.canCheck);
         })
         .catch(() => {
+          if (duplicateCheckIdRef.current !== checkId) return;
           setDuplicateMatches([]);
           setDuplicateSource(null);
           setDuplicateCanCheck(false);
         })
         .finally(() => {
-          setDuplicateChecking(false);
+          if (duplicateCheckIdRef.current === checkId) {
+            setDuplicateChecking(false);
+          }
         });
     }, 400);
 
