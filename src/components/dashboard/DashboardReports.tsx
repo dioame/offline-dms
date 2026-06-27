@@ -3,13 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   BarChart3,
-  ChevronDown,
-  ChevronUp,
   ClipboardList,
   Home,
   MapPin,
   MapPinOff,
-  RefreshCw,
   Tent,
   UserRound,
   Users,
@@ -17,7 +14,7 @@ import {
 } from "lucide-react";
 import type { InsideEcGroup, ReportsBundle } from "@/lib/dashboard-types";
 import { formatDisplayBarangay } from "@/lib/sarangani-locations";
-import { loadCityMunFilter, saveCityMunFilter } from "@/lib/dashboard-city-filter";
+import { loadCityMunFilter } from "@/lib/dashboard-city-filter";
 import EcInfoBoardReport, { EcInfoBoardGroups } from "@/components/dashboard/EcInfoBoardReport";
 import EnumeratorSummaryPanel from "@/components/dashboard/EnumeratorSummaryPanel";
 import DashboardReportNavigator from "@/components/dashboard/DashboardReportNavigator";
@@ -84,7 +81,6 @@ export default function DashboardReports() {
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<DashboardTab>("encoding-summary");
   const [nowOnly, setNowOnly] = useState(false);
-  const [controlsOpen, setControlsOpen] = useState(false);
   const [infoBoardIndex, setInfoBoardIndex] = useState(0);
   const [insideEcIndex, setInsideEcIndex] = useState(0);
   const [outsideBrgyIndex, setOutsideBrgyIndex] = useState(0);
@@ -135,12 +131,6 @@ export default function DashboardReports() {
     reportPaneRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [infoBoardIndex, insideEcIndex, outsideBrgyIndex, showAllBoards]);
 
-  function handleMunicipalityChange(value: string) {
-    setCityMun(value);
-    saveCityMunFilter(value);
-  }
-
-  const municipalities = bundle?.municipalities ?? [];
   const insideEcGroups = bundle?.inside_ec.groups ?? [];
   const insideEcSafeIndex = Math.min(
     insideEcIndex,
@@ -164,116 +154,6 @@ export default function DashboardReports() {
 
   return (
     <div className="space-y-4">
-      <div className={cn(ui.dashboardControlsBar, "no-print")}>
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-sm font-bold text-ph-blue-dark">Filters &amp; summary</h2>
-          <button
-            type="button"
-            className={cn(ui.dashboardControlsToggle, ui.withIcon)}
-            onClick={() => setControlsOpen((open) => !open)}
-            aria-expanded={controlsOpen}
-          >
-            {controlsOpen ? (
-              <>
-                <ChevronUp className={ui.iconSm} aria-hidden />
-                Hide
-              </>
-            ) : (
-              <>
-                <ChevronDown className={ui.iconSm} aria-hidden />
-                Show
-              </>
-            )}
-          </button>
-        </div>
-
-        {controlsOpen && (
-          <div className="mt-4 space-y-4">
-            <div className="flex flex-wrap items-end gap-4">
-              <label className="block min-w-[220px]">
-                <span className={ui.dashboardFilterLabel}>Municipality</span>
-                <select
-                  value={cityMun}
-                  onChange={(e) => handleMunicipalityChange(e.target.value)}
-                  className={ui.dashboardFilterSelect}
-                >
-                  <option value="">All municipalities</option>
-                  {municipalities.map((m) => (
-                    <option key={m.city_mun} value={m.city_mun}>
-                      {m.city_mun} ({m.heads_count} families)
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <button
-                type="button"
-                onClick={() => {
-                  fetchedForCityMunRef.current = null;
-                  void load();
-                }}
-                className={cn(ui.btnSecondary, ui.withIcon)}
-                disabled={loading || !isReportTab(activeTab)}
-                title={
-                  isReportTab(activeTab)
-                    ? undefined
-                    : "Switch to a report tab to load evacuation data"
-                }
-              >
-                <RefreshCw className={cn(ui.iconSm, loading && "animate-spin")} aria-hidden />
-                {loading ? "Loading…" : "Refresh"}
-              </button>
-              {cityMun && (
-                <span className={ui.dashboardFilterBadge}>Filtered: {cityMun}</span>
-              )}
-            </div>
-            <p className={ui.dashboardFilterNote}>
-              Filter applies to evacuation and shelter report tabs. Data loads when you open a
-              report tab (not Encoding Summary).
-            </p>
-
-            {bundle && !loading && (
-              <div className={ui.dashboardSummaryGrid}>
-                <div className={ui.dashboardStat}>
-                  <p className={cn(ui.dashboardStatLabel, ui.withIcon)}>
-                    <Users className={ui.iconSm} aria-hidden />
-                    Total families
-                  </p>
-                  <p className={ui.dashboardStatValue}>{bundle.total_records}</p>
-                </div>
-                <div className={ui.dashboardStat}>
-                  <p className={cn(ui.dashboardStatLabel, ui.withIcon)}>
-                    <Home className={ui.iconSm} aria-hidden />
-                    Inside EC
-                  </p>
-                  <p className={ui.dashboardStatValue}>{bundle.inside_ec_records}</p>
-                </div>
-                <div className={ui.dashboardStat}>
-                  <p className={cn(ui.dashboardStatLabel, ui.withIcon)}>
-                    <MapPinOff className={ui.iconSm} aria-hidden />
-                    Outside EC
-                  </p>
-                  <p className={ui.dashboardStatValue}>{bundle.outside_ec_records}</p>
-                </div>
-                <div className={ui.dashboardStat}>
-                  <p className={cn(ui.dashboardStatLabel, ui.withIcon)}>
-                    <MapPin className={ui.iconSm} aria-hidden />
-                    EC sites
-                  </p>
-                  <p className={ui.dashboardStatValue}>{bundle.inside_ec.ec_sites_count}</p>
-                </div>
-                <div className={ui.dashboardStat}>
-                  <p className={cn(ui.dashboardStatLabel, ui.withIcon)}>
-                    <UserRound className={ui.iconSm} aria-hidden />
-                    Persons (encoded)
-                  </p>
-                  <p className={ui.dashboardStatValue}>{bundle.sex_age_sectoral.totals.total_cum}</p>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
       {error && <div className={ui.alertError}>{error}</div>}
 
       <div className={cn(ui.dashboardStickyToolbar, "no-print")}>

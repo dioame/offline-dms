@@ -62,6 +62,10 @@ export default function HomePage() {
             <div className="p-2 sm:p-4">
               <FacedForm
                 editId={editId}
+                onEditExistingRecord={(id) => {
+                  setEditId(id);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
                 onSaved={() => {
                   setRefreshKey((k) => k + 1);
                   if (editId) setEditId(null);

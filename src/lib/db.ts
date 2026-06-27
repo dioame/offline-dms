@@ -180,6 +180,12 @@ export async function getFacedRecord(id: number): Promise<FacedRecord | undefine
   return db.faced_records.get(id);
 }
 
+export async function getFacedRecordByUuid(uuid: string): Promise<FacedRecord | undefined> {
+  const trimmed = uuid.trim();
+  if (!trimmed) return undefined;
+  return db.faced_records.where("uuid").equals(trimmed).first();
+}
+
 export async function deleteFacedRecord(id: number): Promise<void> {
   await db.faced_records.delete(id);
 }

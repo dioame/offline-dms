@@ -264,6 +264,18 @@ export const encodeDuplicateItem = "border-t border-dashed border-ph-yellow/35 p
 export const encodeDuplicateMore = cn(
   "border-t border-dashed border-ph-yellow/35 px-2.5 py-1.5 text-[0.6875rem] text-zinc-500",
 );
+export const duplicateMemberPreviewList = "grid gap-1.5";
+export const duplicateMemberPreviewItem = cn(
+  "min-w-0 rounded-md border border-faced-blue-border/70 bg-zinc-50/80 px-2 py-1.5 text-xs uppercase leading-snug",
+);
+export const duplicateMemberPreviewName = "block font-semibold uppercase text-ph-blue-dark";
+export const duplicateMemberPreviewMeta =
+  "mt-0.5 block text-[0.6875rem] uppercase leading-snug text-zinc-600";
+export const duplicateHeadDetailLabel =
+  "text-[0.625rem] font-bold uppercase tracking-wider text-zinc-500";
+export const duplicateHeadDetailValue =
+  "mt-0.5 text-xs font-semibold uppercase leading-snug text-zinc-800 sm:text-sm";
+export const duplicateConfirmUppercase = "uppercase";
 
 /* ── Modals ──────────────────────────────────────────────────── */
 
@@ -278,6 +290,10 @@ export const modal = cn(
   "shadow-[0_20px_40px_rgba(0,0,0,0.18)]",
 );
 export const modalLarge = "max-w-[min(72rem,96vw)]";
+export const modalWide = cn(
+  "w-full max-w-[min(90rem,96vw)] overflow-hidden rounded-xl border border-faced-blue-border bg-white",
+  "shadow-[0_20px_40px_rgba(0,0,0,0.18)]",
+);
 export const modalFullscreen = cn(
   "flex h-full max-h-[96vh] w-full max-w-[96vw] flex-col overflow-hidden rounded-xl",
   "border border-faced-blue-border bg-white shadow-[0_20px_40px_rgba(0,0,0,0.18)]",
