@@ -57,7 +57,7 @@ export async function startBatchPdfJob(input: StartBatchPdfInput, baseUrl: strin
     pdfFilename: filename,
   });
 
-  spawnBatchPdfWorker(job.id, baseUrl);
+  await spawnBatchPdfWorker(job.id, baseUrl);
 
   return {
     jobId: job.id,

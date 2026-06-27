@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const { ensureBatchPdfBundle, verifyBatchPdfBundle } = require("./batch-pdf-bundle");
 
 const root = path.join(__dirname, "..");
 const standalone = path.join(root, ".next", "standalone");
@@ -91,12 +92,16 @@ if (fs.existsSync(appConfig)) {
   console.log("Copied config.js -> standalone/config.js");
 }
 
+ensureBatchPdfBundle(root, standalone);
+verifyBatchPdfBundle(standalone);
+
 removeDir(electronStandalone);
 copyDir(standalone, electronStandalone);
 console.log("Copied standalone -> electron-standalone (for packaging)");
 
 ensureLibsqlNativeModule(standalone);
 ensureLibsqlNativeModule(electronStandalone);
+verifyBatchPdfBundle(electronStandalone);
 
 if (!fs.existsSync(path.join(electronStandalone, "node_modules", "next"))) {
   console.error("Missing electron-standalone/node_modules/next after copy.");

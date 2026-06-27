@@ -1,5 +1,10 @@
 const fs = require("fs");
 const path = require("path");
+const {
+  copyDir: copyBundleDir,
+  ensureBatchPdfBundle,
+  verifyBatchPdfBundle,
+} = require("./batch-pdf-bundle");
 
 function copyDir(src, dest) {
   fs.mkdirSync(dest, { recursive: true });
@@ -49,6 +54,19 @@ exports.default = async function afterPack(context) {
     }
     console.log(`[after-pack] Copying ${nativePackage} into app bundle...`);
     copyDir(srcNative, path.join(destModules, ...nativePackage.split("/")));
+  }
+
+  try {
+    verifyBatchPdfBundle(destRoot);
+  } catch {
+    console.log("[after-pack] Batch PDF bundle missing from packaged standalone; copying now…");
+    ensureBatchPdfBundle(projectDir, destRoot, { installBrowser: false });
+    const srcCache = path.join(srcRoot, ".puppeteer-cache");
+    const destCache = path.join(destRoot, ".puppeteer-cache");
+    if (fs.existsSync(srcCache) && !fs.existsSync(destCache)) {
+      copyBundleDir(srcCache, destCache);
+    }
+    verifyBatchPdfBundle(destRoot);
   }
 };
 
