@@ -155,11 +155,11 @@ export default function EnumeratorSummaryPanel() {
   const [exportingCode, setExportingCode] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [canExport, setCanExport] = useState(false);
 
-  const canExport = useMemo(() => {
-    if (typeof window === "undefined") return false;
-    return Boolean(sessionStorage.getItem(ADMIN_STORAGE_KEY));
-  }, [exportingCode, statsLoading, message]);
+  useEffect(() => {
+    setCanExport(Boolean(sessionStorage.getItem(ADMIN_STORAGE_KEY)));
+  }, []);
 
   const adminFetch = useCallback(async (path: string, init?: RequestInit) => {
     const password = sessionStorage.getItem(ADMIN_STORAGE_KEY) ?? "";

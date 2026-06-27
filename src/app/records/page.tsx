@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Copy,
   Download,
+  FileText,
   List,
   Loader2,
   Lock,
@@ -34,14 +35,17 @@ import TrashRowActions from "@/components/records/TrashRowActions";
 import RestoreConfirmDialog from "@/components/records/RestoreConfirmDialog";
 import VerifyNotDuplicateDialog from "@/components/records/VerifyNotDuplicateDialog";
 import VerifyNotDuplicateSuccessDialog from "@/components/records/VerifyNotDuplicateSuccessDialog";
+import { useBatchPdfJob } from "@/components/records/BatchPdfJobContext";
 import { formatDisplayBirthdate } from "@/lib/faced-types";
+import {
+  openFacedFormPrint,
+} from "@/lib/print/openFacedFormPrint";
+import { openFacedIdPrintForRecord } from "@/lib/print/openFacedIdPrint";
+import { exportFacedToExcel, exportRecordsJsonToFacedRecords, type ExportRecordJson } from "@/lib/export-excel";
 import {
   buildOfflineDmsPrintBundle,
   buildOfflineDmsPrintMap,
 } from "@/lib/print/offlineDmsFacedPrint";
-import { openFacedFormPrint } from "@/lib/print/openFacedFormPrint";
-import { openFacedIdPrintForRecord } from "@/lib/print/openFacedIdPrint";
-import { exportFacedToExcel, exportRecordsJsonToFacedRecords, type ExportRecordJson } from "@/lib/export-excel";
 import {
   SkeletonDuplicateList,
   SkeletonScreen,
@@ -179,6 +183,8 @@ export default function RecordsPage() {
     pairCount: number;
   } | null>(null);
   const [verifyingNotDuplicate, setVerifyingNotDuplicate] = useState(false);
+
+  const { openFilter: openBatchFilter, running: batchRunning } = useBatchPdfJob();
 
   useEffect(() => {
     const stored = sessionStorage.getItem(ADMIN_STORAGE_KEY);
@@ -676,6 +682,15 @@ export default function RecordsPage() {
           <div className={cn(ui.sectionHeader, "flex flex-wrap items-center justify-between gap-2")}>
               <span>Synced FACED records</span>
               <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => openBatchFilter()}
+                  disabled={batchRunning || loading}
+                  className={cn(ui.recordActionPrint, "normal-case tracking-normal", ui.withIcon)}
+                >
+                  <FileText className={ui.iconSm} aria-hidden />
+                  Generate FACED (batch)
+                </button>
                 <button
                   type="button"
                   onClick={() => void handleExportExcel()}

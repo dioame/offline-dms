@@ -1,0 +1,48 @@
+import { NextResponse } from "next/server";
+import { isTursoConfigured, verifyAdminPassword } from "@/lib/env";
+import { readBatchPdfJob } from "@/lib/batch-pdf/job-store";
+
+function unauthorized() {
+  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+}
+
+function getPassword(request: Request): string {
+  return request.headers.get("x-admin-password")?.trim() || "";
+}
+
+function checkAdmin(request: Request) {
+  if (!isTursoConfigured()) {
+    return NextResponse.json(
+      { error: "Turso is not configured. Set TURSO_DATABASE_URL and TURSO_AUTH_TOKEN." },
+      { status: 503 },
+    );
+  }
+  if (!verifyAdminPassword(getPassword(request))) {
+    return unauthorized();
+  }
+  return null;
+}
+
+type RouteContext = { params: Promise<{ jobId: string }> };
+
+export async function GET(request: Request, context: RouteContext) {
+  const denied = checkAdmin(request);
+  if (denied) return denied;
+
+  const { jobId } = await context.params;
+  const job = await readBatchPdfJob(jobId);
+  if (!job) {
+    return NextResponse.json({ error: "Batch PDF job not found." }, { status: 404 });
+  }
+
+  return NextResponse.json({
+    jobId: job.id,
+    status: job.status,
+    logs: job.logs,
+    filename: job.filename,
+    areaLabel: job.areaLabel,
+    recordCount: job.recordCount,
+    error: job.error ?? null,
+    updatedAt: job.updatedAt,
+  });
+}

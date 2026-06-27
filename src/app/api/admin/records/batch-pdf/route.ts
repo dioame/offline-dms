@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { listFacedRecordsForAdminExport } from "@/lib/admin-export";
 import { isTursoConfigured, verifyAdminPassword } from "@/lib/env";
+import { startBatchPdfJob } from "@/lib/batch-pdf/start-job";
 
 function unauthorized() {
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -13,7 +13,7 @@ function getPassword(request: Request): string {
 function checkAdmin(request: Request) {
   if (!isTursoConfigured()) {
     return NextResponse.json(
-      { error: "Database is not configured." },
+      { error: "Turso is not configured. Set TURSO_DATABASE_URL and TURSO_AUTH_TOKEN." },
       { status: 503 },
     );
   }
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
   const denied = checkAdmin(request);
   if (denied) return denied;
 
-  let body: { access_code?: string; city_municipality?: string; barangay?: string };
+  let body: { city_municipality?: string; barangay?: string };
   try {
     body = (await request.json()) as typeof body;
   } catch {
@@ -35,14 +35,18 @@ export async function POST(request: Request) {
   }
 
   try {
-    const records = await listFacedRecordsForAdminExport({
-      access_code: body.access_code,
-      city_municipality: body.city_municipality,
-      barangay: body.barangay,
-    });
-    return NextResponse.json({ count: records.length, records });
+    const baseUrl =
+      process.env.BATCH_PDF_BASE_URL?.trim() || new URL(request.url).origin;
+    const result = await startBatchPdfJob(
+      {
+        city_municipality: body.city_municipality ?? "",
+        barangay: body.barangay,
+      },
+      baseUrl,
+    );
+    return NextResponse.json(result);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Export failed.";
+    const message = err instanceof Error ? err.message : "Failed to start batch PDF job.";
     return NextResponse.json({ error: message }, { status: 400 });
   }
 }
