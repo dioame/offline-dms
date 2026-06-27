@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
+    "generate:migrations": "tsx scripts/generate-migrations-manifest.ts",
+    "prebuild": "npm run generate:migrations",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",

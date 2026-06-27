@@ -1,57 +1,20 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 import type { Client } from "@libsql/client";
+import { MIGRATIONS } from "./migrations-manifest";
 
-function parseSqlStatements(sql: string): string[] {
-  return sql
-    .split(";")
-    .map((part) =>
-      part
-        .split("\n")
-        .filter((line) => !line.trim().startsWith("--"))
-        .join("\n")
-        .trim(),
-    )
-    .filter(Boolean);
-}
-
-async function executeStatement(db: Client, statement: string): Promise<void> {
-  try {
-    await db.execute(statement);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message.toLowerCase().includes("duplicate column name")) {
-      return;
-    }
-    throw err;
-  }
-}
-
-export async function runMigrations(db: Client): Promise<{
-  applied: string[];
-  skipped: string[];
-}> {
-  const migrationsDir = join(process.cwd(), "migrations");
-
+export async function runMigrations(db: Client) {
   await db.execute(`
-    CREATE TABLE IF NOT EXISTS _migrations (
+    CREATE TABLE IF NOT EXISTS schema_migrations (
       id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      applied_at TEXT NOT NULL
+      applied_at TEXT NOT NULL DEFAULT (datetime('now'))
     )
   `);
-
-  const files = readdirSync(migrationsDir)
-    .filter((file) => file.endsWith(".sql"))
-    .sort();
 
   const applied: string[] = [];
   const skipped: string[] = [];
 
-  for (const file of files) {
-    const id = file.replace(/\.sql$/, "");
+  for (const { id, filename, sql } of MIGRATIONS) {
     const existing = await db.execute({
-      sql: "SELECT id FROM _migrations WHERE id = ?",
+      sql: "SELECT id FROM schema_migrations WHERE id = ?",
       args: [id],
     });
 
@@ -60,19 +23,22 @@ export async function runMigrations(db: Client): Promise<{
       continue;
     }
 
-    const sql = readFileSync(join(migrationsDir, file), "utf-8");
-    const statements = parseSqlStatements(sql);
+    const statements = sql
+      .split(";")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0 && !s.startsWith("--"));
 
     for (const statement of statements) {
-      await executeStatement(db, statement);
+      await db.execute(statement);
     }
 
     await db.execute({
-      sql: "INSERT INTO _migrations (id, name, applied_at) VALUES (?, ?, ?)",
-      args: [id, file, new Date().toISOString()],
+      sql: "INSERT INTO schema_migrations (id) VALUES (?)",
+      args: [id],
     });
 
     applied.push(id);
+    console.log(`  Applied: ${filename}`);
   }
 
   return { applied, skipped };
