@@ -16,8 +16,11 @@ import { cn } from "@/lib/cn";
 type FacedRecordViewModalProps = {
   record: FacedRecordAdminDetail | null;
   loading?: boolean;
+  error?: string | null;
+  showEdit?: boolean;
+  elevated?: boolean;
   onClose: () => void;
-  onEdit: () => void;
+  onEdit?: () => void;
 };
 
 const detailGrid =
@@ -79,6 +82,9 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 export default function FacedRecordViewModal({
   record,
   loading = false,
+  error = null,
+  showEdit = true,
+  elevated = false,
   onClose,
   onEdit,
 }: FacedRecordViewModalProps) {
@@ -93,7 +99,11 @@ export default function FacedRecordViewModal({
     ) ?? [];
 
   return (
-    <div className={ui.modalBackdropFullscreen} role="presentation" onClick={onClose}>
+    <div
+      className={cn(ui.modalBackdropFullscreen, elevated && "z-[60]")}
+      role="presentation"
+      onClick={onClose}
+    >
       <div
         className={ui.modalFullscreen}
         role="dialog"
@@ -125,10 +135,14 @@ export default function FacedRecordViewModal({
         </div>
 
         <div className={cn(ui.modalBody, "min-h-0 flex-1 overflow-y-auto px-5 py-5 text-sm")}>
-          {loading || !record || !head ? (
+          {loading ? (
             <SkeletonScreen label="Loading FACED record details">
               <SkeletonRecordView />
             </SkeletonScreen>
+          ) : error ? (
+            <div className={ui.alertError}>{error}</div>
+          ) : !record || !head ? (
+            <div className={ui.alertWarning}>Record details are not available.</div>
           ) : (
             <div className="space-y-6">
               <section className="space-y-3">
@@ -279,15 +293,21 @@ export default function FacedRecordViewModal({
             <X className={ui.iconSm} aria-hidden />
             Close
           </button>
-          <button
-            type="button"
-            onClick={onEdit}
-            disabled={loading || !record}
-            className={cn(ui.btnPrimary, ui.withIcon, "disabled:cursor-not-allowed disabled:opacity-50")}
-          >
-            <Pencil className={ui.iconSm} aria-hidden />
-            Edit record
-          </button>
+          {showEdit && onEdit ? (
+            <button
+              type="button"
+              onClick={onEdit}
+              disabled={loading || !record}
+              className={cn(
+                ui.btnPrimary,
+                ui.withIcon,
+                "disabled:cursor-not-allowed disabled:opacity-50",
+              )}
+            >
+              <Pencil className={ui.iconSm} aria-hidden />
+              Edit record
+            </button>
+          ) : null}
         </div>
       </div>
     </div>

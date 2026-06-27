@@ -82,6 +82,7 @@ type FacedFormProps = {
   onSyncedSave?: (data: FacedRecordData) => Promise<void>;
   onSaved: () => void;
   onCancelEdit?: () => void;
+  onEditExistingRecord?: (id: number) => void;
 };
 
 const CIVIL_STATUS = [
@@ -199,6 +200,7 @@ export default function FacedForm({
   onSyncedSave,
   onSaved,
   onCancelEdit,
+  onEditExistingRecord,
 }: FacedFormProps) {
   const isSyncedEdit = Boolean(syncedEditUuid && syncedInitialRecord && onSyncedSave);
   const [form, setForm] = useState<FacedRecordData>(createEmptyFacedRecord);
@@ -1329,6 +1331,7 @@ export default function FacedForm({
         onDismiss={handleDuplicateConfirmDismiss}
         onGoBack={handleDuplicateConfirmGoBack}
         onContinue={handleDuplicateConfirmContinue}
+        onEditLocalRecord={onEditExistingRecord}
       />
 
       <SavedSerialDialog
