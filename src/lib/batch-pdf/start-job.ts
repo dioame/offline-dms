@@ -6,7 +6,7 @@ import {
   createBatchPdfJob,
   writeBatchPdfPayload,
 } from "@/lib/batch-pdf/job-store";
-import { spawnBatchPdfWorker } from "@/lib/batch-pdf/spawn-worker";
+import { scheduleBatchPdfWorker } from "@/lib/batch-pdf/schedule-worker";
 
 export type StartBatchPdfInput = {
   city_municipality: string;
@@ -57,7 +57,11 @@ export async function startBatchPdfJob(input: StartBatchPdfInput, baseUrl: strin
     pdfFilename: filename,
   });
 
+<<<<<<< HEAD
   await spawnBatchPdfWorker(job.id, baseUrl);
+=======
+  scheduleBatchPdfWorker(job.id, baseUrl);
+>>>>>>> 549885591cfa12c8a00095c9f865d317ab690286
 
   return {
     jobId: job.id,

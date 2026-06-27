@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { isTursoConfigured, verifyAdminPassword } from "@/lib/env";
 import { startBatchPdfJob } from "@/lib/batch-pdf/start-job";
 
+export const maxDuration = 300;
+export const dynamic = "force-dynamic";
+
 function unauthorized() {
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }
