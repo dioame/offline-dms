@@ -2,7 +2,22 @@ import type { Client } from "@libsql/client";
 import { MIGRATIONS } from "./migrations-manifest";
 
 const ADD_COLUMN_PATTERN =
-  /ALTER\s+TABLE\s+(\w+)\s+ADD\s+COLUMN\s+(\w+)/is;
+  /ALTER\s+TABLE\s+(\w+)\s+ADD\s+COLUMN\s+(\w+)/i;
+
+function stripSqlComments(statement: string): string {
+  return statement
+    .split(/\r?\n/)
+    .filter((line) => !line.trim().startsWith("--"))
+    .join("\n")
+    .trim();
+}
+
+function splitMigrationStatements(sql: string): string[] {
+  return sql
+    .split(";")
+    .map((segment) => stripSqlComments(segment))
+    .filter((statement) => statement.length > 0);
+}
 
 function getErrorMessage(err: unknown): string {
   if (err instanceof Error) return err.message;
@@ -74,10 +89,7 @@ export async function runMigrations(db: Client) {
       continue;
     }
 
-    const statements = sql
-      .split(";")
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0 && !s.startsWith("--"));
+    const statements = splitMigrationStatements(sql);
 
     for (const statement of statements) {
       await executeMigrationStatement(db, statement);

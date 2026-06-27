@@ -5,15 +5,8 @@ let client: Client | null = null;
 
 export function getTursoClient(): Client {
   if (!client) {
-<<<<<<< HEAD
-    const { url, authToken } = getTursoEnv();
-    client = authToken
-      ? createClient({ url, authToken })
-      : createClient({ url });
-=======
     const { url, authToken } = getDatabaseClientConfig();
     client = authToken ? createClient({ url, authToken }) : createClient({ url });
->>>>>>> dadc66ef36a982c53e4d97b232e6c9dd731c6063
   }
   return client;
 }

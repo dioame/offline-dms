@@ -69,11 +69,7 @@ export async function startBatchPdfJob(input: StartBatchPdfInput, baseUrl: strin
     pdfFilename: filename,
   });
 
-<<<<<<< HEAD
-  await spawnBatchPdfWorker(job.id, baseUrl);
-=======
   scheduleBatchPdfWorker(job.id, baseUrl);
->>>>>>> 549885591cfa12c8a00095c9f865d317ab690286
 
   return {
     jobId: job.id,

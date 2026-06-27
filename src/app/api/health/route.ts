@@ -9,14 +9,8 @@ import { ensureTursoSchema, getTursoClient } from "@/lib/turso";
 export async function GET() {
   if (!isTursoConfigured()) {
     return NextResponse.json({
-      ok: false,
-<<<<<<< HEAD
-      turso: "not_configured",
-      message: "Database is not configured",
-=======
       database: "not_configured",
-      message: "Set TURSO_DATABASE_URL and TURSO_AUTH_TOKEN, or use local SQLite.",
->>>>>>> dadc66ef36a982c53e4d97b232e6c9dd731c6063
+      message: "Database is not configured in config.js",
     });
   }
 
