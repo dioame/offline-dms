@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import {
   batchPdfChunkCount,
   readBatchPdfJob,
-  readBatchPdfPayload,
   sliceBatchPdfPayload,
 } from "@/lib/batch-pdf/job-store";
 
@@ -20,7 +19,7 @@ export async function GET(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const payload = await readBatchPdfPayload(jobId);
+  const payload = job.payload;
   if (!payload?.heads?.length) {
     return NextResponse.json({ error: "Print payload not found." }, { status: 404 });
   }

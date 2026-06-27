@@ -1,7 +1,9 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { randomUUID } from "node:crypto";
+import { PDFDocument } from "pdf-lib";
+import { ensureTursoSchema, getTursoClient } from "@/lib/turso";
 import type { FacedAnnexPrintPayload } from "@/lib/print/facedAnnexPrintWindow";
+import { batchPdfJobTempDir } from "@/lib/batch-pdf/temp-dir";
 
 export const BATCH_PDF_CHUNK_SIZE = 40;
 
@@ -15,116 +17,62 @@ export type BatchPdfJob = {
   areaLabel: string;
   recordCount: number;
   token: string;
+  payload: FacedAnnexPrintPayload | null;
+  pdfData: Uint8Array | null;
+  chunkIndex: number;
   error?: string;
   createdAt: string;
   updatedAt: string;
 };
 
-const ROOT = path.join(process.cwd(), ".tmp", "batch-pdf");
+type BatchPdfJobRow = Record<string, unknown>;
 
-export function batchPdfJobDir(jobId: string): string {
-  return path.join(ROOT, jobId);
-}
+function rowToJob(row: BatchPdfJobRow): BatchPdfJob {
+  let logs: string[] = [];
+  try {
+    logs = JSON.parse(String(row.logs ?? "[]")) as string[];
+  } catch {
+    logs = [];
+  }
 
-function jobMetaPath(jobId: string): string {
-  return path.join(batchPdfJobDir(jobId), "job.json");
-}
+  let payload: FacedAnnexPrintPayload | null = null;
+  if (row.payload) {
+    try {
+      payload = JSON.parse(String(row.payload)) as FacedAnnexPrintPayload;
+    } catch {
+      payload = null;
+    }
+  }
 
-export function batchPdfOutputPath(jobId: string): string {
-  return path.join(batchPdfJobDir(jobId), "output.pdf");
-}
+  const pdfRaw = row.pdf_data;
+  let pdfData: Uint8Array | null = null;
+  if (pdfRaw instanceof Uint8Array) {
+    pdfData = pdfRaw;
+  } else if (pdfRaw instanceof ArrayBuffer) {
+    pdfData = new Uint8Array(pdfRaw);
+  } else if (Buffer.isBuffer(pdfRaw)) {
+    pdfData = new Uint8Array(pdfRaw);
+  }
 
-function payloadPath(jobId: string): string {
-  return path.join(batchPdfJobDir(jobId), "payload.json");
-}
-
-export async function ensureJobDir(jobId: string): Promise<string> {
-  const dir = batchPdfJobDir(jobId);
-  await mkdir(dir, { recursive: true });
-  return dir;
-}
-
-export async function createBatchPdfJob(input: {
-  filename: string;
-  areaLabel: string;
-  recordCount: number;
-}): Promise<BatchPdfJob> {
-  const id = randomUUID();
-  const token = randomUUID();
-  const now = new Date().toISOString();
-  const job: BatchPdfJob = {
-    id,
-    status: "queued",
-    logs: [
-      "> Background PDF worker queued.",
-      `> Area: ${input.areaLabel}`,
-      `> Records: ${input.recordCount}`,
-    ],
-    filename: input.filename,
-    areaLabel: input.areaLabel,
-    recordCount: input.recordCount,
-    token,
-    createdAt: now,
-    updatedAt: now,
+  return {
+    id: String(row.id),
+    status: String(row.status) as BatchPdfJobStatus,
+    logs,
+    filename: String(row.filename),
+    areaLabel: String(row.area_label),
+    recordCount: Number(row.record_count ?? 0),
+    token: String(row.token),
+    payload,
+    pdfData,
+    chunkIndex: Number(row.chunk_index ?? 0),
+    error: row.error ? String(row.error) : undefined,
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
   };
-
-  await ensureJobDir(id);
-  await writeFile(jobMetaPath(id), JSON.stringify(job, null, 2), "utf8");
-  return job;
 }
 
-export async function readBatchPdfJob(jobId: string): Promise<BatchPdfJob | null> {
-  try {
-    const raw = await readFile(jobMetaPath(jobId), "utf8");
-    return JSON.parse(raw) as BatchPdfJob;
-  } catch {
-    return null;
-  }
-}
-
-export async function writeBatchPdfJob(job: BatchPdfJob): Promise<void> {
-  job.updatedAt = new Date().toISOString();
-  await writeFile(jobMetaPath(job.id), JSON.stringify(job, null, 2), "utf8");
-}
-
-export async function appendBatchPdfJobLog(jobId: string, line: string): Promise<BatchPdfJob> {
-  const job = await readBatchPdfJob(jobId);
-  if (!job) {
-    throw new Error("Batch PDF job not found.");
-  }
-  job.logs = [...job.logs, line];
-  await writeBatchPdfJob(job);
-  return job;
-}
-
-export async function patchBatchPdfJob(
-  jobId: string,
-  patch: Partial<Pick<BatchPdfJob, "status" | "error" | "logs">>,
-): Promise<BatchPdfJob> {
-  const job = await readBatchPdfJob(jobId);
-  if (!job) {
-    throw new Error("Batch PDF job not found.");
-  }
-  Object.assign(job, patch);
-  await writeBatchPdfJob(job);
-  return job;
-}
-
-export async function writeBatchPdfPayload(
-  jobId: string,
-  payload: FacedAnnexPrintPayload,
-): Promise<void> {
-  await ensureJobDir(jobId);
-  await writeFile(payloadPath(jobId), JSON.stringify(payload), "utf8");
-}
-
-export async function readBatchPdfPayload(jobId: string): Promise<FacedAnnexPrintPayload | null> {
-  try {
-    const raw = await readFile(payloadPath(jobId), "utf8");
-    return JSON.parse(raw) as FacedAnnexPrintPayload;
-  } catch {
-    return null;
-  }
+export function batchPdfChunkCount(headCount: number, chunkSize = BATCH_PDF_CHUNK_SIZE): number {
+  return Math.max(1, Math.ceil(headCount / chunkSize));
 }
 
 export function sliceBatchPdfPayload(
@@ -144,13 +92,163 @@ export function sliceBatchPdfPayload(
     }
   }
 
+  return { ...payload, heads, membersByHead };
+}
+
+export async function createBatchPdfJob(input: {
+  filename: string;
+  areaLabel: string;
+  recordCount: number;
+}): Promise<BatchPdfJob> {
+  await ensureTursoSchema();
+  const db = getTursoClient();
+  const id = crypto.randomUUID();
+  const token = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const logs = [
+    "> Background PDF worker queued.",
+    `> Area: ${input.areaLabel}`,
+    `> Records: ${input.recordCount}`,
+  ];
+
+  await db.execute({
+    sql: `
+      INSERT INTO batch_pdf_jobs (
+        id, status, logs, filename, area_label, record_count, token,
+        payload, pdf_data, chunk_index, error, created_at, updated_at
+      ) VALUES (?, 'queued', ?, ?, ?, ?, ?, NULL, NULL, 0, NULL, ?, ?)
+    `,
+    args: [
+      id,
+      JSON.stringify(logs),
+      input.filename,
+      input.areaLabel,
+      input.recordCount,
+      token,
+      now,
+      now,
+    ],
+  });
+
   return {
-    ...payload,
-    heads,
-    membersByHead,
+    id,
+    status: "queued",
+    logs,
+    filename: input.filename,
+    areaLabel: input.areaLabel,
+    recordCount: input.recordCount,
+    token,
+    payload: null,
+    pdfData: null,
+    chunkIndex: 0,
+    createdAt: now,
+    updatedAt: now,
   };
 }
 
-export function batchPdfChunkCount(headCount: number, chunkSize = BATCH_PDF_CHUNK_SIZE): number {
-  return Math.max(1, Math.ceil(headCount / chunkSize));
+export async function readBatchPdfJob(jobId: string): Promise<BatchPdfJob | null> {
+  await ensureTursoSchema();
+  const db = getTursoClient();
+  const result = await db.execute({
+    sql: "SELECT * FROM batch_pdf_jobs WHERE id = ?",
+    args: [jobId],
+  });
+  if (!result.rows.length) return null;
+  return rowToJob(result.rows[0] as BatchPdfJobRow);
+}
+
+async function persistJob(job: BatchPdfJob): Promise<void> {
+  await ensureTursoSchema();
+  const db = getTursoClient();
+  job.updatedAt = new Date().toISOString();
+
+  await db.execute({
+    sql: `
+      UPDATE batch_pdf_jobs SET
+        status = ?,
+        logs = ?,
+        payload = ?,
+        pdf_data = ?,
+        chunk_index = ?,
+        error = ?,
+        updated_at = ?
+      WHERE id = ?
+    `,
+    args: [
+      job.status,
+      JSON.stringify(job.logs),
+      job.payload ? JSON.stringify(job.payload) : null,
+      job.pdfData ?? null,
+      job.chunkIndex,
+      job.error ?? null,
+      job.updatedAt,
+      job.id,
+    ],
+  });
+}
+
+export async function writeBatchPdfPayload(
+  jobId: string,
+  payload: FacedAnnexPrintPayload,
+): Promise<void> {
+  const job = await readBatchPdfJob(jobId);
+  if (!job) throw new Error("Batch PDF job not found.");
+  job.payload = payload;
+  await persistJob(job);
+}
+
+export async function appendBatchPdfJobLog(jobId: string, line: string): Promise<BatchPdfJob> {
+  const job = await readBatchPdfJob(jobId);
+  if (!job) throw new Error("Batch PDF job not found.");
+  job.logs = [...job.logs, line];
+  await persistJob(job);
+  return job;
+}
+
+export async function saveBatchPdfJob(job: BatchPdfJob): Promise<void> {
+  await persistJob(job);
+}
+
+export function batchPdfOutputPath(jobId: string): string {
+  return path.join(batchPdfJobTempDir(jobId), "output.pdf");
+}
+
+export async function ensureBatchPdfTempDir(jobId: string): Promise<string> {
+  const dir = batchPdfJobTempDir(jobId);
+  await mkdir(dir, { recursive: true });
+  return dir;
+}
+
+export async function mergePdfBytes(
+  existing: Uint8Array | null,
+  chunkBytes: Uint8Array,
+): Promise<Uint8Array> {
+  if (!existing?.length) return chunkBytes;
+
+  const merged = await PDFDocument.create();
+  for (const bytes of [existing, chunkBytes]) {
+    const doc = await PDFDocument.load(bytes);
+    const pages = await merged.copyPages(doc, doc.getPageIndices());
+    for (const page of pages) {
+      merged.addPage(page);
+    }
+  }
+  return merged.save();
+}
+
+export async function writeTempFile(jobId: string, name: string, bytes: Uint8Array): Promise<string> {
+  const dir = await ensureBatchPdfTempDir(jobId);
+  const filePath = path.join(dir, name);
+  await writeFile(filePath, bytes);
+  return filePath;
+}
+
+export async function readTempFile(jobId: string, name: string): Promise<Uint8Array | null> {
+  try {
+    const filePath = path.join(batchPdfJobTempDir(jobId), name);
+    const bytes = await readFile(filePath);
+    return new Uint8Array(bytes);
+  } catch {
+    return null;
+  }
 }
