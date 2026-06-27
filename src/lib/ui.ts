@@ -190,11 +190,14 @@ export const adminCodeCardHeader = cn(
 /* ── Verify / encode duplicate ───────────────────────────────── */
 
 export const verifyTabs = cn(
-  "flex gap-2 border-b-2 border-faced-blue-border",
+  "-mx-4 flex flex-nowrap gap-1 overflow-x-auto scroll-smooth border-b-2 border-faced-blue-border px-4",
+  "[scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
+  "sm:mx-0 sm:gap-2 sm:px-0",
 );
 export const verifyTab = cn(
-  "-mb-0.5 cursor-pointer border-b-[3px] border-transparent bg-transparent px-4 py-3",
-  "text-sm font-bold text-zinc-500 transition hover:text-ph-blue-dark",
+  "shrink-0 cursor-pointer whitespace-nowrap border-b-[3px] border-transparent bg-transparent",
+  "-mb-0.5 px-3 py-2.5 text-xs font-bold text-zinc-500 transition hover:text-ph-blue-dark",
+  "sm:px-4 sm:py-3 sm:text-sm",
 );
 export const verifyTabActive = "border-b-ph-blue text-ph-blue-dark";
 
