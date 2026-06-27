@@ -19,7 +19,7 @@ export default function DashboardPage() {
               <p className={cn(ui.kicker, "text-xs font-bold uppercase")}>DSWD · Offline DMS</p>
               <h1 className="text-xl font-bold text-white">Dashboard &amp; Reports</h1>
               <p className={cn(ui.subtitle, "text-sm")}>
-                Evacuation center info board, inside/outside EC data, sex/age/sectoral, and shelter reports.
+                Encoding summary, evacuation center info board, inside/outside EC data, and shelter reports.
               </p>
             </div>
           </div>

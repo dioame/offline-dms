@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  BarChart3,
   ChevronDown,
   ChevronUp,
   ClipboardList,
@@ -18,15 +19,23 @@ import type { InsideEcGroup, ReportsBundle } from "@/lib/dashboard-types";
 import { formatDisplayBarangay } from "@/lib/sarangani-locations";
 import { loadCityMunFilter, saveCityMunFilter } from "@/lib/dashboard-city-filter";
 import EcInfoBoardReport, { EcInfoBoardGroups } from "@/components/dashboard/EcInfoBoardReport";
+import EnumeratorSummaryPanel from "@/components/dashboard/EnumeratorSummaryPanel";
 import DashboardReportNavigator from "@/components/dashboard/DashboardReportNavigator";
 import type { ReportNavItem } from "@/components/dashboard/DashboardReportNavigator";
 import { SkeletonDashboard, SkeletonScreen } from "@/components/ui/Skeleton";
 import * as ui from "@/lib/ui";
 import { cn } from "@/lib/cn";
 
-type DashboardTab = "info-board" | "inside-ec" | "outside-ec" | "sex-age" | "shelter";
+type DashboardTab =
+  | "encoding-summary"
+  | "info-board"
+  | "inside-ec"
+  | "outside-ec"
+  | "sex-age"
+  | "shelter";
 
 const TABS: { id: DashboardTab; label: string; icon: LucideIcon }[] = [
+  { id: "encoding-summary", label: "Encoding Summary", icon: BarChart3 },
   { id: "info-board", label: "Evacuation Center Info Board", icon: ClipboardList },
   { id: "inside-ec", label: "Inside Evacuation Centers", icon: Home },
   { id: "outside-ec", label: "Outside Evacuation Centers", icon: MapPinOff },
@@ -67,7 +76,7 @@ export default function DashboardReports() {
   const [bundle, setBundle] = useState<ReportsBundle | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [activeTab, setActiveTab] = useState<DashboardTab>("info-board");
+  const [activeTab, setActiveTab] = useState<DashboardTab>("encoding-summary");
   const [nowOnly, setNowOnly] = useState(false);
   const [controlsOpen, setControlsOpen] = useState(false);
   const [infoBoardIndex, setInfoBoardIndex] = useState(0);
@@ -265,15 +274,19 @@ export default function DashboardReports() {
               </button>
             ))}
           </div>
+          {activeTab !== "encoding-summary" ? (
           <label className={ui.dashboardNowToggle}>
             <input type="checkbox" checked={nowOnly} onChange={(e) => setNowOnly(e.target.checked)} />
             NOW only (hide CUM columns)
           </label>
+          ) : null}
         </div>
       </div>
 
       <div ref={reportPaneRef}>
-      {loading && !bundle && (
+      {activeTab === "encoding-summary" ? <EnumeratorSummaryPanel /> : null}
+
+      {loading && !bundle && activeTab !== "encoding-summary" && (
         <SkeletonScreen label="Loading dashboard reports">
           <SkeletonDashboard />
         </SkeletonScreen>

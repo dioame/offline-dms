@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Online/Offline Faced Application — User Manual</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 18mm 16mm 20mm 16mm;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.55;
+      color: #1a1a2e;
+      max-width: 210mm;
+      margin: 0 auto;
+      padding: 0;
+    }
+
+    .cover {
+      page-break-after: always;
+      min-height: 260mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 40mm 20mm;
+      border: 3px solid #0038a8;
+    }
+
+    .cover .org { font-size: 11pt; color: #555; letter-spacing: 0.05em; text-transform: uppercase; }
+    .cover h1 { font-size: 26pt; color: #0038a8; margin: 12mm 0 6mm; line-height: 1.2; }
+    .cover .subtitle { font-size: 13pt; color: #333; max-width: 140mm; }
+    .cover .program { font-size: 11pt; margin-top: 8mm; color: #666; }
+    .cover .credit { margin-top: 10mm; font-size: 11pt; font-weight: 600; color: #0038a8; }
+    .cover .version { margin-top: 8mm; font-size: 9pt; color: #888; }
+    .tricolor { width: 80mm; height: 4px; margin: 10mm auto 0; background: linear-gradient(to right, #0038a8 33%, #ce1126 33% 66%, #fcd116 66%); }
+
+    h2 {
+      font-size: 14pt;
+      color: #0038a8;
+      border-bottom: 2px solid #0038a8;
+      padding-bottom: 3mm;
+      margin-top: 10mm;
+      page-break-after: avoid;
+    }
+
+    h3 {
+      font-size: 11pt;
+      color: #1a1a2e;
+      margin-top: 6mm;
+      page-break-after: avoid;
+    }
+
+    h4 { font-size: 10pt; margin-top: 4mm; page-break-after: avoid; }
+
+    p { margin: 2mm 0; }
+
+    ul, ol { margin: 2mm 0 4mm 5mm; padding-left: 5mm; }
+    li { margin-bottom: 1.5mm; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 4mm 0 6mm;
+      font-size: 9.5pt;
+      page-break-inside: avoid;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 2.5mm 3mm;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th { background: #e8eef8; color: #0038a8; font-weight: 600; }
+
+    .note {
+      background: #f0f4ff;
+      border-left: 4px solid #0038a8;
+      padding: 3mm 4mm;
+      margin: 4mm 0;
+      font-size: 9.5pt;
+    }
+
+    .warning {
+      background: #fff8e6;
+      border-left: 4px solid #fcd116;
+      padding: 3mm 4mm;
+      margin: 4mm 0;
+      font-size: 9.5pt;
+    }
+
+    .tip {
+      background: #eefaf0;
+      border-left: 4px solid #2d8a4e;
+      padding: 3mm 4mm;
+      margin: 4mm 0;
+      font-size: 9.5pt;
+    }
+
+    .toc { page-break-after: always; }
+    .toc ol { list-style: decimal; }
+    .toc li { margin-bottom: 2mm; }
+    .toc a { color: #0038a8; text-decoration: none; }
+
+    .page-break { page-break-before: always; }
+
+    .module-badge {
+      display: inline-block;
+      background: #0038a8;
+      color: white;
+      font-size: 8pt;
+      padding: 1mm 3mm;
+      border-radius: 2px;
+      margin-bottom: 2mm;
+    }
+
+    .step-num {
+      display: inline-block;
+      background: #0038a8;
+      color: white;
+      width: 6mm;
+      height: 6mm;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 6mm;
+      font-size: 8pt;
+      font-weight: bold;
+      margin-right: 2mm;
+    }
+
+    footer.doc-footer {
+      margin-top: 10mm;
+      padding-top: 4mm;
+      border-top: 1px solid #ccc;
+      font-size: 8pt;
+      color: #666;
+      text-align: center;
+    }
+
+    code {
+      background: #f4f4f4;
+      padding: 0.5mm 1.5mm;
+      border-radius: 2px;
+      font-size: 9pt;
+    }
+  </style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="cover">
+  <p class="org">Department of Social Welfare and Development</p>
+  <h1>Online/Offline Faced Application</h1>
+  <p class="subtitle">User Manual<br/>Family Assistance Card in Emergencies and Disasters (FACED)</p>
+  <p class="program">Sarangani Province · Region XII</p>
+  <div class="tricolor"></div>
+  <p class="credit">Made by DSWD Caraga</p>
+  <p class="version">Version 1.0 · June 2026</p>
+</div>
+
+<!-- TABLE OF CONTENTS -->
+<div class="toc">
+  <h2>Table of Contents</h2>
+  <ol>
+    <li><a href="#intro">Introduction</a></li>
+    <li><a href="#getting-started">Getting Started</a></li>
+    <li><a href="#navigation">Application Modules &amp; Navigation</a></li>
+    <li><a href="#encoding">Encoding Module — Data Entry Guide</a></li>
+    <li><a href="#verify">Verifying Module</a></li>
+    <li><a href="#dashboard">Dashboard &amp; Reports</a></li>
+    <li><a href="#admin">Admin Module</a></li>
+    <li><a href="#records">Records Module</a></li>
+    <li><a href="#print">Printing FACED Forms &amp; ID Cards</a></li>
+    <li><a href="#offline-sync">Offline Use &amp; Syncing</a></li>
+    <li><a href="#troubleshooting">Troubleshooting</a></li>
+    <li><a href="#glossary">Glossary</a></li>
+  </ol>
+</div>
+
+<!-- 1. INTRODUCTION -->
+<h2 id="intro">1. Introduction</h2>
+
+<p>The <strong>Online/Offline Faced Application</strong> is a Progressive Web App (PWA) developed for the DSWD <strong>Family Assistance Card in Emergencies and Disasters (FACED)</strong> program. It allows field enumerators to collect household data on a mobile device or laptop — online or offline — and sync records to the central database when connectivity is restored.</p>
+
+<p>This manual covers all application modules and provides step-by-step instructions for <strong>encoding</strong> (data entry), verifying beneficiaries, generating reports, and administering the system.</p>
+
+<h3>1.1 Who Uses This App?</h3>
+<table>
+  <tr><th>Role</th><th>Primary Module</th><th>Description</th></tr>
+  <tr><td><strong>Enumerator</strong></td><td>Encoding</td><td>Registers affected families using the FACED form on a device in the field.</td></tr>
+  <tr><td><strong>Verifier</strong></td><td>Verifying</td><td>Checks for duplicate registrations before or during encoding.</td></tr>
+  <tr><td><strong>Administrator</strong></td><td>Admin, Records</td><td>Manages access codes, evacuation centers, synced records, and printing.</td></tr>
+  <tr><td><strong>Coordinator / DSWD Staff</strong></td><td>Dashboard</td><td>Views aggregated reports on evacuation centers, demographics, and shelter damage.</td></tr>
+</table>
+
+<h3>1.2 Geographic Scope</h3>
+<p>The app is configured for <strong>Sarangani Province, Region XII</strong>. Municipality and barangay dropdowns are pre-populated with Sarangani locations.</p>
+
+<!-- 2. GETTING STARTED -->
+<h2 id="getting-started" class="page-break">2. Getting Started</h2>
+
+<h3>2.1 Opening the App</h3>
+<ol>
+  <li>Open the app URL in a modern web browser (Chrome, Edge, or Firefox recommended).</li>
+  <li>For best offline experience, <strong>install the PWA</strong>: use your browser's "Install app" or "Add to Home Screen" option.</li>
+  <li>The app works on phones, tablets, and desktop computers.</li>
+</ol>
+
+<h3>2.2 Internet Requirements</h3>
+<table>
+  <tr><th>Action</th><th>Internet Required?</th></tr>
+  <tr><td>First-time encoder login</td><td><strong>Yes</strong></td></tr>
+  <tr><td>Downloading offline data bundle</td><td><strong>Yes</strong></td></tr>
+  <tr><td>Encoding / saving records locally</td><td>No</td></tr>
+  <tr><td>Syncing records to server</td><td><strong>Yes</strong></td></tr>
+  <tr><td>Admin / Records / Verify login</td><td><strong>Yes</strong> (first login)</td></tr>
+  <tr><td>Viewing Dashboard reports</td><td><strong>Yes</strong></td></tr>
+</table>
+
+<div class="note">
+  <strong>Note:</strong> After your first login and offline bundle download, you can encode records entirely offline. Sync when you return to an area with internet.
+</div>
+
+<h3>2.3 Access Credentials</h3>
+<table>
+  <tr><th>Module</th><th>Credential</th><th>Format / Source</th></tr>
+  <tr><td>Encoding</td><td>Access code</td><td><code>FACED-XXXX-XXXX</code> — issued by administrator</td></tr>
+  <tr><td>Verifying</td><td>Verify password</td><td>Set by system administrator</td></tr>
+  <tr><td>Admin &amp; Records</td><td>Admin password</td><td>Set by system administrator</td></tr>
+  <tr><td>Dashboard</td><td>None</td><td>Open access (no password)</td></tr>
+</table>
+
+<!-- 3. NAVIGATION -->
+<h2 id="navigation" class="page-break">3. Application Modules &amp; Navigation</h2>
+
+<p>The top navigation bar shows all modules. On mobile, tap the menu icon (☰) to open the module list.</p>
+
+<table>
+  <tr><th>Module</th><th>Route</th><th>Purpose</th></tr>
+  <tr><td><strong>Dashboard</strong></td><td>/dashboard</td><td>Aggregated reports: EC info boards, inside/outside EC data, demographics, shelter damage.</td></tr>
+  <tr><td><strong>Encoding</strong></td><td>/ (home)</td><td>Main data entry — fill and save FACED household records.</td></tr>
+  <tr><td><strong>Verifying</strong></td><td>/verify</td><td>Duplicate check and Excel export by area.</td></tr>
+  <tr><td><strong>Admin</strong></td><td>/admin</td><td>Access code management, enumerator stats, evacuation center library.</td></tr>
+  <tr><td><strong>Records</strong></td><td>/records</td><td>View, edit, delete, print, and manage synced server records.</td></tr>
+  <tr><td><strong>Logout</strong></td><td>—</td><td>Clears your encoder, admin, and verify sessions.</td></tr>
+</table>
+
+<div class="tip">
+  <strong>Tip:</strong> The Encoding page shows an <strong>Online / Offline</strong> badge in the header so you always know your connectivity status.
+</div>
+
+<!-- 4. ENCODING -->
+<h2 id="encoding" class="page-break">4. Encoding Module — Data Entry Guide</h2>
+
+<p><span class="module-badge">ENCODING</span></p>
+<p>In this app, <strong>"encoding"</strong> means entering or registering a FACED household record — not text/character encoding. This is the primary task for field enumerators.</p>
+
+<h3>4.1 Logging In as an Enumerator</h3>
+<ol>
+  <li>Go to the <strong>Encoding</strong> module (home page).</li>
+  <li>Enter your access code in the format <code>FACED-XXXX-XXXX</code>.</li>
+  <li>You must be <strong>online</strong> for first-time login.</li>
+  <li>Each access code works on <strong>one device only</strong>. Do not share your code with another enumerator on a different device.</li>
+  <li>Tap <strong>Continue to FACED form</strong>.</li>
+</ol>
+
+<div class="warning">
+  <strong>Important:</strong> If you are offline and have never logged in on this device, login will not work. Connect to the internet first.
+</div>
+
+<h3>4.2 Downloading the Offline Data Bundle</h3>
+<p>On first login (while online), the app automatically downloads:</p>
+<ul>
+  <li>Previously synced family records — for offline duplicate checking</li>
+  <li>Evacuation center library — for EC site suggestions in the form</li>
+</ul>
+<p>Wait for the download to complete before starting encoding. A progress modal will appear. Once finished, you can encode offline.</p>
+
+<h3>4.3 Filling Out the FACED Form</h3>
+<p>The form is organized into sections. Required fields must be completed before saving.</p>
+
+<h4>Section A — Enumerator</h4>
+<ul><li><strong>Enumerator name</strong> — pre-filled from your access code assignment if the administrator assigned your name.</li></ul>
+
+<h4>Section B — Location of the Affected Family (Items 1–6)</h4>
+<table>
+  <tr><th>Field</th><th>Notes</th></tr>
+  <tr><td>Region</td><td>Pre-filled: Region XII (read-only)</td></tr>
+  <tr><td>Province</td><td>Pre-filled: Sarangani</td></tr>
+  <tr><td>City / Municipality</td><td>Select from dropdown</td></tr>
+  <tr><td>District</td><td>Auto-filled based on municipality</td></tr>
+  <tr><td>Barangay</td><td>Select from dropdown (filtered by municipality)</td></tr>
+  <tr><td>In Evacuation Center?</td><td>Yes or No — required</td></tr>
+  <tr><td>Evacuation Center / Site</td><td>Required if "Yes". Suggestions appear from EC library or offline cache.</td></tr>
+</table>
+<p>If the family is <strong>not</strong> in an evacuation center, the site field is auto-filled with an outside-EC label based on the barangay.</p>
+
+<h4>Section C — Head of the Family (Items 7–21)</h4>
+<table>
+  <tr><th>Field</th><th>Required</th></tr>
+  <tr><td>First name, last name</td><td>Yes</td></tr>
+  <tr><td>Name extension (Jr., Sr., etc.)</td><td>No</td></tr>
+  <tr><td>Birthdate</td><td>No (age auto-calculated)</td></tr>
+  <tr><td>Birthplace, sex, civil status</td><td>Sex &amp; civil status required</td></tr>
+  <tr><td>Mother's maiden name</td><td>No</td></tr>
+  <tr><td>Occupation</td><td>Yes</td></tr>
+  <tr><td>Monthly family net income</td><td>No (suggestions provided)</td></tr>
+  <tr><td>ID card presented &amp; number</td><td>No</td></tr>
+  <tr><td>Primary &amp; alternate contact numbers</td><td>No</td></tr>
+</table>
+
+<h4>Section D — Permanent Address (Item 22)</h4>
+<p>Address line, city/municipality, barangay, province, and zip code.</p>
+
+<h4>Section E — Other Information</h4>
+<ul>
+  <li>4Ps beneficiary (checkbox)</li>
+  <li>Indigenous Peoples (IP) ethnicity</li>
+  <li>Religion</li>
+</ul>
+
+<h4>Section F — Family Information (Item 25) — Required</h4>
+<p>Add at least <strong>one household member</strong> with name and relationship. For each member, enter:</p>
+<ul>
+  <li>Name, relationship to head, birthdate, age, sex</li>
+  <li>Education, occupation</li>
+  <li>Vulnerability flags: Pregnant, Lactating, Elderly, PWD, Infant (Elderly/Infant auto-set from age)</li>
+</ul>
+<p>Tap <strong>Add member</strong> to add more household members.</p>
+
+<h4>Section G — Account Information (Items 26–29)</h4>
+<p>Bank or e-wallet details: account type, account name, account number.</p>
+
+<h4>Section H — House Ownership (Item 30) — Required</h4>
+<p>Select one: <strong>Owner</strong>, <strong>Renter</strong>, <strong>Sharer</strong>, or <strong>Not Identified</strong>.</p>
+
+<h4>Section I — Shelter Damage Classification (Item 31) — Required</h4>
+<p>Select one: <strong>Partially Damaged</strong>, <strong>Totally Damaged</strong>, or <strong>Not Identified</strong>.</p>
+
+<h4>Section J — Date Registered &amp; Data Privacy</h4>
+<ul>
+  <li>Date registered — defaults to today</li>
+  <li><strong>Data Privacy Declaration</strong> — you must check the consent box (RA 10173) before saving</li>
+</ul>
+
+<h3>4.4 Duplicate Checking During Encoding</h3>
+<p>When you enter the head of family's first and last name, the app automatically checks for possible duplicates in three sources:</p>
+<ol>
+  <li><strong>Online database</strong> — if connected to the internet</li>
+  <li><strong>Offline cache</strong> — previously downloaded synced records</li>
+  <li><strong>This device</strong> — records saved locally on your device</li>
+</ol>
+
+<p>If a possible duplicate is found:</p>
+<ul>
+  <li>An alert appears showing where the match was found</li>
+  <li>A dialog offers: <strong>Go back</strong>, <strong>Continue encoding</strong>, or <strong>Save anyway</strong></li>
+  <li>You must acknowledge the duplicate before saving</li>
+</ul>
+
+<div class="tip">
+  <strong>Tip:</strong> Always verify details with the household even when no duplicate is found.
+</div>
+
+<h3>4.5 Saving a Record</h3>
+<ol>
+  <li>Complete all required fields and acknowledge the privacy declaration.</li>
+  <li>Tap <strong>Save FACED record</strong>.</li>
+  <li>A dialog shows the <strong>Family Serial Number</strong> assigned to the record.</li>
+  <li>Tap <strong>Copy serial</strong> to copy the number for printing or verification.</li>
+  <li>The record is saved locally on your device with status <strong>Pending</strong> (unsynced).</li>
+</ol>
+
+<h3>4.6 Managing Saved Records</h3>
+<p>Below the form, the <strong>Saved records</strong> section lists all records on your device.</p>
+
+<table>
+  <tr><th>Action</th><th>Description</th></tr>
+  <tr><td><strong>Filter</strong></td><td>View All, Unsynced, Synced, or Failed records</td></tr>
+  <tr><td><strong>Sync online</strong></td><td>Upload pending/failed records to the server (requires internet)</td></tr>
+  <tr><td><strong>Export all / Export unsynced</strong></td><td>Download records as an Excel file</td></tr>
+  <tr><td><strong>Edit</strong></td><td>Load the record back into the form for changes</td></tr>
+  <tr><td><strong>Delete</strong></td><td>Remove the record from your device</td></tr>
+</table>
+
+<h3>4.7 Complete Encoding Workflow Summary</h3>
+<ol>
+  <li><span class="step-num">1</span> Receive access code from administrator</li>
+  <li><span class="step-num">2</span> Log in online and wait for offline bundle download</li>
+  <li><span class="step-num">3</span> Go to the field — encode households (online or offline)</li>
+  <li><span class="step-num">4</span> Save each record; note the family serial number</li>
+  <li><span class="step-num">5</span> Return to connectivity and tap <strong>Sync online</strong></li>
+  <li><span class="step-num">6</span> Optionally export Excel backup locally</li>
+</ol>
+
+<!-- 5. VERIFY -->
+<h2 id="verify" class="page-break">5. Verifying Module</h2>
+
+<p><span class="module-badge">VERIFYING</span></p>
+<p>The Verifying module lets verification staff check whether a beneficiary is already registered before encoding proceeds.</p>
+
+<h3>5.1 Logging In</h3>
+<ol>
+  <li>Go to <strong>Verifying</strong> in the navigation bar.</li>
+  <li>Enter the verify password provided by your administrator.</li>
+</ol>
+
+<h3>5.2 Duplicate Check Tab</h3>
+<ol>
+  <li>Enter the beneficiary's <strong>first name</strong> and <strong>last name</strong> (required).</li>
+  <li>Optionally add middle name, birthdate, municipality, and barangay to narrow results.</li>
+  <li>Tap <strong>Search</strong>.</li>
+</ol>
+<p><strong>Results:</strong></p>
+<ul>
+  <li><strong>No match found</strong> — "You may proceed with encoding." Always confirm details with the household.</li>
+  <li><strong>Match found</strong> — Review cards showing encoder name, registration date, and location. Investigate before proceeding.</li>
+</ul>
+
+<h3>5.3 Export Excel Tab</h3>
+<p>Download synced online records filtered by municipality and barangay as an Excel file.</p>
+
+<h3>5.4 Offline Data Tab</h3>
+<p>Download a full copy of synced records to your device for offline duplicate checking:</p>
+<ol>
+  <li>Connect to the internet.</li>
+  <li>Tap <strong>Download</strong> on the Offline Data tab.</li>
+  <li>Wait for download to complete — record count and timestamp are shown.</li>
+  <li>Use <strong>Clear cache</strong> to remove the offline copy if needed.</li>
+</ol>
+
+<!-- 6. DASHBOARD -->
+<h2 id="dashboard" class="page-break">6. Dashboard &amp; Reports</h2>
+
+<p><span class="module-badge">DASHBOARD</span></p>
+<p>The Dashboard provides aggregated reports for coordinators and DSWD staff. No password is required.</p>
+
+<h3>6.1 Controls</h3>
+<ul>
+  <li><strong>Municipality filter</strong> — restrict reports to one municipality or view all</li>
+  <li><strong>Refresh</strong> — reload data from the server</li>
+  <li><strong>Cum / Now toggle</strong> — switch between cumulative totals and current-period counts</li>
+</ul>
+
+<h3>6.2 Report Tabs</h3>
+<table>
+  <tr><th>Tab</th><th>Contents</th></tr>
+  <tr><td><strong>Evacuation Center Info Board</strong></td><td>Per-EC families and persons, age distribution, sectoral breakdown</td></tr>
+  <tr><td><strong>Inside Evacuation Centers</strong></td><td>Data grouped by EC site with barangay breakdown</td></tr>
+  <tr><td><strong>Outside Evacuation Centers</strong></td><td>Barangay-level data for families not in ECs</td></tr>
+  <tr><td><strong>Sex, Age &amp; Sectoral</strong></td><td>Province-wide demographic breakdown</td></tr>
+  <tr><td><strong>Family &amp; Shelter</strong></td><td>House ownership and shelter damage totals</td></tr>
+</table>
+
+<p>Use your browser's print function (Ctrl+P) to print report views. Control buttons are hidden in print layout.</p>
+
+<!-- 7. ADMIN -->
+<h2 id="admin" class="page-break">7. Admin Module</h2>
+
+<p><span class="module-badge">ADMIN</span></p>
+<p>Administrators manage access codes, monitor encoding activity, and maintain the evacuation center library.</p>
+
+<h3>7.1 Logging In</h3>
+<p>Go to <strong>Admin</strong> and enter the admin password.</p>
+
+<h3>7.2 Summary Tab</h3>
+<ul>
+  <li>Per-enumerator statistics: encoded count, codes active/used/rejected</li>
+  <li><strong>Daily encoding chart</strong> — records synced per day (7, 14, or 30-day view)</li>
+  <li>Duplicate and trash metrics</li>
+  <li>Export Excel per enumerator</li>
+</ul>
+
+<h3>7.3 Create Codes Tab</h3>
+<ul>
+  <li><strong>Batch generate</strong> — create 1 to 100 codes at once</li>
+  <li><strong>Custom code</strong> — add a specific code with assignee name and email</li>
+</ul>
+<p>Codes follow the format <code>FACED-XXXX-XXXX</code>.</p>
+
+<h3>7.4 Manage Codes Tab</h3>
+<table>
+  <tr><th>Action</th><th>Description</th></tr>
+  <tr><td>Search</td><td>Find codes by value or assignee</td></tr>
+  <tr><td>Assign enumerator</td><td>Set name and email for a code before distribution</td></tr>
+  <tr><td>Reject code</td><td>Deactivate a code so it cannot be used</td></tr>
+  <tr><td>Export used codes</td><td>Download Excel of all used codes</td></tr>
+</table>
+
+<p><strong>Code lifecycle:</strong> Active → Used (bound to one device) or Rejected</p>
+
+<h3>7.5 EC Library Tab</h3>
+<p>Maintain the list of evacuation center sites used in the encoding form:</p>
+<ol>
+  <li>Select municipality and barangay.</li>
+  <li>Enter the evacuation center name.</li>
+  <li>Tap <strong>Add</strong>.</li>
+  <li>Use <strong>Delete</strong> to remove outdated sites.</li>
+</ol>
+<p>Changes appear in encoding form suggestions after enumerators refresh their offline bundle.</p>
+
+<!-- 8. RECORDS -->
+<h2 id="records" class="page-break">8. Records Module</h2>
+
+<p><span class="module-badge">RECORDS</span></p>
+<p>The Records module provides full management of records that have been synced to the server. It uses the same admin password.</p>
+
+<h3>8.1 All Records Tab</h3>
+<ul>
+  <li>Search by name, barangay, encoder, or UUID</li>
+  <li>Paginated list of all synced records</li>
+  <li>Export all matching records to Excel</li>
+</ul>
+
+<h3>8.2 Row Actions</h3>
+<table>
+  <tr><th>Action</th><th>Description</th></tr>
+  <tr><td><strong>View</strong></td><td>Open read-only record details</td></tr>
+  <tr><td><strong>Edit</strong></td><td>Modify the record on the server</td></tr>
+  <tr><td><strong>Print FACED</strong></td><td>Generate printable FACED annex form</td></tr>
+  <tr><td><strong>Generate FACED ID</strong></td><td>Generate printable FACED ID card with QR code</td></tr>
+  <tr><td><strong>Delete</strong></td><td>Soft-delete (move to Trash)</td></tr>
+</table>
+
+<h3>8.3 Duplicates Tab</h3>
+<p>Shows groups of records with matching head-of-family names. Review and resolve duplicate registrations.</p>
+
+<h3>8.4 Trash Tab</h3>
+<p>View soft-deleted records and restore them if deleted by mistake.</p>
+
+<!-- 9. PRINT -->
+<h2 id="print" class="page-break">9. Printing FACED Forms &amp; ID Cards</h2>
+
+<p>Printing is accessed from the Records module — not from the main navigation.</p>
+
+<h3>9.1 Print FACED Annex</h3>
+<ol>
+  <li>In Records, find the record and tap <strong>Print FACED</strong>.</li>
+  <li>A new tab opens with the formatted annex form.</li>
+  <li>The browser print dialog opens automatically.</li>
+  <li>Select your printer and print.</li>
+</ol>
+
+<h3>9.2 Generate FACED ID</h3>
+<ol>
+  <li>In Records, tap <strong>Generate FACED ID</strong> on a record row.</li>
+  <li>A new tab opens with the ID card layout including a QR code.</li>
+  <li>The print dialog opens automatically.</li>
+</ol>
+
+<div class="warning">
+  <strong>Pop-up blocker:</strong> If nothing opens, allow pop-ups for this site in your browser settings, then try again.
+</div>
+
+<!-- 10. OFFLINE & SYNC -->
+<h2 id="offline-sync" class="page-break">10. Offline Use &amp; Syncing</h2>
+
+<h3>10.1 How Offline Storage Works</h3>
+<p>Records you save during encoding are stored in your device's local database (IndexedDB). They remain on your device until you sync them to the server.</p>
+
+<h3>10.2 Sync Status Labels</h3>
+<table>
+  <tr><th>Status</th><th>Meaning</th></tr>
+  <tr><td><strong>Pending</strong></td><td>Saved locally, not yet uploaded</td></tr>
+  <tr><td><strong>Synced</strong></td><td>Successfully uploaded to the server</td></tr>
+  <tr><td><strong>Failed</strong></td><td>Upload attempted but failed — retry when online</td></tr>
+</table>
+
+<h3>10.3 Syncing Records</h3>
+<ol>
+  <li>Connect to the internet.</li>
+  <li>Go to Encoding → Saved records.</li>
+  <li>Tap <strong>Sync online</strong>.</li>
+  <li>Wait for confirmation: "Successfully synced N record(s) online."</li>
+</ol>
+
+<h3>10.4 Refreshing Offline Data</h3>
+<p>If you need updated duplicate-check data or EC library entries, log out and log back in while online to trigger a fresh offline bundle download.</p>
+
+<!-- 11. TROUBLESHOOTING -->
+<h2 id="troubleshooting" class="page-break">11. Troubleshooting</h2>
+
+<table>
+  <tr><th>Problem</th><th>Solution</th></tr>
+  <tr>
+    <td>Cannot log in — "offline" message</td>
+    <td>Connect to the internet. First-time login requires an active connection.</td>
+  </tr>
+  <tr>
+    <td>Access code rejected</td>
+    <td>Code may be used on another device, rejected by admin, or typed incorrectly. Contact your administrator.</td>
+  </tr>
+  <tr>
+    <td>"Encoder session expired"</td>
+    <td>Log out and log back in with your access code while online.</td>
+  </tr>
+  <tr>
+    <td>Sync fails or shows "Failed"</td>
+    <td>Check internet connection. Retry Sync online. If problem persists, export Excel backup and contact admin.</td>
+  </tr>
+  <tr>
+    <td>Duplicate check stuck on "Checking…"</td>
+    <td>Check connectivity. Offline mode uses cached data only — wait or proceed with caution.</td>
+  </tr>
+  <tr>
+    <td>Print / ID generation blocked</td>
+    <td>Allow pop-ups for this site in browser settings.</td>
+  </tr>
+  <tr>
+    <td>EC site not in suggestions</td>
+    <td>Ask administrator to add the site in Admin → EC Library, then re-download offline bundle.</td>
+  </tr>
+  <tr>
+    <td>Form won't save</td>
+    <td>Check all required fields, privacy checkbox, evacuation center selection, and family member entries.</td>
+  </tr>
+</table>
+
+<!-- 12. GLOSSARY -->
+<h2 id="glossary" class="page-break">12. Glossary</h2>
+
+<table>
+  <tr><th>Term</th><th>Definition</th></tr>
+  <tr><td><strong>Encoding</strong></td><td>Entering/registering a FACED household record in the field.</td></tr>
+  <tr><td><strong>Access code</strong></td><td>Login credential for enumerators (<code>FACED-XXXX-XXXX</code>). One code per device.</td></tr>
+  <tr><td><strong>Family serial number</strong></td><td>Unique ID assigned to each saved household record. Used for printing and verification.</td></tr>
+  <tr><td><strong>FACED</strong></td><td>Family Assistance Card in Emergencies and Disasters.</td></tr>
+  <tr><td><strong>EC</strong></td><td>Evacuation Center.</td></tr>
+  <tr><td><strong>Offline bundle</strong></td><td>Downloaded copy of synced records and EC library for offline use.</td></tr>
+  <tr><td><strong>Sync</strong></td><td>Uploading locally saved records to the central server database.</td></tr>
+  <tr><td><strong>Cum / Now</strong></td><td>Dashboard toggle: cumulative (all-time) vs. current-period counts.</td></tr>
+  <tr><td><strong>Soft delete</strong></td><td>Record hidden from main list but recoverable from Trash.</td></tr>
+  <tr><td><strong>PWA</strong></td><td>Progressive Web App — installable web application that works offline.</td></tr>
+  <tr><td><strong>4Ps</strong></td><td>Pantawid Pamilyang Pilipino Program (conditional cash transfer).</td></tr>
+  <tr><td><strong>IP</strong></td><td>Indigenous Peoples.</td></tr>
+  <tr><td><strong>PWD</strong></td><td>Person with Disability.</td></tr>
+</table>
+
+<footer class="doc-footer">
+  Online/Offline Faced Application · User Manual · Sarangani Province · Region XII<br/>
+  Made by DSWD Caraga · Republic of the Philippines
+</footer>
+
+</body>
+</html>
