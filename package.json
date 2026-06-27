@@ -4,7 +4,13 @@
   "private": true,
   "main": "electron/main.js",
   "scripts": {
+<<<<<<< HEAD
     "dev": "next dev --webpack -H 127.0.0.1",
+=======
+    "dev": "next dev --webpack",
+    "generate:migrations": "tsx scripts/generate-migrations-manifest.ts",
+    "prebuild": "npm run generate:migrations",
+>>>>>>> f9b6a95d58f9ab7fb5806727602038e583d1641f
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
