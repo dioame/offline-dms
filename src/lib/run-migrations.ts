@@ -2,7 +2,7 @@ import type { Client } from "@libsql/client";
 import { MIGRATIONS } from "./migrations-manifest";
 
 const ADD_COLUMN_PATTERN =
-  /ALTER\s+TABLE\s+(\w+)\s+ADD\s+COLUMN\s+(\w+)/is;
+  /ALTER\s+TABLE\s+(\w+)\s+ADD\s+COLUMN\s+(\w+)/i;
 
 function getErrorMessage(err: unknown): string {
   if (err instanceof Error) return err.message;
