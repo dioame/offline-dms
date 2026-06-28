@@ -725,8 +725,10 @@ export default function FacedForm({
   }
 
   function handleAssistanceClose() {
+    const wasEditing = assistanceContext?.isEditing ?? false;
     setAssistanceModalOpen(false);
     setAssistanceContext(null);
+    finishSaveFlow(wasEditing);
   }
 
   function handleAssistanceDone() {

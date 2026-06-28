@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import type { FamilyAssistanceRecordData } from "@/lib/family-assistance-types";
+import { todayDateInputValue } from "@/lib/faced-types";
 import { toTursoFamilyAssistanceRow, upsertFamilyAssistanceRecord, listFamilyAssistanceByFacedRecordUuid } from "@/lib/family-assistance";
 import { getFacedRecordAdmin } from "@/lib/records-admin";
 import { isTursoConfigured, verifyAdminPassword } from "@/lib/env";
@@ -97,6 +98,12 @@ export async function POST(request: Request, context: RouteContext) {
 
   if (!assistance.date_provided.trim()) {
     return NextResponse.json({ error: "Date provided is required." }, { status: 400 });
+  }
+  if (assistance.date_provided > todayDateInputValue()) {
+    return NextResponse.json(
+      { error: "Date provided cannot be in the future." },
+      { status: 400 },
+    );
   }
   if (!assistance.receiving_member_name.trim()) {
     return NextResponse.json({ error: "Receiving family member is required." }, { status: 400 });

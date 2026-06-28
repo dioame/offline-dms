@@ -1,4 +1,4 @@
-import type { FacedRecordData, SyncStatus } from "./faced-types";
+import { todayDateInputValue, type FacedRecordData, type SyncStatus } from "./faced-types";
 import { formatHeadName } from "./verify-match";
 
 export type FamilyAssistanceRecordData = {
@@ -33,7 +33,7 @@ export function createEmptyFamilyAssistanceRecord(
   return {
     faced_record_uuid: facedRecordUuid,
     access_code: accessCode,
-    date_provided: new Date().toISOString().slice(0, 10),
+    date_provided: todayDateInputValue(),
     receiving_member_name: "",
     assistance_received: "",
     unit: "",
@@ -114,6 +114,33 @@ export const ASSISTANCE_RECEIVED_SUGGESTIONS = [
   "Laminated Sack",
 ] as const;
 
-export const ASSISTANCE_UNIT_SUGGESTIONS = ["box", "pack", "pcs", "set"] as const;
+export const ASSISTANCE_UNIT_SUGGESTIONS = ["box", "pack", "pcs", "set", "kit"] as const;
 
 export const ASSISTANCE_PROVIDER_SUGGESTIONS = ["DSWD", "LGU", "NGO"] as const;
+
+export function validateFamilyAssistanceRecord(
+  record: FamilyAssistanceRecordData,
+): string | null {
+  if (!record.date_provided.trim()) {
+    return "Please enter the date assistance was provided.";
+  }
+  if (record.date_provided > todayDateInputValue()) {
+    return "Date provided cannot be in the future.";
+  }
+  if (!record.receiving_member_name.trim()) {
+    return "Please enter the receiving family member.";
+  }
+  if (!record.assistance_received.trim()) {
+    return "Please enter the assistance received.";
+  }
+  if (!record.provider.trim()) {
+    return "Please enter the provider.";
+  }
+  return null;
+}
+
+export function assistanceEntryTitle(record: FamilyAssistanceRecordData, index: number): string {
+  const assistance = record.assistance_received.trim();
+  if (assistance) return assistance;
+  return `Assistance entry ${index + 1}`;
+}

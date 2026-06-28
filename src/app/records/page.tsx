@@ -509,18 +509,21 @@ export default function RecordsPage() {
     }
   }
 
-  async function saveAssistanceForRecord(data: FamilyAssistanceRecordData) {
-    const res = await adminFetch(`/api/admin/records/${data.faced_record_uuid}/assistance`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
-    const body = await res.json();
-    if (!res.ok) {
-      throw new Error(body.error || "Failed to save assistance record.");
+  async function saveAssistanceForRecord(records: FamilyAssistanceRecordData[]) {
+    for (const data of records) {
+      const res = await adminFetch(`/api/admin/records/${data.faced_record_uuid}/assistance`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        throw new Error(body.error || "Failed to save assistance record.");
+      }
     }
-    if (viewAssistance?.familyUuid === data.faced_record_uuid) {
-      await refreshViewAssistanceIfOpen(data.faced_record_uuid);
+    const familyUuid = records[0]?.faced_record_uuid;
+    if (familyUuid && viewAssistance?.familyUuid === familyUuid) {
+      await refreshViewAssistanceIfOpen(familyUuid);
     }
   }
 
