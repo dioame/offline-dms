@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { PenLine } from "lucide-react";
+import AdminPasswordUpdateNotice from "@/components/AdminPasswordUpdateNotice";
 import BrandEmblem from "@/components/brand/BrandEmblem";
 import TricolorBar from "@/components/brand/TricolorBar";
 import DashboardReports from "@/components/dashboard/DashboardReports";
@@ -30,6 +31,10 @@ export default function DashboardPage() {
         </div>
         <TricolorBar thick />
       </header>
+
+      <div className="mx-auto max-w-[min(96rem,100%)] px-4 pt-4">
+        <AdminPasswordUpdateNotice />
+      </div>
 
       <main className="mx-auto max-w-[min(96rem,100%)] px-4 py-6">
         <DashboardReports />
