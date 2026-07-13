@@ -20,7 +20,6 @@ import {
   Sparkles,
   Tent,
 } from "lucide-react";
-import AdminPasswordUpdateNotice from "@/components/AdminPasswordUpdateNotice";
 import BrandEmblem from "@/components/brand/BrandEmblem";
 import TricolorBar from "@/components/brand/TricolorBar";
 import EcLibraryPanel from "@/components/admin/EcLibraryPanel";
@@ -440,9 +439,6 @@ export default function AdminPage() {
           <p className={cn(ui.kicker, "text-xs font-bold uppercase")}>Administration</p>
           <h1 className="text-xl font-bold text-white">Access Code Management</h1>
           <TricolorBar thick className="mx-auto mt-4 max-w-xs" />
-          <div className="mx-auto mt-4 max-w-2xl px-4 text-left">
-            <AdminPasswordUpdateNotice />
-          </div>
         </div>
         <div className="flex flex-1 items-center justify-center p-4">
           <div className={cn(ui.loginCard, "w-full max-w-md")}>
